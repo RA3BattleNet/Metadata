@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Depot Name="Application">
+    <Tags>
+        <!-- 预留标记 -->
+        <Developer>RA3CoronaDevelopers</Developer>
+    </Tags>
+    <Defines>
+        <Packages>
+            <Package>
+                <Version>3.10.8811.300</Version>
+                <ReleaseDate>2024-10-01</ReleaseDate>
+                <Changelogs>
+                    <zh-CN>changelog-zh-3.10.8811.300.md</zh-CN>
+                    <en-US>changelog-en-3.10.8811.300.md</en-US>
+                </Changelogs>
+                <HashList>Hash-Application-3.10.8811.300.txt</HashList>
+            </Package>
+        </Packages>
+    </Defines>
+</Depot>

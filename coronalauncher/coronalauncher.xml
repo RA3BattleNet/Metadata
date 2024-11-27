@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Module Name="CoronaLauncher">
+    <Tags>
+        <!-- 预留标记 -->
+    </Tags>
+    <Includes>
+        <!-- 包含子模块 -->
+        <Depot Name="Application" Source="depot-application.xml" />
+    </Includes>
+    <Defines>
+        <MainDepot>Application</MainDepot>
+        <LauncherVersion>3.10.8811.300</LauncherVersion>
+        <InsiderModVersion>3.215</InsiderModVersion>
+        <StableModVersion>3.215</StableModVersion>
+    </Defines>
+</Module>

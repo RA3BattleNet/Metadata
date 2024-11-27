@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Module Name="META">
+    <Tags>
+        <!-- 预留标记 -->
+    </Tags>
+    <Includes>
+        <!-- 包含子模块 -->
+        <Module Name="Client" Source="client/client.xml" />
+        <Module Name="CoronaLauncher" Source="coronalauncher/coronalauncher.xml" />
+    </Includes>
+</Module>
