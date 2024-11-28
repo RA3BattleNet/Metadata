@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Module Name="Client">
+<Module Name="Client" Commit="{ENV:CF_PAGES_COMMIT_SHA}">
     <Tags>
         <!-- 预留标记 -->
     </Tags>
