@@ -15,8 +15,8 @@
         <DownloadUrl>https://file.rmrts.com/srv/ra3battlenet/launcher/RA3BattleNet_Setup_{Version}.exe</DownloadUrl>
         <InstallerUrl>https://bakneko.com/ra3battlenet/RA3BattleNet_Downloader_{Version}.exe</InstallerUrl>
         <Changelogs>
-            <zh-CN>changelog-en.txt</zh-CN>
-            <en-US>changelog-cn.txt</en-US>
+            <zh-CN MD5="{MD5:this}">changelog-en.txt</zh-CN>
+            <en-US MD5="{MD5:this}">changelog-cn.txt</en-US>
         </Changelogs>
     </Defines>
 </Module>

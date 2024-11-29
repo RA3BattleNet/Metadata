@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Module Name="Example" Commit="{ENV:CF_PAGES_COMMIT_SHA}">
+    
+</Module>
