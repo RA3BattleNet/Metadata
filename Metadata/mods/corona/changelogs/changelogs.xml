@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <!-- 预留标记 -->
+        <Commit>${ENV:CF_PAGES_COMMIT_SHA}</Commit>
+    </Tags>
+    <Includes>
+        <!-- 子模块 -->
+    </Includes>
+    
+    <!-- 注册 Markdown 文件 -->
+    <Markdown ID="changelog-zh-1.5.2.0" Source="zh-1.5.2.0.md" Hash="${MD5::}"/>
+    <Markdown ID="changelog-en-1.5.2.0" Source="en-1.5.2.0.md" Hash="${MD5::}"/>
+    <Markdown ID="changelog-zh-1.5.1.0" Source="zh-1.5.1.0.md" Hash="${MD5::}"/>
+    <Markdown ID="changelog-en-1.5.1.0" Source="en-1.5.1.0.md" Hash="${MD5::}"/>
+
+</Metadata>

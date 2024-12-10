@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <!-- 预留标记 -->
+        <Commit>${ENV:CF_PAGES_COMMIT_SHA}</Commit>
+    </Tags>
+    <Includes>
+        <!-- 子模块 -->
+    </Includes>
+    <!-- 对于程序的清单文件一般是自动生成，需要一个方法方便生成 -->
+    <Manifest ID="manifest-1.5.1.0">
+        <File Hash="9B623C7CD8BC875B24DFF442EBD17820">
+            <FileName>NativeDll.dll</FileName>
+            <RelativePath>/contents/</RelativePath>
+            <KindOf>APPLICATION; PROGRAM; </KindOf>
+        </File>
+        <!-- 类似地编的子文件夹(Manifest) -->
+        <SubManifest>
+            <RelativePath>/WorldBuilder/</RelativePath>
+            <ID>NewWorldBuilder-v20</ID>
+        </SubManifest>
+    </Manifest>
+</Metadata>

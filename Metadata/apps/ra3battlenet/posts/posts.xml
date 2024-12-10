@@ -6,7 +6,10 @@
     </Tags>
     <Includes>
         <!-- 子模块 -->
-        <Include Source="mods/mods.xml" Type="public" />
-        <Include Source="apps/apps.xml" Type="public" />
     </Includes>
+    
+    <!-- 注册 Markdown 文件 -->
+    <Markdown ID="news-zh-1.5.2.0" Source="news-zh-1.5.2.0.md" Hash="${MD5::}"/>
+    <Markdown ID="news-zh-1.5.1.0" Source="news-zh-1.5.1.0.md" Hash="${MD5::}"/>
+
 </Metadata>

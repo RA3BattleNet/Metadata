@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <!-- 预留标记 -->
+        <Commit>${ENV:CF_PAGES_COMMIT_SHA}</Commit>
+    </Tags>
+    <Includes>
+        <!-- 子模块 -->
+    </Includes>
+    <!-- MOD的更新清单，如果需要增量更新比较复杂 -->
+    <Manifest ID="manifest-3228">
+        <File Hash="">
+            <FileName>corona_3.228.lyi</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MOD; ENCRYPTED_FILE; CAN_PATCH;</KindOf>
+            <PatchInfo>
+                <Patch From="9B623C7CD8BC875B24DFF442EBD17820" Method="Zstd" Encryption="CoronaLyiEncryption" />
+            </PatchInfo>
+        </File>
+        <File Hash="">
+            <FileName>coronaBGM_3.228.lyi</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MOD; ENCRYPTED_FILE; CAN_PATCH;</KindOf>
+            <PatchInfo>
+                <Patch From="4427CD8BC879B623C05B24DFFEBD1782" Method="Zstd" Encryption="CoronaLyiEncryption" />
+            </PatchInfo>
+        </File>
+    </Manifest>
+</Metadata>
