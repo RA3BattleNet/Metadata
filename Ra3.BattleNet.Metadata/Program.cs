@@ -3,7 +3,7 @@
     internal class Program
     {
         public static string srcMetadataFolder = "./Metadata";
-        public static string dstOutputFolder = "./Output";
+        public static string dstOutputFolder = "./output";
         static void Main(string[] args)
         {
 
