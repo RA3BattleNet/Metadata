@@ -122,6 +122,59 @@ namespace Ra3.BattleNet.Metadata
             }
         }
 
+        /// <summary>
+        /// 在原文件中替换变量并验证资源
+        /// </summary>
+        /// <param name="filePath">要处理的XML文件路径</param>
+        /// <exception cref="InvalidOperationException">当XML结构无效或资源验证失败时抛出</exception>
+        /// <summary>
+        /// 在原文件中替换变量并验证资源
+        /// </summary>
+        /// <param name="filePath">要处理的XML文件路径</param>
+        /// <exception cref="InvalidOperationException">当XML结构无效或资源验证失败时抛出</exception>
+        public void ReplaceVariablesInFile(string filePath)
+        {
+            try
+            {
+                // 加载原始XML文件
+                var doc = XDocument.Load(filePath);
+                var root = doc.Root ?? throw new InvalidOperationException("无效的XML结构: 缺少根节点");
+
+                // 验证所有Include/Module资源
+                ValidateResources(root, Path.GetDirectoryName(filePath));
+
+                // 替换变量
+                ReplaceVariables(root);
+
+                // 保存回原文件
+                doc.Save(filePath);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"替换变量失败: {filePath}", ex);
+            }
+        }
+
+        private void ValidateResources(XElement element, string basePath)
+        {
+            foreach (var include in element.Elements("Include").Concat(element.Elements("Module")))
+            {
+                var path = include.Attribute("Path")?.Value ?? include.Attribute("Source")?.Value;
+                if (string.IsNullOrEmpty(path)) continue;
+
+                var fullPath = Path.Combine(basePath, path.Replace('/', '\\'));
+                if (!File.Exists(fullPath))
+                {
+                    throw new FileNotFoundException($"引用的资源文件不存在: {fullPath} (来自元素: {include.Name.LocalName})");
+                }
+            }
+
+            foreach (var child in element.Elements())
+            {
+                ValidateResources(child, basePath);
+            }
+        }
+
         private XElement ToXElement()
         {
             var element = new XElement(Name);
@@ -155,7 +208,12 @@ namespace Ra3.BattleNet.Metadata
                     if (!string.IsNullOrEmpty(includePath))
                     {
                         string normalizedPath = includePath.Replace('/', '\\');
-                        string fullIncludePath = Path.Combine(Path.GetDirectoryName(currentFilePath) ?? string.Empty, normalizedPath);
+                        var dir = Path.GetDirectoryName(currentFilePath);
+                        if (string.IsNullOrEmpty(dir))
+                        {
+                            throw new InvalidOperationException($"无法确定文件目录: {currentFilePath}");
+                        }
+                        string fullIncludePath = Path.Combine(dir, normalizedPath);
                         var included = LoadFromFile(fullIncludePath);
                         _children.Add(included);
                     }
@@ -192,7 +250,12 @@ namespace Ra3.BattleNet.Metadata
                 var source = include.Attribute("Source")?.Value;
                 if (string.IsNullOrEmpty(source)) continue;
 
-                var fullPath = Path.Combine(Path.GetDirectoryName(_currentFilePath) ?? string.Empty, source.Replace('/', '\\'));
+                var dir = Path.GetDirectoryName(_currentFilePath);
+                if (string.IsNullOrEmpty(dir))
+                {
+                    throw new InvalidOperationException($"无法确定文件目录: {_currentFilePath}");
+                }
+                var fullPath = Path.Combine(dir, source.Replace('/', '\\'));
                 if (!File.Exists(fullPath)) continue;
 
                 var includedDoc = XDocument.Load(fullPath);
@@ -267,7 +330,12 @@ namespace Ra3.BattleNet.Metadata
                         {
                             return ComputeFileHash(_currentFilePath);
                         }
-                        return ComputeFileHash(Path.Combine(Path.GetDirectoryName(_currentFilePath) ?? string.Empty, fileToHash));
+                        var dir = Path.GetDirectoryName(_currentFilePath);
+                        if (string.IsNullOrEmpty(dir))
+                        {
+                            return $"HASH_ERROR_DIR_NOT_FOUND:{_currentFilePath}";
+                        }
+                        return ComputeFileHash(Path.Combine(dir, fileToHash));
                     case "META":
                         if (parts.Length < 2) return match.Value;
                         try

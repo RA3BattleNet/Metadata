@@ -44,15 +44,13 @@ namespace Ra3.BattleNet.Metadata
 
             try
             {
-                // 1. 加载并编译metadata.xml
+                // 1. 加载并处理metadata.xml
                 string metadataPath = Path.Combine(srcMetadataFolder, "metadata.xml");
                 var metadata = Metadata.LoadFromFile(metadataPath);
-                var compiledDoc = metadata.Compile();
-
-                // 2. 保存编译后的文件
-                string compiledPath = Path.Combine(dstOutputFolder ?? DefaultDstFolder, "metadata.compiled.xml");
-                compiledDoc.Save(compiledPath);
-                Console.WriteLine($"已生成编译后的元数据文件: {compiledPath}");
+                
+                // 2. 在原文件中替换变量并验证资源
+                metadata.ReplaceVariablesInFile(metadataPath);
+                Console.WriteLine($"已处理元数据文件: {metadataPath}");
 
                 // 3. 复制所有其他文件到输出目录
                 string[] files = Directory.GetFiles(srcMetadataFolder, "*.*", SearchOption.AllDirectories);
@@ -75,11 +73,11 @@ namespace Ra3.BattleNet.Metadata
 
                 Console.WriteLine("文件处理完成！");
 
-                // 4. 验证编译后的文件
+                // 4. 验证处理后的文件
                 try
                 {
-                    var verifiedMetadata = Metadata.LoadFromFile(compiledPath);
-                    Console.WriteLine($"成功验证编译后的元数据");
+                    var verifiedMetadata = Metadata.LoadFromFile(metadataPath);
+                    Console.WriteLine($"成功验证处理后的元数据");
                     Console.WriteLine($"根节点: {verifiedMetadata.Name}");
                     Console.WriteLine($"包含 {verifiedMetadata.Children.Count} 个子节点");
 
@@ -92,7 +90,7 @@ namespace Ra3.BattleNet.Metadata
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"验证编译后的元数据时发生错误: {ex.Message}");
+                    Console.WriteLine($"验证处理后的元数据时发生错误: {ex.Message}");
                 }
             }
             catch (Exception ex)
