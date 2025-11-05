@@ -335,7 +335,9 @@ namespace Ra3.BattleNet.Metadata
                         var fileToHash = parts.Length > 1 ? parts[1] : "";
                         if (string.IsNullOrEmpty(fileToHash))
                         {
-                            // ${MD5::} - check if we're in a Hash attribute and there's a Source attribute
+                            // ${MD5::} - When used in a Hash attribute, compute hash of file in Source attribute
+                            // Example: <Markdown Source="file.md" Hash="${MD5::}"/> 
+                            // This will compute the MD5 hash of "file.md"
                             if (currentAttr != null && currentAttr.Name.LocalName == "Hash")
                             {
                                 var sourceAttr = context.Attribute("Source");
