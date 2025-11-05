@@ -1,12 +1,12 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Metadata>
-    <Tags>
-        <!-- 预留标记 -->
-        <Commit>${ENV:CF_PAGES_COMMIT_SHA}</Commit>
-    </Tags>
-    <Includes>
-        <!-- 子模块 -->
-        <Include Source="mods/mods.xml" Type="public" />
-        <Include Source="apps/apps.xml" Type="public" />
-    </Includes>
+  <Tags>
+    <!-- 预留标记 -->
+    <Commit>${ENV:CF_PAGES_COMMIT_SHA}</Commit>
+  </Tags>
+  <Includes>
+    <!-- 子模块 -->
+    <Include Source="mods/mods.xml" Type="public" />
+    <Include Source="apps/apps.xml" Type="public" />
+  </Includes>
 </Metadata>

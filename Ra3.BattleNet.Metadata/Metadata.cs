@@ -25,7 +25,12 @@ namespace Ra3.BattleNet.Metadata
         {
             foreach (System.Collections.DictionaryEntry env in Environment.GetEnvironmentVariables())
             {
-                _envVars[env.Key.ToString()] = env.Value.ToString();
+                var key = env.Key?.ToString();
+                var value = env.Value?.ToString();
+                if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
+                {
+                    _envVars[key] = value;
+                }
             }
         }
 
@@ -141,7 +146,7 @@ namespace Ra3.BattleNet.Metadata
                 var root = doc.Root ?? throw new InvalidOperationException("无效的XML结构: 缺少根节点");
 
                 // 验证所有Include/Module资源
-                ValidateResources(root, Path.GetDirectoryName(filePath));
+                ValidateResources(root, Path.GetDirectoryName(filePath) ?? string.Empty);
 
                 // 替换变量
                 ReplaceVariables(root);
@@ -155,14 +160,16 @@ namespace Ra3.BattleNet.Metadata
             }
         }
 
-        private void ValidateResources(XElement element, string basePath)
+        private void ValidateResources(XElement element, string? basePath)
         {
+            if (string.IsNullOrEmpty(basePath)) return;
+
             foreach (var include in element.Elements("Include").Concat(element.Elements("Module")))
             {
                 var path = include.Attribute("Path")?.Value ?? include.Attribute("Source")?.Value;
                 if (string.IsNullOrEmpty(path)) continue;
 
-                var fullPath = Path.Combine(basePath, path.Replace('/', '\\'));
+                var fullPath = Path.Combine(basePath, path.Replace('/', Path.DirectorySeparatorChar));
                 if (!File.Exists(fullPath))
                 {
                     throw new FileNotFoundException($"引用的资源文件不存在: {fullPath} (来自元素: {include.Name.LocalName})");
@@ -207,7 +214,7 @@ namespace Ra3.BattleNet.Metadata
                     var includePath = child.Attribute("Path")?.Value ?? child.Attribute("Source")?.Value;
                     if (!string.IsNullOrEmpty(includePath))
                     {
-                        string normalizedPath = includePath.Replace('/', '\\');
+                        string normalizedPath = includePath.Replace('/', Path.DirectorySeparatorChar);
                         var dir = Path.GetDirectoryName(currentFilePath);
                         if (string.IsNullOrEmpty(dir))
                         {
@@ -255,7 +262,7 @@ namespace Ra3.BattleNet.Metadata
                 {
                     throw new InvalidOperationException($"无法确定文件目录: {_currentFilePath}");
                 }
-                var fullPath = Path.Combine(dir, source.Replace('/', '\\'));
+                var fullPath = Path.Combine(dir, source.Replace('/', Path.DirectorySeparatorChar));
                 if (!File.Exists(fullPath)) continue;
 
                 var includedDoc = XDocument.Load(fullPath);
@@ -279,7 +286,7 @@ namespace Ra3.BattleNet.Metadata
                 {
                     try
                     {
-                        attr.Value = ResolveVariables(attr.Value, element);
+                        attr.Value = ResolveVariables(attr.Value, element, attr);
                     }
                     catch (Exception ex)
                     {
@@ -291,7 +298,7 @@ namespace Ra3.BattleNet.Metadata
                 {
                     try
                     {
-                        element.Value = ResolveVariables(element.Value, element);
+                        element.Value = ResolveVariables(element.Value, element, null);
                     }
                     catch (Exception ex)
                     {
@@ -310,7 +317,7 @@ namespace Ra3.BattleNet.Metadata
             }
         }
 
-        private string ResolveVariables(string input, XElement context)
+        private string ResolveVariables(string input, XElement context, XAttribute? currentAttr)
         {
             return System.Text.RegularExpressions.Regex.Replace(input, @"\$\{(.*?)\}", match =>
             {
@@ -328,7 +335,20 @@ namespace Ra3.BattleNet.Metadata
                         var fileToHash = parts.Length > 1 ? parts[1] : "";
                         if (string.IsNullOrEmpty(fileToHash))
                         {
-                            return ComputeFileHash(_currentFilePath);
+                            // ${MD5::} - check if we're in a Hash attribute and there's a Source attribute
+                            if (currentAttr != null && currentAttr.Name.LocalName == "Hash")
+                            {
+                                var sourceAttr = context.Attribute("Source");
+                                if (sourceAttr != null && !string.IsNullOrEmpty(sourceAttr.Value))
+                                {
+                                    fileToHash = sourceAttr.Value;
+                                }
+                            }
+                            
+                            if (string.IsNullOrEmpty(fileToHash))
+                            {
+                                return ComputeFileHash(_currentFilePath);
+                            }
                         }
                         var dir = Path.GetDirectoryName(_currentFilePath);
                         if (string.IsNullOrEmpty(dir))
@@ -443,10 +463,10 @@ namespace Ra3.BattleNet.Metadata
             if (parts.Length == 0)
                 return null;
 
-            Metadata current = this;
+            Metadata? current = this;
             foreach (var part in parts)
             {
-                current = current._children.FirstOrDefault(c => c.Name == part);
+                current = current?._children.FirstOrDefault(c => c.Name == part);
                 if (current == null)
                     return null;
             }
