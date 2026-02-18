@@ -14,12 +14,16 @@ namespace Ra3.BattleNet.Metadata
         private readonly Dictionary<string, string> _envVars = new();
         private readonly Dictionary<string, string> _fileHashes = new();
         private string _currentFilePath = string.Empty;
+        private Metadata? _parent = null;
+        private string _includeType = "public"; // "public" 或 "private"
 
         public string Name { get; private set; } = string.Empty;
         public IReadOnlyDictionary<string, string> Variables => _variables;
         public IReadOnlyList<Metadata> Children => _children;
         public IReadOnlyDictionary<string, string> Defines => _defines;
         public IReadOnlyList<Metadata> DefineChildren => _defineChildren;
+        public Metadata? Parent => _parent;
+        public string IncludeType => _includeType;
 
         public Metadata()
         {
@@ -36,6 +40,7 @@ namespace Ra3.BattleNet.Metadata
         /// <returns>解析后的Metadata对象</returns>
         /// <exception cref="XmlException">当XML格式无效时抛出</exception>
         /// <exception cref="FileNotFoundException">当文件不存在时抛出</exception>
+        /// <exception cref="InvalidOperationException">当检测到循环引用时抛出</exception>
         public static Metadata LoadFromFile(string path)
         {
             if (string.IsNullOrWhiteSpace(path))
@@ -61,7 +66,7 @@ namespace Ra3.BattleNet.Metadata
             {
                 using var reader = XmlReader.Create(fullPath, settings);
                 var doc = XDocument.Load(reader);
-                
+
                 if (doc.Root == null || doc.Root.Name != "Metadata")
                     throw new XmlException("无效的XML结构: 缺少根节点或根节点名称不是'Metadata'");
 
@@ -69,8 +74,10 @@ namespace Ra3.BattleNet.Metadata
                 {
                     _currentFilePath = fullPath
                 };
-                
-                metadata.ParseElement(doc.Root, fullPath);
+
+                // 创建路径追踪集合用于循环检测
+                var loadingPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { fullPath };
+                metadata.ParseElement(doc.Root, fullPath, loadingPaths);
                 return metadata;
             }
             catch (XmlException ex)
@@ -189,7 +196,7 @@ namespace Ra3.BattleNet.Metadata
             return element;
         }
 
-        private void ParseElement(XElement? element, string currentFilePath)
+        private void ParseElement(XElement? element, string currentFilePath, HashSet<string>? loadingPaths = null)
         {
             if (element == null) return;
 
@@ -205,6 +212,8 @@ namespace Ra3.BattleNet.Metadata
                 if (child.Name.LocalName == "Include" || child.Name.LocalName == "Module")
                 {
                     var includePath = child.Attribute("Path")?.Value ?? child.Attribute("Source")?.Value;
+                    var includeType = child.Attribute("Type")?.Value ?? "public"; // 默认为public
+
                     if (!string.IsNullOrEmpty(includePath))
                     {
                         string normalizedPath = includePath.Replace('/', '\\');
@@ -213,8 +222,19 @@ namespace Ra3.BattleNet.Metadata
                         {
                             throw new InvalidOperationException($"无法确定文件目录: {currentFilePath}");
                         }
-                        string fullIncludePath = Path.Combine(dir, normalizedPath);
-                        var included = LoadFromFile(fullIncludePath);
+                        string fullIncludePath = Path.GetFullPath(Path.Combine(dir, normalizedPath));
+
+                        // 循环引用检测
+                        if (loadingPaths != null && loadingPaths.Contains(fullIncludePath))
+                        {
+                            var pathChain = string.Join(" -> ", loadingPaths) + " -> " + fullIncludePath;
+                            throw new InvalidOperationException($"检测到循环引用: {pathChain}");
+                        }
+
+                        // 加载Include文件
+                        var included = LoadFromFileInternal(fullIncludePath, loadingPaths);
+                        included._parent = this;
+                        included._includeType = includeType;
                         _children.Add(included);
                     }
                 }
@@ -225,7 +245,8 @@ namespace Ra3.BattleNet.Metadata
                         if (define.HasElements)
                         {
                             var defineChild = new Metadata();
-                            defineChild.ParseElement(define, currentFilePath);
+                            defineChild._parent = this;
+                            defineChild.ParseElement(define, currentFilePath, loadingPaths);
                             _defineChildren.Add(defineChild);
                         }
                         else
@@ -237,9 +258,61 @@ namespace Ra3.BattleNet.Metadata
                 else
                 {
                     var childMetadata = new Metadata();
-                    childMetadata.ParseElement(child, currentFilePath);
+                    childMetadata._parent = this;
+                    childMetadata.ParseElement(child, currentFilePath, loadingPaths);
                     _children.Add(childMetadata);
                 }
+            }
+        }
+
+        /// <summary>
+        /// 内部加载方法，支持循环检测
+        /// </summary>
+        private static Metadata LoadFromFileInternal(string fullPath, HashSet<string>? loadingPaths)
+        {
+            if (!File.Exists(fullPath))
+                throw new FileNotFoundException($"找不到文件: {fullPath}");
+
+            // 配置XML验证设置
+            var settings = new XmlReaderSettings
+            {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                ValidationFlags = XmlSchemaValidationFlags.None,
+                IgnoreWhitespace = true
+            };
+
+            try
+            {
+                using var reader = XmlReader.Create(fullPath, settings);
+                var doc = XDocument.Load(reader);
+
+                if (doc.Root == null || doc.Root.Name != "Metadata")
+                    throw new XmlException("无效的XML结构: 缺少根节点或根节点名称不是'Metadata'");
+
+                var metadata = new Metadata
+                {
+                    _currentFilePath = fullPath
+                };
+
+                // 创建新的路径集合或复制现有集合
+                HashSet<string> newLoadingPaths;
+                if (loadingPaths != null)
+                {
+                    newLoadingPaths = new HashSet<string>(loadingPaths, StringComparer.OrdinalIgnoreCase);
+                    newLoadingPaths.Add(fullPath);
+                }
+                else
+                {
+                    newLoadingPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { fullPath };
+                }
+
+                metadata.ParseElement(doc.Root, fullPath, newLoadingPaths);
+                return metadata;
+            }
+            catch (XmlException ex)
+            {
+                throw new XmlException($"XML解析失败: {fullPath}", ex);
             }
         }
 
@@ -461,9 +534,120 @@ namespace Ra3.BattleNet.Metadata
 
             var parentPath = path.Substring(0, lastColon);
             var key = path.Substring(lastColon + 1);
-            
+
             var parent = Find(parentPath);
             return parent?.Get(key);
+        }
+
+        /// <summary>
+        /// 按ID查找元素，考虑访问控制规则
+        /// </summary>
+        /// <param name="id">元素ID</param>
+        /// <returns>找到的元素，如果不存在或不可访问则返回null</returns>
+        public Metadata? GetElementById(string id)
+        {
+            // 在当前节点查找
+            if (Get("ID") == id)
+                return this;
+
+            // 在子节点中查找
+            foreach (var child in _children)
+            {
+                // 如果是private类型的Include，只在其子树中查找
+                if (child._includeType == "private")
+                {
+                    var found = child.GetElementByIdInSubtree(id);
+                    if (found != null)
+                        return found;
+                }
+                // 如果是public类型，递归查找
+                else
+                {
+                    var found = child.GetElementById(id);
+                    if (found != null)
+                        return found;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 在子树中查找元素（不向上传播）
+        /// </summary>
+        private Metadata? GetElementByIdInSubtree(string id)
+        {
+            if (Get("ID") == id)
+                return this;
+
+            foreach (var child in _children)
+            {
+                var found = child.GetElementByIdInSubtree(id);
+                if (found != null)
+                    return found;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 获取所有指定名称的元素
+        /// </summary>
+        /// <param name="name">元素名称</param>
+        /// <returns>匹配的元素列表</returns>
+        public List<Metadata> GetAllElements(string name)
+        {
+            var results = new List<Metadata>();
+
+            if (Name == name)
+                results.Add(this);
+
+            foreach (var child in _children)
+            {
+                results.AddRange(child.GetAllElements(name));
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// 获取元素的完整路径
+        /// </summary>
+        /// <returns>从根到当前元素的路径字符串</returns>
+        public string GetElementPath()
+        {
+            var path = new List<string>();
+            var current = this;
+
+            while (current != null)
+            {
+                path.Insert(0, current.Name);
+                current = current._parent;
+            }
+
+            return string.Join(" -> ", path);
+        }
+
+        /// <summary>
+        /// 获取Include引用关系树的可视化表示
+        /// </summary>
+        /// <param name="indent">缩进级别</param>
+        /// <returns>树状结构字符串</returns>
+        public string GetIncludeTree(int indent = 0)
+        {
+            var sb = new System.Text.StringBuilder();
+            var indentStr = new string(' ', indent * 2);
+
+            var id = Get("ID") ?? Name;
+            var typeInfo = _includeType == "private" ? " [private]" : "";
+            sb.AppendLine($"{indentStr}{id}{typeInfo}");
+
+            foreach (var child in _children)
+            {
+                sb.Append(child.GetIncludeTree(indent + 1));
+            }
+
+            return sb.ToString();
         }
     }
 }

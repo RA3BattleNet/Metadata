@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Version>1.0.0</Version>
+        <Author>Test Author</Author>
+    </Tags>
+    <Application ID="TestApp">
+        <Name>Test Application</Name>
+        <Description>This is a test application</Description>
+    </Application>
+</Metadata>

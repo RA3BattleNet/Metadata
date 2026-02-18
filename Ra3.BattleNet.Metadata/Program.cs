@@ -7,115 +7,122 @@ namespace Ra3.BattleNet.Metadata
     {
         private const string DefaultSrcFolder = "./Metadata";
         private const string DefaultDstFolder = "./Output";
-        
-        public static string srcMetadataFolder = DefaultSrcFolder;
-        public static string dstOutputFolder = DefaultDstFolder;
-
-        private static string GetArgValue(string arg, string defaultValue)
-        {
-            var parts = arg.Split('=');
-            return parts.Length > 1 ? parts[1] : defaultValue;
-        }
 
         static void Main(string[] args)
         {
-            // 读取构建脚本中的参数
+            // 解析命令行参数
+            var srcFolder = DefaultSrcFolder;
+            var dstFolder = DefaultDstFolder;
+
             foreach (string arg in args)
             {
                 if (arg.StartsWith("--src="))
                 {
-                    srcMetadataFolder = GetArgValue(arg, DefaultSrcFolder);
+                    srcFolder = arg.Split('=')[1];
                 }
-                if (arg.StartsWith("--dst="))
+                else if (arg.StartsWith("--dst="))
                 {
-                    dstOutputFolder = GetArgValue(arg, DefaultDstFolder);
+                    dstFolder = arg.Split('=')[1];
                 }
-            }
-
-            // 如果目标文件夹不存在，则创建它
-            if (!Directory.Exists(dstOutputFolder))
-            {
-                Directory.CreateDirectory(dstOutputFolder ?? DefaultDstFolder);
             }
 
             Console.WriteLine($"工作目录: {Environment.CurrentDirectory}");
-            Console.WriteLine($"元数据源目录: {srcMetadataFolder}");
-            Console.WriteLine($"输出目录: {dstOutputFolder}");
+            Console.WriteLine($"元数据源目录: {srcFolder}");
+            Console.WriteLine($"输出目录: {dstFolder}");
+            Console.WriteLine();
 
             try
             {
-                // 1. 加载并处理metadata.xml
-                string metadataPath = Path.Combine(srcMetadataFolder, "metadata.xml");
+                // 创建输出目录
+                if (!Directory.Exists(dstFolder))
+                {
+                    Directory.CreateDirectory(dstFolder);
+                }
+
+                // 1. 加载元数据
+                string metadataPath = Path.Combine(srcFolder, "metadata.xml");
+                Console.WriteLine($"加载元数据: {metadataPath}");
                 var metadata = Metadata.LoadFromFile(metadataPath);
-                
-                // 2. 在原文件中替换变量并验证资源
+                Console.WriteLine($"✓ 成功加载元数据（{metadata.Children.Count} 个子节点）");
+
+                // 2. 替换变量（${ENV:...}, ${MD5::}）
+                Console.WriteLine("替换环境变量和计算哈希...");
                 metadata.ReplaceVariablesInFile(metadataPath);
-                Console.WriteLine($"已处理元数据文件: {metadataPath}");
+                Console.WriteLine("✓ 变量替换完成");
 
-                // 3. 复制所有其他文件到输出目录
-                string[] files = Directory.GetFiles(srcMetadataFolder, "*.*", SearchOption.AllDirectories);
-                foreach (string file in files)
+                // 3. 复制所有文件到输出目录
+                Console.WriteLine("复制文件到输出目录...");
+                CopyFiles(srcFolder, dstFolder);
+                Console.WriteLine("✓ 文件复制完成");
+
+                // 4. 验证处理后的元数据
+                Console.WriteLine("验证处理后的元数据...");
+                var verifiedMetadata = Metadata.LoadFromFile(metadataPath);
+                Console.WriteLine($"✓ 验证成功");
+                Console.WriteLine();
+
+                // 显示元数据信息
+                Console.WriteLine("=== 元数据信息 ===");
+                Console.WriteLine($"根节点: {verifiedMetadata.Name}");
+                Console.WriteLine($"子节点数: {verifiedMetadata.Children.Count}");
+
+                var commit = verifiedMetadata.Get("Commit");
+                if (!string.IsNullOrEmpty(commit))
                 {
-                    if (file.EndsWith("metadata.xml")) continue; // 已处理
-
-                    string targetFilePath = Path.Combine(dstOutputFolder ?? DefaultDstFolder, 
-                        file[(srcMetadataFolder.Length + 1)..]);
-
-                    string targetDir = Path.GetDirectoryName(targetFilePath) ?? throw new InvalidOperationException("无法确定目标目录");
-                    if (!Directory.Exists(targetDir))
-                    {
-                        Directory.CreateDirectory(targetDir);
-                    }
-
-                    File.Copy(file, targetFilePath, true);
-                    Console.WriteLine($"复制 {file} 到 {targetFilePath}");
-                }
-
-                Console.WriteLine("文件处理完成！");
-
-                // 4. 验证处理后的文件
-                try
-                {
-                    var verifiedMetadata = Metadata.LoadFromFile(metadataPath);
-                    Console.WriteLine($"成功验证处理后的元数据");
-                    Console.WriteLine($"根节点: {verifiedMetadata.Name}");
-                    Console.WriteLine($"包含 {verifiedMetadata.Children.Count} 个子节点");
-
-                    // 示例查询
-                    string commit = verifiedMetadata.Get("Commit") ?? "Unknown";
                     Console.WriteLine($"Commit: {commit}");
+                }
 
-                    // 打印所有模块信息
-                    PrintModuleInfo(verifiedMetadata, 0);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"验证处理后的元数据时发生错误: {ex.Message}");
-                }
+                // 显示Include树结构
+                Console.WriteLine();
+                Console.WriteLine("=== Include 引用树 ===");
+                Console.WriteLine(verifiedMetadata.GetIncludeTree());
+
+                Console.WriteLine("处理完成！");
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("循环引用"))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"错误: {ex.Message}");
+                Console.ResetColor();
+                Environment.Exit(1);
             }
             catch (Exception ex)
             {
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"处理过程中发生错误: {ex.Message}");
+                Console.WriteLine($"详细信息: {ex}");
+                Console.ResetColor();
+                Environment.Exit(1);
             }
         }
 
-        private static void PrintModuleInfo(Metadata metadata, int indentLevel)
+        /// <summary>
+        /// 复制源目录的所有文件到目标目录，保持目录结构
+        /// </summary>
+        private static void CopyFiles(string srcFolder, string dstFolder)
         {
-            string indent = new string(' ', indentLevel * 2);
-            string moduleName = metadata.Get("Name") ?? "Unknown";
-            Console.WriteLine($"{indent}模块: {moduleName}");
+            var files = Directory.GetFiles(srcFolder, "*.*", SearchOption.AllDirectories);
+            int copiedCount = 0;
 
-            // 打印变量
-            foreach (var var in metadata.Variables)
+            foreach (string file in files)
             {
-                Console.WriteLine($"{indent}  {var.Key}: {var.Value}");
+                // 计算相对路径
+                string relativePath = Path.GetRelativePath(srcFolder, file);
+                string targetFilePath = Path.Combine(dstFolder, relativePath);
+
+                // 创建目标目录
+                string? targetDir = Path.GetDirectoryName(targetFilePath);
+                if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
+                {
+                    Directory.CreateDirectory(targetDir);
+                }
+
+                // 复制文件
+                File.Copy(file, targetFilePath, overwrite: true);
+                copiedCount++;
             }
 
-            // 递归打印子模块
-            foreach (var child in metadata.Children)
-            {
-                PrintModuleInfo(child, indentLevel + 1);
-            }
+            Console.WriteLine($"  已复制 {copiedCount} 个文件");
         }
     }
 }

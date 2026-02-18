@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Include Source="public-include.xml" Type="public" />
+    <Include Source="private-include.xml" Type="private" />
+    <Element ID="parent-element">
+        <Name>Parent Element</Name>
+    </Element>
+</Metadata>
