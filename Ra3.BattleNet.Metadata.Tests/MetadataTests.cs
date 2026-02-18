@@ -157,6 +157,63 @@ namespace Ra3.BattleNet.Metadata.Tests
             path.Should().Contain("Application");
         }
 
+
+        [Fact]
+        public void ReplaceVariablesInFile_RecursivelyProcessesIncludeFiles()
+        {
+            // Arrange
+            var tempDir = Path.Combine(Path.GetTempPath(), $"metadata-test-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var rootPath = Path.Combine(tempDir, "metadata.xml");
+                var includePath = Path.Combine(tempDir, "included.xml");
+
+                File.WriteAllText(rootPath, """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Defines>
+    <Commit>${ENV:TEST_COMMIT}</Commit>
+  </Defines>
+  <Include Source="included.xml" Type="public" />
+</Metadata>
+""");
+
+                File.WriteAllText(includePath, """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Defines>
+    <Value>${ENV:TEST_COMMIT}</Value>
+  </Defines>
+</Metadata>
+""");
+
+                Environment.SetEnvironmentVariable("TEST_COMMIT", "abc123", EnvironmentVariableTarget.Process);
+                var metadata = Metadata.LoadFromFile(rootPath);
+
+                // Act
+                metadata.ReplaceVariablesInFile(rootPath);
+
+                // Assert
+                var rootResult = File.ReadAllText(rootPath);
+                var includeResult = File.ReadAllText(includePath);
+
+                rootResult.Should().Contain("abc123");
+                rootResult.Should().NotContain("${ENV:TEST_COMMIT}");
+
+                includeResult.Should().Contain("abc123");
+                includeResult.Should().NotContain("${ENV:TEST_COMMIT}");
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, recursive: true);
+                }
+            }
+        }
+
         [Fact]
         public void GetIncludeTree_ReturnsTreeStructure()
         {

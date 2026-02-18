@@ -119,7 +119,7 @@ namespace Ra3.BattleNet.Metadata
 
                 // 处理Includes和变量替换
                 ProcessIncludes(root);
-                ReplaceVariables(root);
+                ReplaceVariables(root, _currentFilePath);
 
                 return doc;
             }
@@ -143,23 +143,58 @@ namespace Ra3.BattleNet.Metadata
         {
             try
             {
-                // 加载原始XML文件
-                var doc = XDocument.Load(filePath);
-                var root = doc.Root ?? throw new InvalidOperationException("无效的XML结构: 缺少根节点");
-
-                // 验证所有Include/Module资源
-                ValidateResources(root, Path.GetDirectoryName(filePath));
-
-                // 替换变量
-                ReplaceVariables(root);
-
-                // 保存回原文件
-                doc.Save(filePath);
+                var fullPath = Path.GetFullPath(filePath);
+                ReplaceVariablesInFileRecursive(
+                    fullPath,
+                    new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+                    new HashSet<string>(StringComparer.OrdinalIgnoreCase));
             }
             catch (Exception ex)
             {
                 throw new InvalidOperationException($"替换变量失败: {filePath}", ex);
             }
+        }
+
+        private void ReplaceVariablesInFileRecursive(string filePath, HashSet<string> processingPaths, HashSet<string> processedPaths)
+        {
+            if (processedPaths.Contains(filePath))
+            {
+                return;
+            }
+
+            if (!processingPaths.Add(filePath))
+            {
+                throw new InvalidOperationException($"检测到循环引用: {filePath}");
+            }
+
+            var doc = XDocument.Load(filePath);
+            var root = doc.Root ?? throw new InvalidOperationException("无效的XML结构: 缺少根节点");
+            var basePath = Path.GetDirectoryName(filePath)
+                ?? throw new InvalidOperationException($"无法确定文件目录: {filePath}");
+
+            // 验证并递归处理所有Include/Module资源
+            ValidateResources(root, basePath);
+
+            foreach (var include in root.Descendants().Where(e => e.Name.LocalName == "Include" || e.Name.LocalName == "Module"))
+            {
+                var path = include.Attribute("Path")?.Value ?? include.Attribute("Source")?.Value;
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    continue;
+                }
+
+                var referencedFile = Path.GetFullPath(Path.Combine(basePath, path.Replace('/', '\\')));
+                if (File.Exists(referencedFile))
+                {
+                    ReplaceVariablesInFileRecursive(referencedFile, processingPaths, processedPaths);
+                }
+            }
+
+            ReplaceVariables(root, filePath);
+            doc.Save(filePath);
+
+            processingPaths.Remove(filePath);
+            processedPaths.Add(filePath);
         }
 
         private void ValidateResources(XElement element, string basePath)
@@ -344,7 +379,7 @@ namespace Ra3.BattleNet.Metadata
         /// 递归替换XML元素中的变量
         /// </summary>
         /// <param name="element">要处理的XML元素</param>
-        private void ReplaceVariables(XElement element)
+        private void ReplaceVariables(XElement element, string currentFilePath)
         {
             try
             {
@@ -352,7 +387,7 @@ namespace Ra3.BattleNet.Metadata
                 {
                     try
                     {
-                        attr.Value = ResolveVariables(attr.Value, element);
+                        attr.Value = ResolveVariables(attr.Value, element, currentFilePath);
                     }
                     catch (Exception ex)
                     {
@@ -364,7 +399,7 @@ namespace Ra3.BattleNet.Metadata
                 {
                     try
                     {
-                        element.Value = ResolveVariables(element.Value, element);
+                        element.Value = ResolveVariables(element.Value, element, currentFilePath);
                     }
                     catch (Exception ex)
                     {
@@ -374,7 +409,7 @@ namespace Ra3.BattleNet.Metadata
 
                 foreach (var child in element.Elements())
                 {
-                    ReplaceVariables(child);
+                    ReplaceVariables(child, currentFilePath);
                 }
             }
             catch (Exception ex)
@@ -383,7 +418,7 @@ namespace Ra3.BattleNet.Metadata
             }
         }
 
-        private string ResolveVariables(string input, XElement context)
+        private string ResolveVariables(string input, XElement context, string currentFilePath)
         {
             return System.Text.RegularExpressions.Regex.Replace(input, @"\$\{(.*?)\}", match =>
             {
@@ -401,12 +436,12 @@ namespace Ra3.BattleNet.Metadata
                         var fileToHash = parts.Length > 1 ? parts[1] : "";
                         if (string.IsNullOrEmpty(fileToHash))
                         {
-                            return ComputeFileHash(_currentFilePath);
+                            return ComputeFileHash(currentFilePath);
                         }
-                        var dir = Path.GetDirectoryName(_currentFilePath);
+                        var dir = Path.GetDirectoryName(currentFilePath);
                         if (string.IsNullOrEmpty(dir))
                         {
-                            return $"HASH_ERROR_DIR_NOT_FOUND:{_currentFilePath}";
+                            return $"HASH_ERROR_DIR_NOT_FOUND:{currentFilePath}";
                         }
                         return ComputeFileHash(Path.Combine(dir, fileToHash));
                     case "META":
