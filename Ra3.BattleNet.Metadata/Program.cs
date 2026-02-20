@@ -77,6 +77,21 @@ namespace Ra3.BattleNet.Metadata
                 Console.WriteLine("=== Include 引用树 ===");
                 Console.WriteLine(verifiedMetadata.GetIncludeTree());
 
+                Console.WriteLine("=== 业务实体概览 ===");
+                var entities = verifiedMetadata.GetBusinessEntities();
+                foreach (var entity in entities)
+                {
+                    var id = string.IsNullOrWhiteSpace(entity.Id) ? "<no-id>" : entity.Id;
+                    Console.WriteLine($"- [{entity.EntityType}] {id} @ {entity.Path}");
+                }
+
+                Console.WriteLine();
+                Console.WriteLine("=== 查询API示例（metadata.Mods()） ===");
+                foreach (var mod in verifiedMetadata.Mods())
+                {
+                    Console.WriteLine($"Mod={mod.Id}, Version={mod.Version}, Packages={mod.Packages.Count}");
+                }
+
                 Console.WriteLine("处理完成！");
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("循环引用"))
