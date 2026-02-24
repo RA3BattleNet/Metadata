@@ -20,6 +20,27 @@ var metadata = Metadata.LoadFromFile("./Metadata/metadata.xml");
 
 ## 常见使用场景
 
+
+### 场景0：像你说的那样直接用 `metadata.Mods()` / `mod.Version`
+
+```csharp
+var metadata = Metadata.LoadFromFile("./Metadata/metadata.xml");
+
+// 方式A：直接扩展方法
+foreach (var mod in metadata.Mods())
+{
+    Console.WriteLine($"{mod.Id} -> {mod.Version}");
+}
+
+var corona = metadata.Mods().FirstOrDefault(m => m.Id == "Corona");
+Console.WriteLine(corona?.Version); // 3.229
+
+// 方式B：Catalog 入口（更像“数据仓库”）
+var catalog = metadata.Catalog();
+var app = catalog.Application("RA3BattleNet");
+Console.WriteLine(app?.Version); // 1.5.2.0
+```
+
 ### 场景1：访问 Corona 模组的 Changelog
 
 ```csharp
