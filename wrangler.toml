@@ -1,15 +1,8 @@
 name = "ra3-battlenet-metadata"
-main = "src/index.js"
 compatibility_date = "2024-01-01"
 
-[site]
-bucket = "./Output"
-
-# 构建命令配置
-[build]
-command = "bash build.sh"
-# 如果需要监听文件变化，可以配置 watch_dirs
-# watch_dirs = ["Metadata", "Ra3.BattleNet.Metadata"]
+# Pages 配置
+pages_build_output_dir = "./Output"
 
 # 环境变量配置（如果需要）
 # [vars]
