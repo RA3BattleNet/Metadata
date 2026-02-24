@@ -9,6 +9,6 @@
     "preview": "npm run build && npx wrangler pages dev Output"
   },
   "devDependencies": {
-    "wrangler": "^3.0.0"
+    "wrangler": "^4.68.0"
   }
 }
