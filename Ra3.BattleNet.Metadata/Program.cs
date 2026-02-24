@@ -45,19 +45,21 @@ namespace Ra3.BattleNet.Metadata
                 var metadata = Metadata.LoadFromFile(metadataPath);
                 Console.WriteLine($"✓ 成功加载元数据（{metadata.Children.Count} 个子节点）");
 
-                // 2. 替换变量（${ENV:...}, ${MD5::}）
-                Console.WriteLine("替换环境变量和计算哈希...");
-                metadata.ReplaceVariablesInFile(metadataPath);
-                Console.WriteLine("✓ 变量替换完成");
-
-                // 3. 复制所有文件到输出目录
+                // 2. 复制所有文件到输出目录
                 Console.WriteLine("复制文件到输出目录...");
                 CopyFiles(srcFolder, dstFolder);
                 Console.WriteLine("✓ 文件复制完成");
 
+                // 3. 替换变量（${ENV:...}, ${MD5::}）在输出目录中
+                string outputMetadataPath = Path.Combine(dstFolder, "metadata.xml");
+                Console.WriteLine("替换环境变量和计算哈希...");
+                var outputMetadata = Metadata.LoadFromFile(outputMetadataPath);
+                outputMetadata.ReplaceVariablesInFile(outputMetadataPath);
+                Console.WriteLine("✓ 变量替换完成");
+
                 // 4. 验证处理后的元数据
                 Console.WriteLine("验证处理后的元数据...");
-                var verifiedMetadata = Metadata.LoadFromFile(metadataPath);
+                var verifiedMetadata = Metadata.LoadFromFile(outputMetadataPath);
                 Console.WriteLine($"✓ 验证成功");
                 Console.WriteLine();
 
@@ -77,6 +79,22 @@ namespace Ra3.BattleNet.Metadata
                 Console.WriteLine("=== Include 引用树 ===");
                 Console.WriteLine(verifiedMetadata.GetIncludeTree());
 
+                Console.WriteLine("=== 业务实体概览 ===");
+                var entities = verifiedMetadata.GetBusinessEntities();
+                foreach (var entity in entities)
+                {
+                    var id = string.IsNullOrWhiteSpace(entity.Id) ? "<no-id>" : entity.Id;
+                    Console.WriteLine($"- [{entity.EntityType}] {id} @ {entity.Path}");
+                }
+
+                Console.WriteLine();
+                Console.WriteLine("=== 查询API示例（metadata.Mods()） ===");
+                foreach (var mod in verifiedMetadata.Mods())
+                {
+                    Console.WriteLine($"Mod={mod.Id}, Version={mod.Version}, Packages={mod.Packages.Count}");
+                }
+
+                Console.WriteLine();
                 Console.WriteLine("处理完成！");
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("循环引用"))

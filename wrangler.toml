@@ -1,15 +1,13 @@
-name = "ra3-battlenet-metadata"
-main = "src/index.js"
-compatibility_date = "2024-01-01"
+name = "metadata"
+compatibility_date = "2026-02-20"
 
-[site]
-bucket = "./Output"
+# 静态资源配置
+[assets]
+directory = "./Output"
 
-# 构建命令配置
+# 构建配置
 [build]
-command = "dotnet run --project ./Ra3.BattleNet.Metadata --src=./Metadata --dst=./Output"
-# 如果需要监听文件变化，可以配置 watch_dirs
-# watch_dirs = ["Metadata", "Ra3.BattleNet.Metadata"]
+command = "bash build.sh"
 
 # 环境变量配置（如果需要）
 # [vars]

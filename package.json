@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "dotnet run --project ./Ra3.BattleNet.Metadata --src=./Metadata --dst=./Output",
-    "deploy": "npm run build && npx wrangler deploy",
-    "dev": "npx wrangler dev",
-    "preview": "npm run build && npx wrangler dev"
+    "build": "bash build.sh",
+    "deploy": "npm run build && npx wrangler pages deploy Output",
+    "dev": "npx wrangler pages dev Output",
+    "preview": "npm run build && npx wrangler pages dev Output"
   },
   "devDependencies": {
-    "wrangler": "^3.0.0"
+    "wrangler": "^4.68.0"
   }
 }

@@ -2,7 +2,7 @@
 <Metadata>
   <Tags>
     <!-- 预留标记 -->
-    <Commit>${ENV:CF_PAGES_COMMIT_SHA}</Commit>
+    <Commit>${TIMESTAMP}</Commit>
   </Tags>
   <Includes>
     <!-- 子模块 -->

@@ -228,5 +228,71 @@ namespace Ra3.BattleNet.Metadata.Tests
             tree.Should().NotBeNullOrEmpty();
             tree.Should().Contain("Metadata");
         }
+
+        [Fact]
+        public void ToNodeTree_ShouldKeepLeafValue()
+        {
+            // Arrange
+            var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
+            var metadata = Metadata.LoadFromFile(filePath);
+
+            // Act
+            var root = metadata.ToNodeTree();
+            var app = root.Children.Single(c => c.Name == "Application");
+            var appName = app.Children.Single(c => c.Name == "Name");
+
+            // Assert
+            appName.Value.Should().Be("Test Application");
+        }
+
+        [Fact]
+        public void GetBusinessEntities_ShouldReturnTypedEntities()
+        {
+            // Arrange
+            var filePath = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", "Metadata", "metadata.xml");
+            var metadata = Metadata.LoadFromFile(filePath);
+
+            // Act
+            var entities = metadata.GetBusinessEntities();
+
+            // Assert
+            entities.Should().Contain(e => e.EntityType == "Application" && e.Id == "RA3BattleNet");
+            entities.Should().Contain(e => e.EntityType == "Mod" && e.Id == "Corona");
+            entities.Should().Contain(e => e.EntityType == "Markdown");
+            entities.Should().Contain(e => e.EntityType == "Manifest");
+        }
+
+
+        [Fact]
+        public void Mods_ShouldExposeVersionAndPackages()
+        {
+            // Arrange
+            var filePath = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", "Metadata", "metadata.xml");
+            var metadata = Metadata.LoadFromFile(filePath);
+
+            // Act
+            var corona = metadata.Mods().Single(m => m.Id == "Corona");
+
+            // Assert
+            corona.Version.Should().Be("3.229");
+            corona.Packages.Should().NotBeEmpty();
+        }
+
+        [Fact]
+        public void Catalog_ShouldProvideConvenientLookup()
+        {
+            // Arrange
+            var filePath = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", "Metadata", "metadata.xml");
+            var metadata = Metadata.LoadFromFile(filePath);
+
+            // Act
+            var catalog = metadata.Catalog();
+            var app = catalog.Application("RA3BattleNet");
+
+            // Assert
+            app.Should().NotBeNull();
+            app!.Version.Should().Be("1.5.2.0");
+        }
+
     }
 }

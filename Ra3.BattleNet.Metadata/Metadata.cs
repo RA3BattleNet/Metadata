@@ -14,6 +14,7 @@ namespace Ra3.BattleNet.Metadata
         private readonly Dictionary<string, string> _envVars = new();
         private readonly Dictionary<string, string> _fileHashes = new();
         private string _currentFilePath = string.Empty;
+        private string? _value = null;
         private Metadata? _parent = null;
         private string _includeType = "public"; // "public" 或 "private"
 
@@ -24,6 +25,10 @@ namespace Ra3.BattleNet.Metadata
         public IReadOnlyList<Metadata> DefineChildren => _defineChildren;
         public Metadata? Parent => _parent;
         public string IncludeType => _includeType;
+        /// <summary>
+        /// 节点文本值（仅叶子节点有效）。
+        /// </summary>
+        public string? Value => _value;
 
         public Metadata()
         {
@@ -183,7 +188,7 @@ namespace Ra3.BattleNet.Metadata
                     continue;
                 }
 
-                var referencedFile = Path.GetFullPath(Path.Combine(basePath, path.Replace('/', '\\')));
+                var referencedFile = Path.GetFullPath(Path.Combine(basePath, path.Replace('\\', '/')));
                 if (File.Exists(referencedFile))
                 {
                     ReplaceVariablesInFileRecursive(referencedFile, processingPaths, processedPaths);
@@ -204,7 +209,7 @@ namespace Ra3.BattleNet.Metadata
                 var path = include.Attribute("Path")?.Value ?? include.Attribute("Source")?.Value;
                 if (string.IsNullOrEmpty(path)) continue;
 
-                var fullPath = Path.Combine(basePath, path.Replace('/', '\\'));
+                var fullPath = Path.Combine(basePath, path.Replace('\\', '/'));
                 if (!File.Exists(fullPath))
                 {
                     throw new FileNotFoundException($"引用的资源文件不存在: {fullPath} (来自元素: {include.Name.LocalName})");
@@ -224,6 +229,12 @@ namespace Ra3.BattleNet.Metadata
             {
                 element.SetAttributeValue(var.Key, var.Value);
             }
+
+            if (!string.IsNullOrWhiteSpace(_value) && !_children.Any())
+            {
+                element.Value = _value;
+            }
+
             foreach (var child in _children)
             {
                 element.Add(child.ToXElement());
@@ -251,7 +262,7 @@ namespace Ra3.BattleNet.Metadata
 
                     if (!string.IsNullOrEmpty(includePath))
                     {
-                        string normalizedPath = includePath.Replace('/', '\\');
+                        string normalizedPath = includePath.Replace('\\', '/');
                         var dir = Path.GetDirectoryName(currentFilePath);
                         if (string.IsNullOrEmpty(dir))
                         {
@@ -298,6 +309,97 @@ namespace Ra3.BattleNet.Metadata
                     _children.Add(childMetadata);
                 }
             }
+
+            if (!element.HasElements)
+            {
+                _value = element.Value;
+            }
+        }
+
+        /// <summary>
+        /// 将当前元数据转换为可反序列化使用的树状结构。
+        /// </summary>
+        public MetadataNode ToNodeTree()
+        {
+            return BuildNode(this);
+        }
+
+        /// <summary>
+        /// 获取所有业务实体（Application/Mod/Markdown/Image/Manifest）节点。
+        /// </summary>
+        public IReadOnlyList<BusinessEntity> GetBusinessEntities()
+        {
+            var supported = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "Application", "Mod", "Markdown", "Image", "Manifest"
+            };
+
+            var allNodes = GetAllNodes();
+            var entities = new List<BusinessEntity>();
+
+            foreach (var node in allNodes.Where(n => supported.Contains(n.Name)))
+            {
+                var entity = new BusinessEntity
+                {
+                    EntityType = node.Name,
+                    Id = node.Get("ID"),
+                    Path = node.GetElementPath(),
+                    Attributes = new Dictionary<string, string>(node._variables, StringComparer.OrdinalIgnoreCase),
+                    Properties = CollectEntityProperties(node)
+                };
+
+                entities.Add(entity);
+            }
+
+            return entities;
+        }
+
+        private static Dictionary<string, string> CollectEntityProperties(Metadata node)
+        {
+            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var child in node._children)
+            {
+                if (!string.IsNullOrWhiteSpace(child._value) && !result.ContainsKey(child.Name))
+                {
+                    result[child.Name] = child._value;
+                }
+            }
+
+            var packageCount = node._children.FirstOrDefault(c => c.Name == "Packages")
+                ?._children.Count(c => c.Name == "Package");
+            if (packageCount.HasValue)
+            {
+                result["PackageCount"] = packageCount.Value.ToString();
+            }
+
+            var fileCount = node._children.Count(c => c.Name == "File");
+            if (fileCount > 0)
+            {
+                result["FileCount"] = fileCount.ToString();
+            }
+
+            return result;
+        }
+
+        private MetadataNode BuildNode(Metadata metadata)
+        {
+            return new MetadataNode(
+                metadata.Name,
+                metadata.Value,
+                new Dictionary<string, string>(metadata._variables, StringComparer.OrdinalIgnoreCase),
+                metadata._children.Select(BuildNode).ToList());
+        }
+
+        private List<Metadata> GetAllNodes()
+        {
+            var nodes = new List<Metadata> { this };
+            foreach (var child in _children)
+            {
+                nodes.AddRange(child.GetAllNodes());
+            }
+
+            return nodes;
         }
 
         /// <summary>
@@ -363,7 +465,7 @@ namespace Ra3.BattleNet.Metadata
                 {
                     throw new InvalidOperationException($"无法确定文件目录: {_currentFilePath}");
                 }
-                var fullPath = Path.Combine(dir, source.Replace('/', '\\'));
+                var fullPath = Path.Combine(dir, source.Replace('\\', '/'));
                 if (!File.Exists(fullPath)) continue;
 
                 var includedDoc = XDocument.Load(fullPath);
@@ -428,9 +530,11 @@ namespace Ra3.BattleNet.Metadata
 
                 switch (parts[0])
                 {
+                    case "TIMESTAMP":
+                        return DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
                     case "ENV":
-                        return parts.Length > 1 && _envVars.TryGetValue(parts[1], out var envValue) 
-                            ? envValue 
+                        return parts.Length > 1 && _envVars.TryGetValue(parts[1], out var envValue)
+                            ? envValue
                             : match.Value;
                     case "MD5":
                         var fileToHash = parts.Length > 1 ? parts[1] : "";
