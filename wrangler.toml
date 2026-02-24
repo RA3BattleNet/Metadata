@@ -1,8 +1,13 @@
 name = "ra3-battlenet-metadata"
 compatibility_date = "2024-01-01"
 
-# Pages 配置
-pages_build_output_dir = "./Output"
+# 静态资源配置
+[assets]
+directory = "./Output"
+
+# 构建配置
+[build]
+command = "bash build.sh"
 
 # 环境变量配置（如果需要）
 # [vars]
