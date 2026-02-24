@@ -188,7 +188,7 @@ namespace Ra3.BattleNet.Metadata
                     continue;
                 }
 
-                var referencedFile = Path.GetFullPath(Path.Combine(basePath, path.Replace('/', '\\')));
+                var referencedFile = Path.GetFullPath(Path.Combine(basePath, path.Replace('\\', '/')));
                 if (File.Exists(referencedFile))
                 {
                     ReplaceVariablesInFileRecursive(referencedFile, processingPaths, processedPaths);
@@ -209,7 +209,7 @@ namespace Ra3.BattleNet.Metadata
                 var path = include.Attribute("Path")?.Value ?? include.Attribute("Source")?.Value;
                 if (string.IsNullOrEmpty(path)) continue;
 
-                var fullPath = Path.Combine(basePath, path.Replace('/', '\\'));
+                var fullPath = Path.Combine(basePath, path.Replace('\\', '/'));
                 if (!File.Exists(fullPath))
                 {
                     throw new FileNotFoundException($"引用的资源文件不存在: {fullPath} (来自元素: {include.Name.LocalName})");
@@ -465,7 +465,7 @@ namespace Ra3.BattleNet.Metadata
                 {
                     throw new InvalidOperationException($"无法确定文件目录: {_currentFilePath}");
                 }
-                var fullPath = Path.Combine(dir, source.Replace('/', '\\'));
+                var fullPath = Path.Combine(dir, source.Replace('\\', '/'));
                 if (!File.Exists(fullPath)) continue;
 
                 var includedDoc = XDocument.Load(fullPath);
