@@ -262,7 +262,7 @@ namespace Ra3.BattleNet.Metadata
 
                     if (!string.IsNullOrEmpty(includePath))
                     {
-                        string normalizedPath = includePath.Replace('/', '\\');
+                        string normalizedPath = includePath.Replace('\\', '/');
                         var dir = Path.GetDirectoryName(currentFilePath);
                         if (string.IsNullOrEmpty(dir))
                         {
