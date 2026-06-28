@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+  <!-- ========== 根节点 ========== -->
+  <xs:element name="Metadata">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:any processContents="skip" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+      <xs:anyAttribute processContents="skip" />
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ========== 通用简单元素 ========== -->
+  <xs:element name="Version" type="xs:string" />
+  <xs:element name="CurrentVersion" type="xs:string" />
+  <xs:element name="Icon" type="xs:string" />
+  <xs:element name="ReleaseDate" type="xs:string" />
+  <xs:element name="Commit" type="xs:string" />
+  <xs:element name="FileName" type="xs:string" />
+  <xs:element name="RelativePath" type="xs:string" />
+  <xs:element name="KindOf" type="xs:string" />
+  <xs:element name="ID" type="xs:string" />
+
+  <!-- ========== Tags ========== -->
+  <xs:element name="Tags">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:any processContents="skip" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ========== Includes ========== -->
+  <xs:element name="Includes">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Include" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Include">
+    <xs:complexType>
+      <xs:attribute name="Source" type="xs:string" use="required" />
+      <xs:attribute name="Type" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:enumeration value="public" />
+            <xs:enumeration value="private" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:anyAttribute processContents="lax" />
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Module">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Defines" minOccurs="0" />
+      </xs:sequence>
+      <xs:attribute name="Source" type="xs:string" use="required" />
+      <xs:anyAttribute processContents="lax" />
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ========== Defines ========== -->
+  <xs:element name="Defines">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:any processContents="skip" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ========== Application ========== -->
+  <xs:element name="Application">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Version" minOccurs="0" />
+        <xs:element ref="Packages" minOccurs="0" />
+        <xs:element ref="Posts" minOccurs="0" />
+        <xs:element ref="Defines" minOccurs="0" />
+      </xs:sequence>
+      <xs:attribute name="ID" type="xs:string" use="required" />
+      <xs:anyAttribute processContents="lax" />
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ========== Mod ========== -->
+  <xs:element name="Mod">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="CurrentVersion" minOccurs="0" />
+        <xs:element ref="Icon" minOccurs="0" />
+        <xs:element ref="Style" minOccurs="0" />
+        <xs:element ref="Packages" minOccurs="0" />
+        <xs:element ref="Posts" minOccurs="0" />
+        <xs:element ref="Defines" minOccurs="0" />
+      </xs:sequence>
+      <xs:attribute name="ID" type="xs:string" use="required" />
+      <xs:anyAttribute processContents="lax" />
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ========== Style ========== -->
+  <xs:element name="Style">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Logo" minOccurs="0" />
+        <xs:element ref="Controls" minOccurs="0" />
+        <xs:element ref="Background" minOccurs="0" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Logo">
+    <xs:complexType mixed="true">
+      <xs:attribute name="Width" type="xs:integer" />
+      <xs:attribute name="Height" type="xs:integer" />
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Controls">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:any processContents="skip" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Background">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Image" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+      <xs:attribute name="Random" type="xs:boolean" />
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ========== Packages ========== -->
+  <xs:element name="Packages">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Package" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Package">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="ReleaseDate" minOccurs="0" />
+        <xs:element ref="Changelogs" minOccurs="0" />
+        <xs:element name="Manifest" type="xs:string" minOccurs="0" />
+      </xs:sequence>
+      <xs:attribute name="Version" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Changelogs">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Changelog" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Changelog">
+    <xs:complexType mixed="true">
+      <xs:attribute name="Language" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ========== Posts ========== -->
+  <xs:element name="Posts">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Post" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Post">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Titles" />
+        <xs:element ref="Contents" />
+      </xs:sequence>
+      <xs:attribute name="DateTime" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Titles">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Title" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Title">
+    <xs:complexType mixed="true">
+      <xs:attribute name="Language" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Contents">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Content" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Content">
+    <xs:complexType mixed="true">
+      <xs:attribute name="Language" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ========== Markdown ========== -->
+  <xs:element name="Markdown">
+    <xs:complexType>
+      <xs:attribute name="ID" type="xs:string" use="required" />
+      <xs:attribute name="Source" type="xs:string" use="required" />
+      <xs:attribute name="Hash" type="xs:string" />
+      <xs:anyAttribute processContents="lax" />
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ========== Image ========== -->
+  <xs:element name="Image">
+    <xs:complexType>
+      <xs:attribute name="ID" type="xs:string" use="required" />
+      <xs:attribute name="Source" type="xs:string" />
+      <xs:attribute name="Url" type="xs:string" />
+      <xs:anyAttribute processContents="lax" />
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ========== Manifest ========== -->
+  <xs:element name="Manifest">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="File" minOccurs="0" maxOccurs="unbounded" />
+        <xs:element ref="SubManifest" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+      <xs:attribute name="ID" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="File">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="FileName" />
+        <xs:element ref="RelativePath" />
+        <xs:element ref="KindOf" />
+        <xs:element ref="PatchInfo" minOccurs="0" />
+      </xs:sequence>
+      <xs:attribute name="Hash" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="PatchInfo">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Patch" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Patch">
+    <xs:complexType>
+      <xs:attribute name="From" type="xs:string" use="required" />
+      <xs:attribute name="Method" type="xs:string" use="required" />
+      <xs:attribute name="Encryption" type="xs:string" />
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="SubManifest">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="RelativePath" />
+        <xs:element ref="ID" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>

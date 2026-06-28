@@ -13,17 +13,19 @@ namespace Ra3.BattleNet.Metadata
             // 解析命令行参数
             var srcFolder = DefaultSrcFolder;
             var dstFolder = DefaultDstFolder;
+            var skipSchema = false;
+            var skipWebp = false;
 
             foreach (string arg in args)
             {
                 if (arg.StartsWith("--src="))
-                {
                     srcFolder = arg.Split('=')[1];
-                }
                 else if (arg.StartsWith("--dst="))
-                {
                     dstFolder = arg.Split('=')[1];
-                }
+                else if (arg == "--skip-schema")
+                    skipSchema = true;
+                else if (arg == "--skip-webp")
+                    skipWebp = true;
             }
 
             Console.WriteLine($"工作目录: {Environment.CurrentDirectory}");
@@ -35,32 +37,79 @@ namespace Ra3.BattleNet.Metadata
             {
                 // 创建输出目录
                 if (!Directory.Exists(dstFolder))
-                {
                     Directory.CreateDirectory(dstFolder);
-                }
 
-                // 1. 加载元数据
+                // 1. 加载元数据（带 XSD Schema 验证）
                 string metadataPath = Path.Combine(srcFolder, "metadata.xml");
                 Console.WriteLine($"加载元数据: {metadataPath}");
-                var metadata = Metadata.LoadFromFile(metadataPath);
+
+                Metadata metadata;
+                if (!skipSchema)
+                {
+                    var schemaPath = Path.Combine(srcFolder, "MetadataSchema.xsd");
+                    if (File.Exists(schemaPath))
+                    {
+                        Console.WriteLine("  使用 XSD Schema 验证...");
+                        metadata = Metadata.LoadFromFileWithSchema(metadataPath, schemaPath);
+                    }
+                    else
+                    {
+                        metadata = Metadata.LoadFromFile(metadataPath);
+                    }
+                }
+                else
+                {
+                    metadata = Metadata.LoadFromFile(metadataPath);
+                }
                 Console.WriteLine($"✓ 成功加载元数据（{metadata.Children.Count} 个子节点）");
 
-                // 2. 复制所有文件到输出目录
+                // 2. 验证 Markdown 引用
+                Console.WriteLine("验证 Markdown 文件引用...");
+                var mdErrors = MarkdownValidator.ValidateAll(metadata, srcFolder);
+                if (!mdErrors.IsValid)
+                {
+                    Console.WriteLine($"  ⚠ Markdown 验证发现 {mdErrors.Errors.Count} 个问题:");
+                    foreach (var err in mdErrors.Errors)
+                        Console.WriteLine($"    - {err}");
+                }
+                else
+                {
+                    Console.WriteLine("  ✓ 所有 Markdown 引用有效");
+                }
+
+                // 3. 复制所有文件到输出目录
                 Console.WriteLine("复制文件到输出目录...");
                 CopyFiles(srcFolder, dstFolder);
                 Console.WriteLine("✓ 文件复制完成");
 
-                // 3. 替换变量（${ENV:...}, ${MD5::}）在输出目录中
+                // 4. 图片 WebP 转换
+                if (!skipWebp)
+                {
+                    Console.WriteLine("转换图片为 WebP 格式...");
+                    int converted = ImageProcessor.ConvertImagesToWebP(metadata, dstFolder);
+                    if (converted > 0)
+                    {
+                        Console.WriteLine($"  ✓ 转换了 {converted} 张图片");
+                        Console.WriteLine("  更新 XML 中的图片引用...");
+                        ImageProcessor.UpdateImageSourceReferences(dstFolder);
+                    }
+                    else
+                    {
+                        Console.WriteLine("  - 没有需要转换的图片");
+                    }
+                }
+
+                // 5. 替换变量（${TIMESTAMP}, ${ENV:...}, ${MD5::}）在输出目录中
                 string outputMetadataPath = Path.Combine(dstFolder, "metadata.xml");
-                Console.WriteLine("替换环境变量和计算哈希...");
+                Console.WriteLine("替换变量和计算哈希...");
                 var outputMetadata = Metadata.LoadFromFile(outputMetadataPath);
                 outputMetadata.ReplaceVariablesInFile(outputMetadataPath);
                 Console.WriteLine("✓ 变量替换完成");
 
-                // 4. 验证处理后的元数据
+                // 6. 验证处理后的元数据
                 Console.WriteLine("验证处理后的元数据...");
                 var verifiedMetadata = Metadata.LoadFromFile(outputMetadataPath);
-                Console.WriteLine($"✓ 验证成功");
+                Console.WriteLine("✓ 验证成功");
                 Console.WriteLine();
 
                 // 显示元数据信息
@@ -70,11 +119,9 @@ namespace Ra3.BattleNet.Metadata
 
                 var commit = verifiedMetadata.Get("Commit");
                 if (!string.IsNullOrEmpty(commit))
-                {
                     Console.WriteLine($"Commit: {commit}");
-                }
 
-                // 显示Include树结构
+                // 显示 Include 树结构
                 Console.WriteLine();
                 Console.WriteLine("=== Include 引用树 ===");
                 Console.WriteLine(verifiedMetadata.GetIncludeTree());
@@ -88,7 +135,7 @@ namespace Ra3.BattleNet.Metadata
                 }
 
                 Console.WriteLine();
-                Console.WriteLine("=== 查询API示例（metadata.Mods()） ===");
+                Console.WriteLine("=== 查询 API 示例（metadata.Mods()） ===");
                 foreach (var mod in verifiedMetadata.Mods())
                 {
                     Console.WriteLine($"Mod={mod.Id}, Version={mod.Version}, Packages={mod.Packages.Count}");
@@ -108,14 +155,13 @@ namespace Ra3.BattleNet.Metadata
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"处理过程中发生错误: {ex.Message}");
-                Console.WriteLine($"详细信息: {ex}");
                 Console.ResetColor();
                 Environment.Exit(1);
             }
         }
 
         /// <summary>
-        /// 复制源目录的所有文件到目标目录，保持目录结构
+        /// 复制源目录的所有文件到目标目录，保持目录结构。
         /// </summary>
         private static void CopyFiles(string srcFolder, string dstFolder)
         {
@@ -124,18 +170,13 @@ namespace Ra3.BattleNet.Metadata
 
             foreach (string file in files)
             {
-                // 计算相对路径
                 string relativePath = Path.GetRelativePath(srcFolder, file);
                 string targetFilePath = Path.Combine(dstFolder, relativePath);
 
-                // 创建目标目录
                 string? targetDir = Path.GetDirectoryName(targetFilePath);
                 if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
-                {
                     Directory.CreateDirectory(targetDir);
-                }
 
-                // 复制文件
                 File.Copy(file, targetFilePath, overwrite: true);
                 copiedCount++;
             }
