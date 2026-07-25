@@ -1,6 +1,6 @@
 # Metadata 改进与完善计划
 
-> 状态：已确认（grill-me 决策锁定）  
+> 状态：**本期代码已落地**（`dev` 分支）  
 > 范围：本期仅 **Metadata 仓**；Desktop 联调另迭代  
 > 优先级：**2 客户端契约 → 5 库产品化 → 1 示例内容**
 
@@ -234,14 +234,19 @@ MetadataBuilder.Build(sourcePath | sourceUrl, outputDir) // Stage A
 
 ## 6. 验收标准（本期完成时）
 
-- [ ] 测试项目为 **MSTest**，无 xunit 系依赖；`dotnet test` 全绿
-- [ ] 硬失败用例覆盖（schema / 缺文件 / 坏引用 / 变量残留 / 循环引用）
-- [ ] 类库无 SkiaSharp 等原生硬依赖
-- [ ] `metadata build --src Metadata --dst Output` 得到展平 `metadata.xml` + 资源
-- [ ] 展平 XML 无 Include；含 SchemaVersion/ContentRevision；资源 ID 可解析
-- [ ] CF 脚本含 Stage B WebP；本地 Stage A 可单独跑
-- [ ] 示例：RA3BattleNet + Corona 可通过完整 Stage A
-- [ ] README：契约、默认 URL、Desktop 下期对接、Manifest 归属 Updater、测试用 MSTest
+- [x] 测试项目为 **MSTest**，无 xunit 系依赖；`dotnet test` 全绿
+- [x] 硬失败用例覆盖（schema / 缺文件 / 坏引用 / 变量残留 / 循环引用）
+- [x] 类库无 SkiaSharp 等原生硬依赖
+- [x] `metadata build --src Metadata --dst Output` 得到展平 `metadata.xml` + 资源
+- [x] 展平 XML 无 Include；含 SchemaVersion/ContentRevision；资源 ID 可解析（Manifest Source 指向叶子清单文件）
+- [x] CF 脚本含 Stage B WebP；本地 Stage A 可单独跑
+- [x] 示例：RA3BattleNet + Corona 可通过完整 Stage A
+- [x] README：契约、默认 URL、Desktop 下期对接、Manifest 归属 Updater、测试用 MSTest
+
+### 已实现说明（相对原文的偏差）
+
+- Stage B 为独立项目 `Ra3.BattleNet.Metadata.StageB`（SkiaSharp），由 `build.sh` 调用
+- `Load(url)` 已支持；`Build(url)` 远程源构建延后（见 §4）
 
 ---
 
