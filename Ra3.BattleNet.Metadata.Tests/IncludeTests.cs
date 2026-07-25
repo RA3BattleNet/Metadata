@@ -1,105 +1,71 @@
 using FluentAssertions;
-using Xunit;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Ra3.BattleNet.Metadata.Tests
+namespace Ra3.BattleNet.Metadata.Tests;
+
+[TestClass]
+public class IncludeTests
 {
-    public class IncludeTests
+    private string _testDataPath = null!;
+
+    [TestInitialize]
+    public void Init()
     {
-        private readonly string _testDataPath;
+        _testDataPath = Path.Combine(AppContext.BaseDirectory, "TestData");
+    }
 
-        public IncludeTests()
-        {
-            _testDataPath = Path.Combine(AppContext.BaseDirectory, "TestData");
-        }
+    [TestMethod]
+    public void Include_PublicType_VisibleToParent()
+    {
+        var filePath = Path.Combine(_testDataPath, "access-control-test.xml");
+        var metadata = Metadata.LoadFromFile(filePath);
+        var publicElement = metadata.GetElementById("public-element");
+        publicElement.Should().NotBeNull();
+        publicElement!.Get("ID").Should().Be("public-element");
+    }
 
-        [Fact]
-        public void Include_PublicType_VisibleToParent()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "access-control-test.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
+    [TestMethod]
+    public void Include_PrivateType_ExistsInTree()
+    {
+        var filePath = Path.Combine(_testDataPath, "access-control-test.xml");
+        var metadata = Metadata.LoadFromFile(filePath);
+        metadata.GetElementById("private-element").Should().NotBeNull();
+    }
 
-            // Act
-            var publicElement = metadata.GetElementById("public-element");
+    [TestMethod]
+    public void Include_ParentElement_Accessible()
+    {
+        var filePath = Path.Combine(_testDataPath, "access-control-test.xml");
+        var metadata = Metadata.LoadFromFile(filePath);
+        var parentElement = metadata.GetElementById("parent-element");
+        parentElement.Should().NotBeNull();
+        parentElement!.Get("ID").Should().Be("parent-element");
+    }
 
-            // Assert
-            publicElement.Should().NotBeNull("public类型的Include应该对父节点可见");
-            publicElement!.Get("ID").Should().Be("public-element");
-        }
+    [TestMethod]
+    public void Include_CircularReference_ThrowsException()
+    {
+        var filePath = Path.Combine(_testDataPath, "circular-a.xml");
+        var act = () => Metadata.LoadFromFile(filePath);
+        act.Should().Throw<InvalidOperationException>().WithMessage("*循环引用*");
+    }
 
-        [Fact]
-        public void Include_PrivateType_OnlyVisibleToChildren()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "access-control-test.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
+    [TestMethod]
+    public void Include_HasParentReference()
+    {
+        var filePath = Path.Combine(_testDataPath, "access-control-test.xml");
+        var metadata = Metadata.LoadFromFile(filePath);
+        var child = metadata.Children.FirstOrDefault();
+        child.Should().NotBeNull();
+        child!.Parent.Should().Be(metadata);
+    }
 
-            // Act
-            var privateElement = metadata.GetElementById("private-element");
-
-            // Assert
-            // private元素应该在子树中可见，但当前实现可能需要调整
-            // 这个测试验证了private元素的存在性
-            privateElement.Should().NotBeNull();
-        }
-
-        [Fact]
-        public void Include_ParentElement_Accessible()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "access-control-test.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
-
-            // Act
-            var parentElement = metadata.GetElementById("parent-element");
-
-            // Assert
-            parentElement.Should().NotBeNull();
-            parentElement!.Get("ID").Should().Be("parent-element");
-        }
-
-        [Fact]
-        public void Include_CircularReference_ThrowsException()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "circular-a.xml");
-
-            // Act & Assert
-            var act = () => Metadata.LoadFromFile(filePath);
-            act.Should().Throw<InvalidOperationException>()
-                .WithMessage("*循环引用*");
-        }
-
-        [Fact]
-        public void Include_HasParentReference()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "access-control-test.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
-
-            // Act
-            var child = metadata.Children.FirstOrDefault();
-
-            // Assert
-            child.Should().NotBeNull();
-            child!.Parent.Should().NotBeNull();
-            child.Parent.Should().Be(metadata);
-        }
-
-        [Fact]
-        public void Include_TypeAttribute_IsPreserved()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "access-control-test.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
-
-            // Act
-            var publicChild = metadata.Children.FirstOrDefault(c => c.IncludeType == "public");
-            var privateChild = metadata.Children.FirstOrDefault(c => c.IncludeType == "private");
-
-            // Assert
-            publicChild.Should().NotBeNull("应该有public类型的Include");
-            privateChild.Should().NotBeNull("应该有private类型的Include");
-        }
+    [TestMethod]
+    public void Include_TypeAttribute_IsPreserved()
+    {
+        var filePath = Path.Combine(_testDataPath, "access-control-test.xml");
+        var metadata = Metadata.LoadFromFile(filePath);
+        metadata.Children.Any(c => c.IncludeType == "public").Should().BeTrue();
+        metadata.Children.Any(c => c.IncludeType == "private").Should().BeTrue();
     }
 }

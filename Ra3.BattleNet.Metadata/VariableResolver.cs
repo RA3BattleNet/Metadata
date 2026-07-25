@@ -26,11 +26,17 @@ public partial class VariableResolver
     public void ReplaceInFile(string filePath)
     {
         var fullPath = Path.GetFullPath(filePath);
-        ReplaceInFileRecursive(fullPath, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+        ReplaceInFileRecursive(
+            fullPath,
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase));
     }
 
-    private void ReplaceInFileRecursive(string filePath, HashSet<string> processingPaths)
+    private void ReplaceInFileRecursive(string filePath, HashSet<string> processingPaths, HashSet<string> processedPaths)
     {
+        if (processedPaths.Contains(filePath))
+            return;
+
         if (!processingPaths.Add(filePath))
             throw new InvalidOperationException($"检测到循环引用: {filePath}");
 
@@ -39,10 +45,8 @@ public partial class VariableResolver
         var basePath = Path.GetDirectoryName(filePath)
             ?? throw new InvalidOperationException($"无法确定文件目录: {filePath}");
 
-        // 验证所有 Include/Module 引用的资源存在
         ValidateResources(root, basePath);
 
-        // 递归处理所有引用的文件
         foreach (var include in root.Descendants().Where(e => e.Name.LocalName is "Include" or "Module"))
         {
             var path = include.Attribute("Path")?.Value ?? include.Attribute("Source")?.Value;
@@ -50,12 +54,14 @@ public partial class VariableResolver
 
             var referencedFile = Path.GetFullPath(Path.Combine(basePath, path.Replace('\\', '/')));
             if (File.Exists(referencedFile))
-                ReplaceInFileRecursive(referencedFile, processingPaths);
+                ReplaceInFileRecursive(referencedFile, processingPaths, processedPaths);
         }
 
-        // 替换当前文件中的变量
         ReplaceInElement(root, filePath);
         doc.Save(filePath);
+
+        processingPaths.Remove(filePath);
+        processedPaths.Add(filePath);
     }
 
     /// <summary>
@@ -65,6 +71,19 @@ public partial class VariableResolver
     {
         foreach (var attr in element.Attributes())
         {
+            // Markdown/Image 的 Hash=${MD5::} 按 Source 资源文件计算
+            if (attr.Name.LocalName == "Hash"
+                && attr.Value.Contains("${MD5::}", StringComparison.Ordinal)
+                && element.Attribute("Source") is { Value: { Length: > 0 } source})
+            {
+                var dir = Path.GetDirectoryName(currentFilePath)
+                    ?? throw new InvalidOperationException($"无法确定文件目录: {currentFilePath}");
+                var resourcePath = Path.GetFullPath(Path.Combine(dir, source.Replace('\\', '/')));
+                if (!File.Exists(resourcePath))
+                    throw new InvalidOperationException($"MD5 目标资源不存在: {source}");
+                attr.Value = attr.Value.Replace("${MD5::}", ComputeFileHash(resourcePath), StringComparison.Ordinal);
+            }
+
             attr.Value = Resolve(attr.Value, element, currentFilePath);
         }
 

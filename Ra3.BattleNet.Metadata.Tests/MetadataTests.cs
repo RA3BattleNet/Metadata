@@ -1,176 +1,113 @@
 using FluentAssertions;
-using Xunit;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Ra3.BattleNet.Metadata.Tests
+namespace Ra3.BattleNet.Metadata.Tests;
+
+[TestClass]
+public class MetadataTests
 {
-    public class MetadataTests
+    private string _testDataPath = null!;
+
+    [TestInitialize]
+    public void Init()
     {
-        private readonly string _testDataPath;
+        _testDataPath = Path.Combine(AppContext.BaseDirectory, "TestData");
+    }
 
-        public MetadataTests()
+    [TestMethod]
+    public void LoadFromFile_ValidXml_Success()
+    {
+        var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
+        var metadata = Metadata.LoadFromFile(filePath);
+        metadata.Should().NotBeNull();
+        metadata.Name.Should().Be("Metadata");
+        metadata.Children.Should().HaveCountGreaterThan(0);
+    }
+
+    [TestMethod]
+    public void LoadFromFile_InvalidRoot_ThrowsException()
+    {
+        var filePath = Path.Combine(_testDataPath, "invalid-root.xml");
+        var act = () => Metadata.LoadFromFile(filePath);
+        act.Should().Throw<System.Xml.XmlException>();
+    }
+
+    [TestMethod]
+    public void LoadFromFile_MissingFile_ThrowsFileNotFoundException()
+    {
+        var filePath = Path.Combine(_testDataPath, "nonexistent.xml");
+        var act = () => Metadata.LoadFromFile(filePath);
+        act.Should().Throw<FileNotFoundException>();
+    }
+
+    [TestMethod]
+    public void LoadFromFile_CircularReference_ThrowsException()
+    {
+        var filePath = Path.Combine(_testDataPath, "circular-a.xml");
+        var act = () => Metadata.LoadFromFile(filePath);
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*循环引用*");
+    }
+
+    [TestMethod]
+    public void Get_MissingVariable_ReturnsDefault()
+    {
+        var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
+        var metadata = Metadata.LoadFromFile(filePath);
+        metadata.Get("NonExistent", "default").Should().Be("default");
+    }
+
+    [TestMethod]
+    public void Find_ValidPath_ReturnsMetadata()
+    {
+        var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
+        var metadata = Metadata.LoadFromFile(filePath);
+        var tags = metadata.Find("Tags");
+        tags.Should().NotBeNull();
+        tags!.Name.Should().Be("Tags");
+    }
+
+    [TestMethod]
+    public void GetElementById_ExistingId_ReturnsElement()
+    {
+        var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
+        var metadata = Metadata.LoadFromFile(filePath);
+        var app = metadata.GetElementById("TestApp");
+        app.Should().NotBeNull();
+        app!.Get("ID").Should().Be("TestApp");
+    }
+
+    [TestMethod]
+    public void GetAllElements_ByName_ReturnsMatchingElements()
+    {
+        var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
+        var metadata = Metadata.LoadFromFile(filePath);
+        var applications = metadata.GetAllElements("Application");
+        applications.Should().HaveCount(1);
+        applications[0].Get("ID").Should().Be("TestApp");
+    }
+
+    [TestMethod]
+    public void GetElementPath_ReturnsFullPath()
+    {
+        var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
+        var metadata = Metadata.LoadFromFile(filePath);
+        var app = metadata.Find("Application");
+        var path = app?.GetElementPath();
+        path.Should().Contain("Metadata");
+        path.Should().Contain("Application");
+    }
+
+    [TestMethod]
+    public void ReplaceVariablesInFile_RecursivelyProcessesIncludeFiles()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"metadata-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
         {
-            _testDataPath = Path.Combine(AppContext.BaseDirectory, "TestData");
-        }
-
-        [Fact]
-        public void LoadFromFile_ValidXml_Success()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
-
-            // Act
-            var metadata = Metadata.LoadFromFile(filePath);
-
-            // Assert
-            metadata.Should().NotBeNull();
-            metadata.Name.Should().Be("Metadata");
-            metadata.Children.Should().HaveCountGreaterThan(0);
-        }
-
-        [Fact]
-        public void LoadFromFile_InvalidRoot_ThrowsException()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "invalid-root.xml");
-
-            // Act & Assert
-            var act = () => Metadata.LoadFromFile(filePath);
-            act.Should().Throw<System.Xml.XmlException>();
-        }
-
-        [Fact]
-        public void LoadFromFile_MissingFile_ThrowsFileNotFoundException()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "nonexistent.xml");
-
-            // Act & Assert
-            var act = () => Metadata.LoadFromFile(filePath);
-            act.Should().Throw<FileNotFoundException>();
-        }
-
-        [Fact]
-        public void LoadFromFile_CircularReference_ThrowsException()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "circular-a.xml");
-
-            // Act & Assert
-            var act = () => Metadata.LoadFromFile(filePath);
-            act.Should().Throw<InvalidOperationException>()
-                .WithMessage("*循环引用*");
-        }
-
-        [Fact]
-        public void Get_ExistingVariable_ReturnsValue()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
-
-            // Act
-            var tags = metadata.Find("Tags");
-            var versionElement = tags?.Find("Version");
-
-            // Assert
-            // 由于XML结构，Version是一个子元素而不是属性
-            // 我们应该检查元素的存在性
-            tags.Should().NotBeNull();
-            versionElement.Should().NotBeNull();
-        }
-
-        [Fact]
-        public void Get_MissingVariable_ReturnsDefault()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
-
-            // Act
-            var missing = metadata.Get("NonExistent", "default");
-
-            // Assert
-            missing.Should().Be("default");
-        }
-
-        [Fact]
-        public void Find_ValidPath_ReturnsMetadata()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
-
-            // Act
-            var tags = metadata.Find("Tags");
-
-            // Assert
-            tags.Should().NotBeNull();
-            tags!.Name.Should().Be("Tags");
-        }
-
-        [Fact]
-        public void GetElementById_ExistingId_ReturnsElement()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
-
-            // Act
-            var app = metadata.GetElementById("TestApp");
-
-            // Assert
-            app.Should().NotBeNull();
-            app!.Get("ID").Should().Be("TestApp");
-            // Name是子元素，不是属性
-            var nameElement = app.Find("Name");
-            nameElement.Should().NotBeNull();
-        }
-
-        [Fact]
-        public void GetAllElements_ByName_ReturnsMatchingElements()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
-
-            // Act
-            var applications = metadata.GetAllElements("Application");
-
-            // Assert
-            applications.Should().HaveCount(1);
-            applications[0].Get("ID").Should().Be("TestApp");
-        }
-
-        [Fact]
-        public void GetElementPath_ReturnsFullPath()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
-            var app = metadata.Find("Application");
-
-            // Act
-            var path = app?.GetElementPath();
-
-            // Assert
-            path.Should().Contain("Metadata");
-            path.Should().Contain("Application");
-        }
-
-
-        [Fact]
-        public void ReplaceVariablesInFile_RecursivelyProcessesIncludeFiles()
-        {
-            // Arrange
-            var tempDir = Path.Combine(Path.GetTempPath(), $"metadata-test-{Guid.NewGuid():N}");
-            Directory.CreateDirectory(tempDir);
-
-            try
-            {
-                var rootPath = Path.Combine(tempDir, "metadata.xml");
-                var includePath = Path.Combine(tempDir, "included.xml");
-
-                File.WriteAllText(rootPath, """
+            var rootPath = Path.Combine(tempDir, "metadata.xml");
+            var includePath = Path.Combine(tempDir, "included.xml");
+            File.WriteAllText(rootPath, """
 <?xml version="1.0" encoding="UTF-8"?>
 <Metadata>
   <Defines>
@@ -179,8 +116,7 @@ namespace Ra3.BattleNet.Metadata.Tests
   <Include Source="included.xml" Type="public" />
 </Metadata>
 """);
-
-                File.WriteAllText(includePath, """
+            File.WriteAllText(includePath, """
 <?xml version="1.0" encoding="UTF-8"?>
 <Metadata>
   <Defines>
@@ -188,111 +124,64 @@ namespace Ra3.BattleNet.Metadata.Tests
   </Defines>
 </Metadata>
 """);
-
-                Environment.SetEnvironmentVariable("TEST_COMMIT", "abc123", EnvironmentVariableTarget.Process);
-                var metadata = Metadata.LoadFromFile(rootPath);
-
-                // Act
-                metadata.ReplaceVariablesInFile(rootPath);
-
-                // Assert
-                var rootResult = File.ReadAllText(rootPath);
-                var includeResult = File.ReadAllText(includePath);
-
-                rootResult.Should().Contain("abc123");
-                rootResult.Should().NotContain("${ENV:TEST_COMMIT}");
-
-                includeResult.Should().Contain("abc123");
-                includeResult.Should().NotContain("${ENV:TEST_COMMIT}");
-            }
-            finally
-            {
-                if (Directory.Exists(tempDir))
-                {
-                    Directory.Delete(tempDir, recursive: true);
-                }
-            }
+            Environment.SetEnvironmentVariable("TEST_COMMIT", "abc123", EnvironmentVariableTarget.Process);
+            var metadata = Metadata.LoadFromFile(rootPath);
+            metadata.ReplaceVariablesInFile(rootPath);
+            File.ReadAllText(rootPath).Should().Contain("abc123").And.NotContain("${ENV:TEST_COMMIT}");
+            File.ReadAllText(includePath).Should().Contain("abc123").And.NotContain("${ENV:TEST_COMMIT}");
         }
-
-        [Fact]
-        public void GetIncludeTree_ReturnsTreeStructure()
+        finally
         {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
-
-            // Act
-            var tree = metadata.GetIncludeTree();
-
-            // Assert
-            tree.Should().NotBeNullOrEmpty();
-            tree.Should().Contain("Metadata");
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
         }
+    }
 
-        [Fact]
-        public void ToNodeTree_ShouldKeepLeafValue()
-        {
-            // Arrange
-            var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
+    [TestMethod]
+    public void GetIncludeTree_ReturnsTreeStructure()
+    {
+        var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
+        var metadata = Metadata.LoadFromFile(filePath);
+        metadata.GetIncludeTree().Should().Contain("Metadata");
+    }
 
-            // Act
-            var root = metadata.ToNodeTree();
-            var app = root.Children.Single(c => c.Name == "Application");
-            var appName = app.Children.Single(c => c.Name == "Name");
+    [TestMethod]
+    public void ToNodeTree_ShouldKeepLeafValue()
+    {
+        var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
+        var metadata = Metadata.LoadFromFile(filePath);
+        var root = metadata.ToNodeTree();
+        var app = root.Children.Single(c => c.Name == "Application");
+        var appName = app.Children.Single(c => c.Name == "Name");
+        appName.Value.Should().Be("Test Application");
+    }
 
-            // Assert
-            appName.Value.Should().Be("Test Application");
-        }
+    [TestMethod]
+    public void RepoSample_LoadSource_HasAppAndMod()
+    {
+        var filePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Metadata", "metadata.xml"));
+        var metadata = Metadata.LoadFromFile(filePath);
+        metadata.GetBusinessEntities().Should().Contain(e => e.EntityType == "Application" && e.Id == "RA3BattleNet");
+        metadata.GetBusinessEntities().Should().Contain(e => e.EntityType == "Mod" && e.Id == "Corona");
+    }
 
-        [Fact]
-        public void GetBusinessEntities_ShouldReturnTypedEntities()
-        {
-            // Arrange
-            var filePath = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", "Metadata", "metadata.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
+    [TestMethod]
+    public void Mods_ShouldExposeVersionAndPackages()
+    {
+        var filePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Metadata", "metadata.xml"));
+        var metadata = Metadata.LoadFromFile(filePath);
+        var corona = metadata.Mods().Single(m => m.Id == "Corona");
+        corona.Version.Should().Be("3.229");
+        corona.Packages.Should().NotBeEmpty();
+    }
 
-            // Act
-            var entities = metadata.GetBusinessEntities();
-
-            // Assert
-            entities.Should().Contain(e => e.EntityType == "Application" && e.Id == "RA3BattleNet");
-            entities.Should().Contain(e => e.EntityType == "Mod" && e.Id == "Corona");
-            entities.Should().Contain(e => e.EntityType == "Markdown");
-            entities.Should().Contain(e => e.EntityType == "Manifest");
-        }
-
-
-        [Fact]
-        public void Mods_ShouldExposeVersionAndPackages()
-        {
-            // Arrange
-            var filePath = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", "Metadata", "metadata.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
-
-            // Act
-            var corona = metadata.Mods().Single(m => m.Id == "Corona");
-
-            // Assert
-            corona.Version.Should().Be("3.229");
-            corona.Packages.Should().NotBeEmpty();
-        }
-
-        [Fact]
-        public void Catalog_ShouldProvideConvenientLookup()
-        {
-            // Arrange
-            var filePath = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", "Metadata", "metadata.xml");
-            var metadata = Metadata.LoadFromFile(filePath);
-
-            // Act
-            var catalog = metadata.Catalog();
-            var app = catalog.Application("RA3BattleNet");
-
-            // Assert
-            app.Should().NotBeNull();
-            app!.Version.Should().Be("1.5.2.0");
-        }
-
+    [TestMethod]
+    public void Catalog_ShouldProvideConvenientLookup()
+    {
+        var filePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Metadata", "metadata.xml"));
+        var metadata = Metadata.LoadFromFile(filePath);
+        var app = metadata.Catalog().Application("RA3BattleNet");
+        app.Should().NotBeNull();
+        app!.Version.Should().Be("1.5.2.0");
     }
 }

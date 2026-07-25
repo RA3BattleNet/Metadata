@@ -1,21 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Metadata>
     <Tags>
-        <!-- 预留标记 -->
         <Commit>${TIMESTAMP}</Commit>
     </Tags>
     <Includes>
-        <!-- 子模块 -->
         <Include Source="changelogs/changelogs.xml" Type="private" />
         <Include Source="manifests/manifests.xml" Type="private" />
         <Include Source="posts/posts.xml" Type="private" />
     </Includes>
 
-    <!-- 战网客户端 -->
     <Application ID="RA3BattleNet">
-        <!-- 属性 -->
         <Version>1.5.2.0</Version>
-        <!-- 版本包 -->
         <Packages>
             <Package Version="1.5.2.0">
                 <ReleaseDate>2025-03-29</ReleaseDate>
@@ -34,7 +29,6 @@
                 <Manifest>manifest-1.5.1.0</Manifest>
             </Package>
         </Packages>
-        <!-- 新闻 -->
         <Posts>
             <Post DateTime="2025-03-19T00:00:00+08:00">
                 <Titles>
@@ -48,5 +42,4 @@
             </Post>
         </Posts>
     </Application>
-
 </Metadata>

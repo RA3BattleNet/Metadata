@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "build": "bash build.sh",
+    "build:stage-a": "dotnet run --project ./Ra3.BattleNet.Metadata --no-launch-profile -- build --src=./Metadata --dst=./Output",
+    "build:stage-b": "dotnet run --project ./Ra3.BattleNet.Metadata.StageB --no-launch-profile -- --dst=./Output",
     "deploy": "npm run build && npx wrangler pages deploy Output",
     "dev": "npx wrangler pages dev Output",
-    "preview": "npm run build && npx wrangler pages dev Output"
+    "preview": "npm run build:stage-a && npx wrangler pages dev Output",
+    "test": "dotnet test Metadata.sln --nologo"
   },
   "devDependencies": {
     "wrangler": "^4.68.0"
