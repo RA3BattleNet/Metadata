@@ -16,7 +16,7 @@
 | 发布资源 | Manifest / 图片 / Markdown **独立文件**，XML 内 **ID 引用** |
 | public/private | 仅构建期可见性；线上无 `Include` |
 | 用户默认 | Cloudflare Pages 展平产物（可配置默认 URL） |
-| 开发者（下期 Desktop） | 调试页指本地仓 → Stage A 编译 → 读缓存 |
+| 开发者（下期 Desktop） | 调试页指本地仓 → 核心构建 → 读缓存 |
 | 库形态 | **单一纯 managed 库**：解析 + 编译；支持 **path / URL** |
 | 图片 | 库不做 WebP；**仅发布路径 Imaging**（`build.sh --webp`） |
 | 校验 | **硬失败**，不产出半残发布物 |

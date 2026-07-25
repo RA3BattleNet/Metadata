@@ -4,7 +4,7 @@ using System.Xml.Linq;
 namespace Ra3.BattleNet.Metadata;
 
 /// <summary>
-/// Stage A 构建：校验、变量替换、XML 数据展平、复制资源。纯 managed。
+/// 核心构建：校验、变量替换、XML 数据展平、复制资源。纯 managed。
 /// </summary>
 public static class MetadataBuilder
 {
@@ -13,7 +13,7 @@ public static class MetadataBuilder
     private static readonly Regex LeftoverVariablePattern = new(@"\$\{[^}]+\}", RegexOptions.Compiled);
 
     /// <summary>
-    /// 从本地源目录执行 Stage A 构建。
+    /// 从本地源目录执行核心构建（不含 Imaging/WebP）。
     /// </summary>
     /// <param name="sourceDir">含 metadata.xml 的源目录。</param>
     /// <param name="outputDir">输出目录。</param>
@@ -227,7 +227,7 @@ public static class MetadataBuilder
             errors.Add("缺少 ContentRevision");
 
         if (errors.Count > 0)
-            throw new InvalidOperationException("Stage A 校验失败:\n- " + string.Join("\n- ", errors));
+            throw new InvalidOperationException("核心构建校验失败:\n- " + string.Join("\n- ", errors));
     }
 
     private static void ValidateIdRef(string? id, string kind, HashSet<string> idIndex, List<string> errors)
