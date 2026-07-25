@@ -53,7 +53,7 @@
 3. 读取 `SchemaVersion`：不兼容则提示升级客户端。
 4. 读取 `ContentRevision`：与本地缓存比较，决定是否整树刷新。
 5. `doc.Catalog().Application("RA3BattleNet")` / `doc.Mods()` 取业务实体。
-6. 对 Package 的 `Manifest` 文本、Icon、Changelog、Post Content 等：**先当 ID**，在展平树中找同 ID 的登记节点。
+6. 对 Package 的 `Manifest` 文本、Icon、Changelog、Post Content 等：**先当 ID**（发布物中为**已限定**的全局 ID），在展平树中找同 ID 的登记节点。
 7. 用登记节点的 `Source` 或 `Url` 取资源：
    - 本地文件：`Path.Combine(basePath, Source)`
    - 远端：`new Uri(new Uri(BaseUrl.TrimEnd('/') + "/"), Source)`
@@ -163,11 +163,28 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: "1.0", contentRevisio
 | `Controls/*` | 控件样式（如 `LaunchButton/BorderBrush`、`Label/FontSize`） |
 | `Background` | `@Random`；子 `Image` 文本为 Image **ID**（不是登记节点） |
 
+### 资源 ID 限定（public/private 与局部同名）
+
+源树里可写短 ID（如 `shared-icon`），不同 Mod 可重名。展平时按**定义文件**生成全局唯一 ID：
+
+```text
+{路径前缀}:{localId}
+```
+
+- **路径前缀**：定义该登记节点的 XML 相对 `Metadata/` 根、去掉 `.xml` 的路径，`/` 分隔。  
+  例：`mods/corona/corona.xml` → 前缀 `mods/corona/corona`  
+  → `mods/corona/corona:corona-icon-64px`
+- **引用**（Icon / Logo / Background 内 Image 文本 / Changelog / Content / Package.Manifest）在同一作用域（本文件 + 其 Include 展开结果）内按短名解析，并改写为限定 ID。
+- `Include Type=public|private` 仍控制源树合并范围；**发布物不再保留 Type**，靠限定 ID 隔离同名资源。
+- Application / Mod 的 `@ID`（业务实体 ID）**不**加路径前缀，须全局唯一。
+
+Desktop：始终用发布物中的**完整限定 ID** 查表；不要假设短名在全树唯一。
+
 ### 登记节点 `Image`
 
 | 成员 | 说明 |
 |---|---|
-| `@ID` | 全局 ID |
+| `@ID` | 限定全局 ID：`{路径前缀}:{localId}` |
 | `@Source` | 相对路径（本地资源） |
 | `@Url` | 外链（可与 Source 二选一） |
 
@@ -175,7 +192,7 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: "1.0", contentRevisio
 
 | 成员 | 说明 |
 |---|---|
-| `@ID` | 全局 ID |
+| `@ID` | 限定全局 ID |
 | `@Source` | 相对路径（`.md`） |
 | `@Hash` | 资源 MD5（构建时替换） |
 
@@ -183,7 +200,7 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: "1.0", contentRevisio
 
 | 成员 | 说明 |
 |---|---|
-| `@ID` | 全局 ID |
+| `@ID` | 限定全局 ID |
 | `@Source` | 指向叶子清单 XML 的相对路径 |
 
 ### 叶子 Manifest 资源文件（独立 XML，Updater 生成）

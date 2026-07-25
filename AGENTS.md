@@ -42,10 +42,11 @@ bash build.sh --webp
 
 1. 只消费**展平** `metadata.xml` + 相对资源，不自己展开 Include。
 2. `MetadataBuilder.Load(path|url)` → `Catalog` / `Applications` / `Mods`。
-3. Package.Manifest / Icon / Changelog / Content 等是 **ID**，不是路径。
+3. Package.Manifest / Icon / Changelog / Content 等是 **限定 ID**（`路径前缀:localId`），不是路径、也不是源树短名。
 4. 登记节点 `Manifest[@Source]` 指向叶子清单 XML（含 File 表）。
 5. 资源 URL = `BaseUrl` + `Source`；本地 = `BasePath` + `Source`。
 6. 调试：本地 `Build` → 同一 `Load`；勿写死 `.png`。
+7. 同名资源靠展平前缀隔离；勿在客户端再实现 public/private Include 语义。
 
 完整步骤与属性表：README「使用方如何解析 Metadata」「模块属性清单」。
 

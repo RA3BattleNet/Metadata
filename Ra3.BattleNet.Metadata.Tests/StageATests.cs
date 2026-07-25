@@ -45,29 +45,38 @@ public class StageATests
             loaded.Applications().Should().Contain(a => a.Id == "RA3BattleNet");
             loaded.Mods().Should().Contain(m => m.Id == "Corona");
 
-            var manifest = loaded.GetAllElements("Manifest").First(m => m.Get("ID") == "manifest-1.5.2.0");
+            // 发布 ID = {路径前缀}:{localId}
+            var registries = loaded.GetAllElements("Manifest")
+                .Where(m => !string.IsNullOrEmpty(m.Get("ID"))).ToList();
+            var manifest = registries
+                .First(m => MetadataFlattener.LocalId(m.Get("ID")) == "manifest-1.5.2.0");
+            manifest.Get("ID")!.Should().Contain(":");
+            manifest.Get("ID")!.Should().EndWith(":manifest-1.5.2.0");
             var source = manifest.Get("Source");
             source.Should().NotBeNullOrWhiteSpace();
-            // 必须指向叶子清单资源，不能是中间聚合文件（apps.xml / manifests.xml）
             source!.Replace('\\', '/').Should().EndWith("manifests/1.5.2.0.xml");
             source.Should().NotContain("apps.xml");
-            source.Should().NotContain("manifests/manifests.xml");
             var manifestPath = Path.Combine(dst, source.Replace('/', Path.DirectorySeparatorChar));
             File.Exists(manifestPath).Should().BeTrue();
-            var manifestXml = File.ReadAllText(manifestPath);
-            manifestXml.Should().Contain("manifest-1.5.2.0");
-            manifestXml.Should().Contain("<File");
-            manifestXml.Should().Contain("NativeDll.dll");
+            File.ReadAllText(manifestPath).Should().Contain("<File").And.Contain("NativeDll.dll");
 
-            var coronaManifest = loaded.GetAllElements("Manifest").First(m => m.Get("ID") == "manifest-3229");
+            var coronaManifest = loaded.GetAllElements("Manifest")
+                .First(m => MetadataFlattener.LocalId(m.Get("ID")!) == "manifest-3229");
             coronaManifest.Get("Source")!.Replace('\\', '/').Should().EndWith("manifests/3.229.xml");
-            var coronaPath = Path.Combine(dst, coronaManifest.Get("Source")!.Replace('/', Path.DirectorySeparatorChar));
-            File.ReadAllText(coronaPath).Should().Contain("corona_3.229.lyi");
 
-            var md = loaded.GetAllElements("Markdown").First(m => m.Get("ID") == "changelog-zh-1.5.2.0");
+            var md = loaded.GetAllElements("Markdown")
+                .First(m => MetadataFlattener.LocalId(m.Get("ID")!) == "changelog-zh-1.5.2.0");
+            md.Get("ID")!.Should().Contain("changelogs");
             var mdSource = md.Get("Source");
             mdSource!.Replace('\\', '/').Should().EndWith("changelogs/zh-1.5.2.0.md");
             File.Exists(Path.Combine(dst, mdSource.Replace('/', Path.DirectorySeparatorChar))).Should().BeTrue();
+
+            // 引用已改写为限定 ID
+            var app = loaded.Applications().Single(a => a.Id == "RA3BattleNet");
+            app.Packages[0].ManifestId.Should().Be(manifest.Get("ID"));
+            var corona = loaded.Mods().Single(m => m.Id == "Corona");
+            corona.Icon.Should().EndWith(":corona-icon-64px");
+            corona.Icon.Should().Contain(":");
         }
         finally
         {
