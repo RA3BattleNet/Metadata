@@ -37,11 +37,26 @@ public class StageATests
             var manifest = loaded.GetAllElements("Manifest").First(m => m.Get("ID") == "manifest-1.5.2.0");
             var source = manifest.Get("Source");
             source.Should().NotBeNullOrWhiteSpace();
-            File.Exists(Path.Combine(dst, source!.Replace('/', Path.DirectorySeparatorChar))).Should().BeTrue();
+            // 必须指向叶子清单资源，不能是中间聚合文件（apps.xml / manifests.xml）
+            source!.Replace('\\', '/').Should().EndWith("manifests/1.5.2.0.xml");
+            source.Should().NotContain("apps.xml");
+            source.Should().NotContain("manifests/manifests.xml");
+            var manifestPath = Path.Combine(dst, source.Replace('/', Path.DirectorySeparatorChar));
+            File.Exists(manifestPath).Should().BeTrue();
+            var manifestXml = File.ReadAllText(manifestPath);
+            manifestXml.Should().Contain("manifest-1.5.2.0");
+            manifestXml.Should().Contain("<File");
+            manifestXml.Should().Contain("NativeDll.dll");
+
+            var coronaManifest = loaded.GetAllElements("Manifest").First(m => m.Get("ID") == "manifest-3229");
+            coronaManifest.Get("Source")!.Replace('\\', '/').Should().EndWith("manifests/3.229.xml");
+            var coronaPath = Path.Combine(dst, coronaManifest.Get("Source")!.Replace('/', Path.DirectorySeparatorChar));
+            File.ReadAllText(coronaPath).Should().Contain("corona_3.229.lyi");
 
             var md = loaded.GetAllElements("Markdown").First(m => m.Get("ID") == "changelog-zh-1.5.2.0");
             var mdSource = md.Get("Source");
-            File.Exists(Path.Combine(dst, mdSource!.Replace('/', Path.DirectorySeparatorChar))).Should().BeTrue();
+            mdSource!.Replace('\\', '/').Should().EndWith("changelogs/zh-1.5.2.0.md");
+            File.Exists(Path.Combine(dst, mdSource.Replace('/', Path.DirectorySeparatorChar))).Should().BeTrue();
         }
         finally
         {

@@ -109,10 +109,18 @@ public static class MetadataFlattener
 
             if (child.Name.LocalName == "Manifest")
             {
-                // 资源外置：主树只保留 ID + Source（指向原 manifest XML）
+                // 资源外置：主树只保留 ID + Source（指向含 File 表的叶子 manifest XML）
                 var id = child.Attribute("ID")?.Value;
                 if (string.IsNullOrWhiteSpace(id))
                     throw new InvalidOperationException($"Manifest 缺少 ID: {target}");
+
+                // 已是下层展开产生的 stub（带 Source）则原样上浮，禁止用中间 Include 文件覆盖路径
+                var existingSource = child.Attribute("Source")?.Value;
+                if (!string.IsNullOrWhiteSpace(existingSource))
+                {
+                    anchor.AddBeforeSelf(new XElement(child));
+                    continue;
+                }
 
                 var sourceRel = ToRootRelative(target, sourceRoot);
                 var stub = new XElement("Manifest",
