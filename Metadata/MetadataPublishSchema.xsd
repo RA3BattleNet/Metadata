@@ -1,60 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 源树 schema：多文件 + Include。核心构建时对源目录全部 .xml 硬校验。 -->
+<!-- 发布物 schema：展平后的单一 metadata.xml（无 Include）。核心构建对输出硬校验。 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
 
-  <xs:element name="Metadata" type="MetadataRootType"/>
+  <xs:element name="Metadata" type="PublishRootType"/>
 
-  <xs:complexType name="MetadataRootType">
+  <xs:complexType name="PublishRootType">
     <xs:choice minOccurs="0" maxOccurs="unbounded">
       <xs:element name="Tags" type="TagsType"/>
-      <xs:element name="Includes" type="IncludesType"/>
       <xs:element name="Application" type="ApplicationType"/>
       <xs:element name="Mod" type="ModType"/>
       <xs:element name="Markdown" type="MarkdownRegType"/>
       <xs:element name="Image" type="ImageRegType"/>
-      <xs:element name="Manifest" type="ManifestFullType"/>
-      <xs:element name="Defines" type="DefinesType"/>
-      <xs:element name="Module" type="ModuleType"/>
+      <xs:element name="Manifest" type="ManifestStubType"/>
     </xs:choice>
-    <xs:anyAttribute processContents="lax"/>
+    <xs:attribute name="SchemaVersion" type="xs:string" use="required"/>
+    <xs:attribute name="ContentRevision" type="xs:string" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="TagsType">
     <xs:sequence>
       <xs:element name="Commit" type="xs:string" minOccurs="0"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <xs:complexType name="IncludesType">
-    <xs:sequence>
-      <xs:element name="Include" type="IncludeType" minOccurs="0" maxOccurs="unbounded"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <xs:complexType name="IncludeType">
-    <xs:attribute name="Source" type="xs:string" use="required"/>
-    <xs:attribute name="Type" use="required">
-      <xs:simpleType>
-        <xs:restriction base="xs:string">
-          <xs:enumeration value="public"/>
-          <xs:enumeration value="private"/>
-        </xs:restriction>
-      </xs:simpleType>
-    </xs:attribute>
-    <xs:attribute name="Path" type="xs:string"/>
-  </xs:complexType>
-
-  <xs:complexType name="ModuleType">
-    <xs:sequence>
-      <xs:element name="Defines" type="DefinesType" minOccurs="0"/>
-    </xs:sequence>
-    <xs:attribute name="Source" type="xs:string" use="required"/>
-    <xs:anyAttribute processContents="lax"/>
-  </xs:complexType>
-
-  <xs:complexType name="DefinesType">
-    <xs:sequence>
-      <xs:any minOccurs="0" maxOccurs="unbounded" processContents="lax"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -99,7 +64,6 @@
     </xs:sequence>
   </xs:complexType>
 
-  <!-- Background 内 Image 是 ID 文本引用，不是登记节点 -->
   <xs:complexType name="BackgroundType">
     <xs:sequence>
       <xs:element name="Image" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
@@ -117,7 +81,6 @@
     <xs:sequence>
       <xs:element name="ReleaseDate" type="xs:string" minOccurs="0"/>
       <xs:element name="Changelogs" type="ChangelogsType" minOccurs="0"/>
-      <!-- 文本为 Manifest 登记 ID -->
       <xs:element name="Manifest" type="xs:string" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="Version" type="xs:string" use="required"/>
@@ -159,6 +122,12 @@
     </xs:sequence>
   </xs:complexType>
 
+  <xs:complexType name="DefinesType">
+    <xs:sequence>
+      <xs:any minOccurs="0" maxOccurs="unbounded" processContents="lax"/>
+    </xs:sequence>
+  </xs:complexType>
+
   <xs:complexType name="MarkdownRegType">
     <xs:attribute name="ID" type="xs:string" use="required"/>
     <xs:attribute name="Source" type="xs:string" use="required"/>
@@ -171,42 +140,10 @@
     <xs:attribute name="Url" type="xs:string"/>
   </xs:complexType>
 
-  <!-- 源侧叶子清单：含 File 表（Updater 生成） -->
-  <xs:complexType name="ManifestFullType">
-    <xs:sequence>
-      <xs:element name="File" type="FileType" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element name="SubManifest" type="SubManifestType" minOccurs="0" maxOccurs="unbounded"/>
-    </xs:sequence>
+  <!-- 发布侧 stub：File 表在独立资源文件中，不内联 -->
+  <xs:complexType name="ManifestStubType">
     <xs:attribute name="ID" type="xs:string" use="required"/>
-  </xs:complexType>
-
-  <xs:complexType name="FileType">
-    <xs:sequence>
-      <xs:element name="FileName" type="xs:string"/>
-      <xs:element name="RelativePath" type="xs:string"/>
-      <xs:element name="KindOf" type="xs:string"/>
-      <xs:element name="PatchInfo" type="PatchInfoType" minOccurs="0"/>
-    </xs:sequence>
-    <xs:attribute name="Hash" type="xs:string" use="required"/>
-  </xs:complexType>
-
-  <xs:complexType name="PatchInfoType">
-    <xs:sequence>
-      <xs:element name="Patch" type="PatchType"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <xs:complexType name="PatchType">
-    <xs:attribute name="From" type="xs:string" use="required"/>
-    <xs:attribute name="Method" type="xs:string" use="required"/>
-    <xs:attribute name="Encryption" type="xs:string"/>
-  </xs:complexType>
-
-  <xs:complexType name="SubManifestType">
-    <xs:sequence>
-      <xs:element name="RelativePath" type="xs:string"/>
-      <xs:element name="ID" type="xs:string"/>
-    </xs:sequence>
+    <xs:attribute name="Source" type="xs:string" use="required"/>
   </xs:complexType>
 
 </xs:schema>

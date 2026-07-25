@@ -7,11 +7,22 @@ namespace Ra3.BattleNet.Metadata.Tests;
 [TestClass]
 public class StageATests
 {
+    private static string RepoMetadataDir =>
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Metadata"));
+
+    private static void SeedSchemas(string targetDir)
+    {
+        Directory.CreateDirectory(targetDir);
+        foreach (var name in new[] { SchemaValidator.SourceSchemaFileName, SchemaValidator.PublishSchemaFileName })
+        {
+            File.Copy(Path.Combine(RepoMetadataDir, name), Path.Combine(targetDir, name), overwrite: true);
+        }
+    }
+
     [TestMethod]
     public void Build_RepoSample_FlattensWithoutInclude_AndResolvesIds()
     {
-        var repoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
-        var src = Path.Combine(repoRoot, "Metadata");
+        var src = RepoMetadataDir;
         var dst = Path.Combine(Path.GetTempPath(), $"stage-a-{Guid.NewGuid():N}");
 
         try
@@ -71,7 +82,7 @@ public class StageATests
         var temp = Path.Combine(Path.GetTempPath(), $"stage-a-bad-{Guid.NewGuid():N}");
         var src = Path.Combine(temp, "src");
         var dst = Path.Combine(temp, "out");
-        Directory.CreateDirectory(src);
+        SeedSchemas(src);
         try
         {
             File.WriteAllText(Path.Combine(src, "metadata.xml"), """
@@ -98,7 +109,7 @@ public class StageATests
         var temp = Path.Combine(Path.GetTempPath(), $"stage-a-id-{Guid.NewGuid():N}");
         var src = Path.Combine(temp, "src");
         var dst = Path.Combine(temp, "out");
-        Directory.CreateDirectory(src);
+        SeedSchemas(src);
         try
         {
             File.WriteAllText(Path.Combine(src, "note.md"), "# hello sample markdown body\n");
@@ -131,7 +142,7 @@ public class StageATests
     public void Flatten_CircularInclude_Throws()
     {
         var temp = Path.Combine(Path.GetTempPath(), $"stage-a-circ-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(temp);
+        SeedSchemas(temp);
         try
         {
             File.WriteAllText(Path.Combine(temp, "a.xml"), """
@@ -174,7 +185,7 @@ public class StageATests
     {
         var temp = Path.Combine(Path.GetTempPath(), $"stage-a-var-{Guid.NewGuid():N}");
         var src = Path.Combine(temp, "src");
-        Directory.CreateDirectory(src);
+        SeedSchemas(src);
         try
         {
             File.WriteAllText(Path.Combine(src, "metadata.xml"), """
@@ -198,9 +209,8 @@ public class StageATests
     [TestMethod]
     public void Flatten_Document_HasNoIncludeNodes()
     {
-        var repoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
-        var entry = Path.Combine(repoRoot, "Metadata", "metadata.xml");
-        var doc = MetadataFlattener.Flatten(entry, Path.Combine(repoRoot, "Metadata"), "1.0", "rev");
+        var entry = Path.Combine(RepoMetadataDir, "metadata.xml");
+        var doc = MetadataFlattener.Flatten(entry, RepoMetadataDir, "1.0", "rev");
         doc.Descendants().Any(e => e.Name.LocalName is "Include" or "Includes").Should().BeFalse();
         doc.Root!.Attribute("SchemaVersion")!.Value.Should().Be("1.0");
         XDocument.Parse(doc.ToString()).Root!.Attribute("ContentRevision")!.Value.Should().Be("rev");

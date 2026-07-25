@@ -38,6 +38,10 @@ public static class MetadataBuilder
 
         try
         {
+            var sourceSchema = SchemaValidator.FindSchema(src, SchemaValidator.SourceSchemaFileName)
+                ?? throw new FileNotFoundException($"找不到源树 XSD: {SchemaValidator.SourceSchemaFileName}");
+            SchemaValidator.EnsureDirectoryValid(src, sourceSchema, "源树");
+
             CopyAll(src, dst);
 
             var revision = string.IsNullOrWhiteSpace(contentRevision)
@@ -55,6 +59,11 @@ public static class MetadataBuilder
             var leftover = FindLeftoverVariables(flatPath);
             if (leftover.Count > 0)
                 throw new InvalidOperationException("变量替换后仍有残留: " + string.Join("; ", leftover));
+
+            var publishSchema = SchemaValidator.FindSchema(src, SchemaValidator.PublishSchemaFileName)
+                ?? SchemaValidator.FindSchema(dst, SchemaValidator.PublishSchemaFileName)
+                ?? throw new FileNotFoundException($"找不到发布 XSD: {SchemaValidator.PublishSchemaFileName}");
+            SchemaValidator.EnsureValid(flatPath, publishSchema, "发布物");
 
             ValidateHard(flatPath, dst);
         }
