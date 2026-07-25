@@ -138,6 +138,7 @@
     <xs:attribute name="ID" type="xs:string" use="required"/>
     <xs:attribute name="Source" type="xs:string"/>
     <xs:attribute name="Url" type="xs:string"/>
+    <xs:attribute name="Hash" type="xs:string"/>
   </xs:complexType>
 
   <!-- 发布侧 stub：File 表在独立资源文件中，不内联 -->

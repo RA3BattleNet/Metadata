@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ra3.BattleNet.Metadata\Ra3.BattleNet.Metadata.csproj" />
+    <ProjectReference Include="..\Ra3.BattleNet.Metadata.Imaging\Ra3.BattleNet.Metadata.Imaging.csproj" />
   </ItemGroup>
 
   <ItemGroup>

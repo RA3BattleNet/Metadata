@@ -12,11 +12,14 @@ internal static class Program
         string? schemaVersion = null;
         string? contentRevision = null;
         var command = "build";
+        var withWebp = false;
 
         foreach (var arg in args)
         {
             if (arg is "build" or "stage-a")
                 command = "build";
+            else if (arg is "--webp" or "--with-webp" or "--publish")
+                withWebp = true;
             else if (arg.StartsWith("--src=", StringComparison.Ordinal))
                 srcFolder = arg["--src=".Length..];
             else if (arg.StartsWith("--dst=", StringComparison.Ordinal))
@@ -35,6 +38,7 @@ internal static class Program
         Console.WriteLine($"工作目录: {Environment.CurrentDirectory}");
         Console.WriteLine($"源目录: {srcFolder}");
         Console.WriteLine($"输出目录: {dstFolder}");
+        Console.WriteLine($"WebP: {(withWebp ? "开" : "关")}");
         Console.WriteLine();
 
         try
@@ -45,9 +49,17 @@ internal static class Program
                 return 1;
             }
 
-            Console.WriteLine("执行核心构建（校验 / 变量 / XML 展平 / 复制资源）...");
+            Console.WriteLine(">>> 核心构建（校验 / 变量 / XML 展平 / 复制资源）");
             MetadataBuilder.Build(srcFolder, dstFolder, schemaVersion, contentRevision);
             Console.WriteLine("✓ 核心构建完成");
+
+            if (withWebp)
+            {
+                Console.WriteLine(">>> Imaging（WebP + Hash）");
+                var code = ImagingInvoker.RunWebP(dstFolder);
+                if (code != 0)
+                    return code;
+            }
 
             var flatPath = Path.Combine(dstFolder, "metadata.xml");
             var loaded = MetadataBuilder.Load(flatPath);
@@ -61,7 +73,9 @@ internal static class Program
                 Console.WriteLine($"Mod id={mod.Id} version={mod.Version}");
 
             Console.WriteLine();
-            Console.WriteLine("处理完成。WebP 请显式运行 Imaging（npm run build:webp 或 bash build.sh --webp）。");
+            Console.WriteLine(withWebp
+                ? "处理完成（核心 + Imaging）。"
+                : "处理完成（仅核心）。发布转 WebP: 加 --webp 或 npm run build:release");
             return 0;
         }
         catch (Exception ex)
@@ -76,22 +90,24 @@ internal static class Program
     private static void PrintHelp()
     {
         Console.WriteLine("""
-            Ra3.BattleNet.Metadata — 核心构建（纯 managed）
+            Ra3.BattleNet.Metadata — 核心构建 CLI（纯 managed）
 
             用法:
               dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Output
+              dotnet run --project Ra3.BattleNet.Metadata -- build --webp --src=./Metadata --dst=./Output
 
             参数:
               --src=DIR                 源目录（含 metadata.xml）
               --dst=DIR                 输出目录
               --schema-version=VER      默认 1.0
               --content-revision=REV    默认 UTC 时间戳
+              --webp / --publish        核心构建后调用 Imaging CLI（WebP + 更新 Hash）
 
-            说明:
-              build: 展平 XML、变量替换、硬失败校验、复制资源
-              WebP:  独立项目 Ra3.BattleNet.Metadata.Imaging（npm run build:webp / build.sh --webp）
-              Load(path|url): 见 MetadataBuilder.Load
-              Build(url): 本期仅支持本地 path，远程源构建延后
+            包边界:
+              NuGet Ra3.BattleNet.Metadata = 解析 + 核心 Build（Desktop 引用）
+              Imaging = 独立 CLI，不进主 NuGet；仓库编译阶段按开关调用
+
+            Load(path|url): MetadataBuilder.Load
             """);
     }
 }

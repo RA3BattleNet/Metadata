@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Ra3.BattleNet.Metadata.Imaging</RootNamespace>
+    <!-- 编译/发布 CLI，不打进 Desktop 主 NuGet -->
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

@@ -223,18 +223,23 @@ Desktop：始终用发布物中的**完整限定 ID** 查表；不要假设短�
 
 | 路径 | 做什么 | 何时用 |
 |---|---|---|
-| **核心构建** | XSD + 展平 + 变量 + 资源复制 | 本地、测试、Desktop 调试编译 |
-| **Imaging** | WebP + 改写 Image Source | **仅发布**（显式） |
+| **核心构建** | XSD + 展平 + 变量 + 资源复制 | 本地、测试、Desktop 调试；**NuGet 主包** |
+| **Imaging CLI** | WebP + 改写 Source + **重算 Hash** | 仓库编译/发布工具，**不进主 NuGet** |
 
 ```bash
-npm run build                 # 核心
-npm run build:webp            # 仅 Imaging（需已有 Output）
-npm run build:release         # 核心 + Imaging
-bash build.sh --webp          # CF：装 dotnet + 核心 + Imaging
+# 仅核心（Desktop 本地调试同此 API：MetadataBuilder.Build）
+npm run build
+dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Output
+
+# 核心 + Imaging（一条命令，--webp 时进程调用 Imaging CLI）
+npm run build:release
+dotnet run --project Ra3.BattleNet.Metadata -- build --webp --src=./Metadata --dst=./Output
+bash build.sh --webp
 ```
 
-`wrangler.toml`：`command = "bash build.sh --webp"`。  
-**无** `RUN_STAGE_B`：默认不转 WebP。
+- 主 NuGet：`Ra3.BattleNet.Metadata`（解析 + 核心 Build，无 SkiaSharp）
+- Imaging：`Ra3.BattleNet.Metadata.Imaging` 独立 CLI；转 WebP 后写 `Image/@Hash` 为 webp 文件 MD5
+- `wrangler.toml`：`bash build.sh --webp`
 
 ---
 
