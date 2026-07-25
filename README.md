@@ -117,13 +117,38 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: "1.0", contentRevisio
 | `Tags/Commit` | 子元素 | 构建时间戳等 |
 | 子节点 | 子元素 | `Application` / `Mod` / 登记用 `Image`·`Markdown`·`Manifest` |
 
-源树另可有 `Includes/Include`（`Source`、`Type=public|private`），**发布物中不存在**。
+源树另可有 `Includes/Include`（`Source`、`Type=public|private`）、`Base`、`InheritFrom`，**发布物中不存在**。
+
+### 源树继承（Base / InheritFrom）
+
+构建期合并，Desktop **不必**实现继承。
+
+| 节点 | 说明 |
+|---|---|
+| `<Base ID="..." Kind="Mod\|Application">` | 源树专用骨架；合并后删除 |
+| `Mod`/`Application` 的 `@InheritFrom` | 指向 Base 的 ID；合并后删除 |
+| `Defines` | **不是**继承，仅服务 `${this:}` 等变量 |
+
+**合并规则（子优先）：**
+
+| 区域 | 规则 |
+|---|---|
+| 属性 | 子覆盖；实体 `ID` 只用子节点的；不从 Base 继承 ID |
+| 标量（`Version`/`CurrentVersion`/`Icon` 等） | 子有则整元素替换 |
+| `Style/Logo`、`Style/Background` | 子有则整段替换 |
+| `Style/Controls` | 按控件名合并；控件内按字段名覆盖 |
+| `Packages`/`Posts`/`Defines` | 子有则**整段替换**（不做列表 Append） |
+
+脚手架：`Metadata/Templates/`（复制用，默认不 Include）。
+
+硬失败：找不到 Base、Kind 不符、Base ID 与实体 ID 冲突、Base ID 重复。
 
 ### `Application`（应用，如战网客户端）
 
 | 成员 | 说明 |
 |---|---|
 | `@ID` | 应用 ID，如 `RA3BattleNet` |
+| `@InheritFrom` | 源树可选，指向 `Base`（发布物无） |
 | `Version` | 当前版本号 |
 | `Packages/Package` | 历史版本包列表 |
 | `Posts/Post` | 新闻 |
@@ -133,6 +158,7 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: "1.0", contentRevisio
 | 成员 | 说明 |
 |---|---|
 | `@ID` | Mod ID，如 `Corona` |
+| `@InheritFrom` | 源树可选，指向 `Base`（发布物无） |
 | `CurrentVersion` | 当前版本 |
 | `Icon` | **ID 引用** → `Image` 登记节点 |
 | `Style` | UI 样式（见下） |

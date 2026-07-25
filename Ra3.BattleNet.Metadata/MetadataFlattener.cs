@@ -18,6 +18,9 @@ public static class MetadataFlattener
         var processing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var root = LoadAndExpand(fullEntry, rootFull, processing);
 
+        // Include 展开后、写出版本前：合并 Base/InheritFrom，发布物无继承痕迹
+        MetadataInheritance.Resolve(root);
+
         root.SetAttributeValue("SchemaVersion", schemaVersion);
         root.SetAttributeValue("ContentRevision", contentRevision);
 

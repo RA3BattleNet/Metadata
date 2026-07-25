@@ -38,6 +38,8 @@ bash build.sh --webp
 
 改结构时：**同步改 XSD + README 属性清单 + 示例 + 测试**。
 
+源树 `Base` / `InheritFrom` 仅构建期合并（`MetadataInheritance`）；**发布物禁止**带继承痕迹。`Defines` 不做对象继承。
+
 ## 使用方（Desktop）解析要点
 
 1. 只消费**展平** `metadata.xml` + 相对资源，不自己展开 Include。
@@ -54,10 +56,12 @@ bash build.sh --webp
 
 ```
 Metadata/metadata.xml              入口
+Metadata/Templates/                脚手架（不 Include）
 Metadata/**                        分模块 Include 源
 Ra3.BattleNet.Metadata/
   MetadataBuilder.cs               核心 Build / Load
   MetadataFlattener.cs             Include 展平
+  MetadataInheritance.cs           Base + InheritFrom 合并
   SchemaValidator.cs               XSD
   VariableResolver.cs              ${...}
   Metadata.cs / MetadataParser.cs  树与加载

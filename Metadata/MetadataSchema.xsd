@@ -10,6 +10,7 @@
       <xs:element name="Includes" type="IncludesType"/>
       <xs:element name="Application" type="ApplicationType"/>
       <xs:element name="Mod" type="ModType"/>
+      <xs:element name="Base" type="BaseType"/>
       <xs:element name="Markdown" type="MarkdownRegType"/>
       <xs:element name="Image" type="ImageRegType"/>
       <xs:element name="Manifest" type="ManifestFullType"/>
@@ -17,6 +18,28 @@
       <xs:element name="Module" type="ModuleType"/>
     </xs:choice>
     <xs:anyAttribute processContents="lax"/>
+  </xs:complexType>
+
+  <!-- 源树专用：构建期合并进 Mod/Application 后删除，不进发布物 -->
+  <xs:complexType name="BaseType">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="Version" type="xs:string"/>
+      <xs:element name="CurrentVersion" type="xs:string"/>
+      <xs:element name="Icon" type="xs:string"/>
+      <xs:element name="Style" type="StyleType"/>
+      <xs:element name="Packages" type="PackagesType"/>
+      <xs:element name="Posts" type="PostsType"/>
+      <xs:element name="Defines" type="DefinesType"/>
+    </xs:choice>
+    <xs:attribute name="ID" type="xs:string" use="required"/>
+    <xs:attribute name="Kind" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Mod"/>
+          <xs:enumeration value="Application"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
   </xs:complexType>
 
   <xs:complexType name="TagsType">
@@ -66,6 +89,7 @@
       <xs:element name="Defines" type="DefinesType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="ID" type="xs:string" use="required"/>
+    <xs:attribute name="InheritFrom" type="xs:string"/>
   </xs:complexType>
 
   <xs:complexType name="ModType">
@@ -78,6 +102,7 @@
       <xs:element name="Defines" type="DefinesType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="ID" type="xs:string" use="required"/>
+    <xs:attribute name="InheritFrom" type="xs:string"/>
   </xs:complexType>
 
   <xs:complexType name="StyleType">

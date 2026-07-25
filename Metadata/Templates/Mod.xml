@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 脚手架：复制到 mods/<name>/ 后改 ID/路径，再挂到 mods.xml。不参与构建语义。 -->
+<Metadata>
+  <Image ID="mod-icon-64px" Source="images/icon-64px.png" />
+
+  <Mod ID="YourMod">
+    <CurrentVersion>1.0.0</CurrentVersion>
+    <Icon>mod-icon-64px</Icon>
+    <Style>
+      <Logo Width="400" Height="80">mod-icon-64px</Logo>
+      <Controls>
+        <LaunchButton>
+          <BorderBrush>#FF000000</BorderBrush>
+        </LaunchButton>
+        <Label>
+          <FontSize>14</FontSize>
+          <ForegroundBrush>#FFFFFFFF</ForegroundBrush>
+        </Label>
+      </Controls>
+      <Background Random="false">
+        <Image>mod-icon-64px</Image>
+      </Background>
+    </Style>
+    <Packages>
+      <Package Version="1.0.0">
+        <ReleaseDate>2026-01-01</ReleaseDate>
+        <Manifest>manifest-100</Manifest>
+      </Package>
+    </Packages>
+  </Mod>
+
+  <Manifest ID="manifest-100">
+    <File Hash="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">
+      <FileName>placeholder.bin</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+    </File>
+  </Manifest>
+</Metadata>

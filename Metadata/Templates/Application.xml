@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 脚手架：复制到 apps/<name>/ 后改 ID/路径，再挂到 apps.xml。不参与构建语义。 -->
+<Metadata>
+  <Application ID="YourApp">
+    <Version>1.0.0</Version>
+    <Packages>
+      <Package Version="1.0.0">
+        <ReleaseDate>2026-01-01</ReleaseDate>
+        <Manifest>manifest-100</Manifest>
+      </Package>
+    </Packages>
+  </Application>
+
+  <Manifest ID="manifest-100">
+    <File Hash="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">
+      <FileName>placeholder.bin</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>APP;</KindOf>
+    </File>
+  </Manifest>
+</Metadata>
