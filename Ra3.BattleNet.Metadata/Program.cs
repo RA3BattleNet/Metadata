@@ -38,7 +38,7 @@ internal static class Program
         Console.WriteLine($"工作目录: {Environment.CurrentDirectory}");
         Console.WriteLine($"源目录: {srcFolder}");
         Console.WriteLine($"输出目录: {dstFolder}");
-        Console.WriteLine($"WebP: {(withWebp ? "开" : "关")}");
+        Console.WriteLine($"WebP: {(withWebp ? "开（展平后按图调 Imaging CLI）" : "关")}");
         Console.WriteLine();
 
         try
@@ -49,17 +49,9 @@ internal static class Program
                 return 1;
             }
 
-            Console.WriteLine(">>> 核心构建（校验 / 变量 / XML 展平 / 复制资源）");
-            MetadataBuilder.Build(srcFolder, dstFolder, schemaVersion, contentRevision);
-            Console.WriteLine("✓ 核心构建完成");
-
-            if (withWebp)
-            {
-                Console.WriteLine(">>> Imaging（WebP + Hash）");
-                var code = ImagingInvoker.RunWebP(dstFolder);
-                if (code != 0)
-                    return code;
-            }
+            Console.WriteLine(">>> 构建（展平 / 校验" + (withWebp ? " / Imaging" : "") + "）");
+            MetadataBuilder.Build(srcFolder, dstFolder, schemaVersion, contentRevision, convertImages: withWebp);
+            Console.WriteLine("✓ 构建完成");
 
             var flatPath = Path.Combine(dstFolder, "metadata.xml");
             var loaded = MetadataBuilder.Load(flatPath);
@@ -72,10 +64,6 @@ internal static class Program
             foreach (var mod in loaded.Mods())
                 Console.WriteLine($"Mod id={mod.Id} version={mod.Version}");
 
-            Console.WriteLine();
-            Console.WriteLine(withWebp
-                ? "处理完成（核心 + Imaging）。"
-                : "处理完成（仅核心）。发布转 WebP: 加 --webp 或 npm run build:release");
             return 0;
         }
         catch (Exception ex)
@@ -90,24 +78,16 @@ internal static class Program
     private static void PrintHelp()
     {
         Console.WriteLine("""
-            Ra3.BattleNet.Metadata — 核心构建 CLI（纯 managed）
+            Ra3.BattleNet.Metadata — 核心构建
 
             用法:
-              dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Output
-              dotnet run --project Ra3.BattleNet.Metadata -- build --webp --src=./Metadata --dst=./Output
+              build --src=./Metadata --dst=./Output
+              build --webp --src=./Metadata --dst=./Output
 
-            参数:
-              --src=DIR                 源目录（含 metadata.xml）
-              --dst=DIR                 输出目录
-              --schema-version=VER      默认 1.0
-              --content-revision=REV    默认 UTC 时间戳
-              --webp / --publish        核心构建后调用 Imaging CLI（WebP + 更新 Hash）
+            --webp: 展平后对每张本地图调用 Imaging CLI（只产 webp+hash），
+                    由本程序改写 metadata.xml 的 Source/Hash。
 
-            包边界:
-              NuGet Ra3.BattleNet.Metadata = 解析 + 核心 Build（Desktop 引用）
-              Imaging = 独立 CLI，不进主 NuGet；仓库编译阶段按开关调用
-
-            Load(path|url): MetadataBuilder.Load
+            NuGet 主包不含 Imaging；Imaging 为仓库编译 CLI。
             """);
     }
 }

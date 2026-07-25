@@ -13,13 +13,15 @@ public static class MetadataBuilder
     private static readonly Regex LeftoverVariablePattern = new(@"\$\{[^}]+\}", RegexOptions.Compiled);
 
     /// <summary>
-    /// 从本地源目录执行核心构建（不含 Imaging/WebP）。
+    /// 从本地源目录执行核心构建。
     /// </summary>
-    /// <param name="sourceDir">含 metadata.xml 的源目录。</param>
-    /// <param name="outputDir">输出目录。</param>
-    /// <param name="schemaVersion">契约版本，默认 1.0。</param>
-    /// <param name="contentRevision">内容修订号；为空则用 UTC 时间戳。</param>
-    public static void Build(string sourceDir, string outputDir, string? schemaVersion = null, string? contentRevision = null)
+    /// <param name="convertImages">true 时在展平后调用 Imaging CLI 转 WebP，并由本管线改写 Source/Hash。</param>
+    public static void Build(
+        string sourceDir,
+        string outputDir,
+        string? schemaVersion = null,
+        string? contentRevision = null,
+        bool convertImages = false)
     {
         if (string.IsNullOrWhiteSpace(sourceDir))
             throw new ArgumentException("源目录不能为空", nameof(sourceDir));
@@ -59,6 +61,13 @@ public static class MetadataBuilder
             var leftover = FindLeftoverVariables(flatPath);
             if (leftover.Count > 0)
                 throw new InvalidOperationException("变量替换后仍有残留: " + string.Join("; ", leftover));
+
+            // 展平后：按图调用 Imaging（只产 webp+hash），本管线写回 XML
+            if (convertImages)
+            {
+                var n = ImagePostProcessor.ApplyWebP(dst);
+                Console.WriteLine($"  Imaging: 转换 {n} 张图片并写回 Source/Hash");
+            }
 
             var publishSchema = SchemaValidator.FindSchema(src, SchemaValidator.PublishSchemaFileName)
                 ?? SchemaValidator.FindSchema(dst, SchemaValidator.PublishSchemaFileName)

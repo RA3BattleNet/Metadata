@@ -6,7 +6,7 @@
 
 - **源数据**：`Metadata/**/*.xml` + 图片/Markdown/叶子 Manifest
 - **核心库/CLI**：`Ra3.BattleNet.Metadata` — 展平、变量、XSD、语义校验、查询 API（**纯 managed，无 SkiaSharp**）；**Desktop NuGet 只引此包**
-- **Imaging CLI**：`Ra3.BattleNet.Metadata.Imaging` — 编译期工具，WebP + 更新 Hash；**不进主 NuGet**；由 `build --webp` 进程调用
+- **Imaging CLI**：`Ra3.BattleNet.Metadata.Imaging` — 只转图并 stdout MD5，**不读 XML**；**不进主 NuGet**；`Build(convertImages:true)` / `build --webp` 在展平后按图调用
 - **发布**：Cloudflare Pages 静态托管 `Output/`
 
 ## 常用命令
