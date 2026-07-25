@@ -5,7 +5,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>Ra3.BattleNet.Metadata.StageB</RootNamespace>
+    <RootNamespace>Ra3.BattleNet.Metadata.Imaging</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

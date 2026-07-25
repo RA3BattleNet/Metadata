@@ -1,10 +1,11 @@
 using System.Xml.Linq;
 using SkiaSharp;
 
-namespace Ra3.BattleNet.Metadata.StageB;
+namespace Ra3.BattleNet.Metadata.Imaging;
 
 /// <summary>
-/// Stage B：仅发布流水线使用 — 将 Output 中本地图片转为 WebP 并改写 XML Source。
+/// 发布可选步骤：将 Output 中本地图片转为 WebP 并改写 metadata.xml 的 Image Source。
+/// 主库不引用本项目；仅 build.sh --webp / npm run build:webp 使用。
 /// </summary>
 internal static class Program
 {
@@ -58,7 +59,7 @@ internal static class Program
         }
 
         doc.Save(flat);
-        Console.WriteLine($"Stage B 完成，转换 {converted} 张图片");
+        Console.WriteLine($"Imaging 完成，转换 {converted} 张图片");
         return 0;
     }
 

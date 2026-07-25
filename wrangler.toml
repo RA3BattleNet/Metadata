@@ -5,9 +5,9 @@ compatibility_date = "2026-02-20"
 [assets]
 directory = "./Output"
 
-# 构建配置
+# 发布构建：核心展平 + WebP（与本地默认 npm run build 区分）
 [build]
-command = "bash build.sh"
+command = "bash build.sh --webp"
 
 # 环境变量配置（如果需要）
 # [vars]

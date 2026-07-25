@@ -33,7 +33,7 @@ internal static class Program
         }
 
         Console.WriteLine($"工作目录: {Environment.CurrentDirectory}");
-        Console.WriteLine($"Stage A 源目录: {srcFolder}");
+        Console.WriteLine($"源目录: {srcFolder}");
         Console.WriteLine($"输出目录: {dstFolder}");
         Console.WriteLine();
 
@@ -45,9 +45,9 @@ internal static class Program
                 return 1;
             }
 
-            Console.WriteLine("执行 Stage A（校验 / 变量 / XML 展平 / 复制资源）...");
+            Console.WriteLine("执行核心构建（校验 / 变量 / XML 展平 / 复制资源）...");
             MetadataBuilder.Build(srcFolder, dstFolder, schemaVersion, contentRevision);
-            Console.WriteLine("✓ Stage A 完成");
+            Console.WriteLine("✓ 核心构建完成");
 
             var flatPath = Path.Combine(dstFolder, "metadata.xml");
             var loaded = MetadataBuilder.Load(flatPath);
@@ -61,7 +61,7 @@ internal static class Program
                 Console.WriteLine($"Mod id={mod.Id} version={mod.Version}");
 
             Console.WriteLine();
-            Console.WriteLine("处理完成（Stage A）。WebP 请在发布流水线 Stage B 执行。");
+            Console.WriteLine("处理完成。WebP 请显式运行 Imaging（npm run build:webp 或 bash build.sh --webp）。");
             return 0;
         }
         catch (Exception ex)
@@ -76,7 +76,7 @@ internal static class Program
     private static void PrintHelp()
     {
         Console.WriteLine("""
-            Ra3.BattleNet.Metadata — Stage A 构建（纯 managed）
+            Ra3.BattleNet.Metadata — 核心构建（纯 managed）
 
             用法:
               dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Output
@@ -88,8 +88,8 @@ internal static class Program
               --content-revision=REV    默认 UTC 时间戳
 
             说明:
-              Stage A: 展平 XML 数据、变量替换、硬失败校验、复制资源
-              Stage B(WebP): 仅发布脚本，不在本 CLI 内
+              build: 展平 XML、变量替换、硬失败校验、复制资源
+              WebP:  独立项目 Ra3.BattleNet.Metadata.Imaging（npm run build:webp / build.sh --webp）
               Load(path|url): 见 MetadataBuilder.Load
               Build(url): 本期仅支持本地 path，远程源构建延后
             """);

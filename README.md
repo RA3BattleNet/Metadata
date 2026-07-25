@@ -1,6 +1,6 @@
 # 红警3战网元数据
 
-本仓库存储战网客户端所需的**应用 / Mod 版本、清单引用、新闻与资源索引**，经 Stage A 构建后由 Cloudflare Pages 发布。
+本仓库存储战网客户端所需的**应用 / Mod 版本、清单引用、新闻与资源索引**，经核心构建后由 Cloudflare Pages 发布。
 
 更完整的产品决策见 [PLAN.md](./PLAN.md)。
 
@@ -15,20 +15,33 @@
 | 资源引用 | XML 内一律 **ID 引用**（如 `<Manifest>manifest-1.5.2.0</Manifest>`），再解析登记节点上的 `Source`/`Url` |
 | Manifest 归属 | **Updater 生成**清单文件；本仓只登记 ID 并引用。Updater 格式改造见路线图 |
 
-### Stage A vs Stage B
+### 核心构建 vs Imaging（WebP）
 
-- **Stage A（本地 / 库 / CI 必跑，纯 managed）**：校验、变量替换、XML 数据展平、复制资源。  
-  `dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Output`
-- **Stage B（仅发布流水线）**：WebP 转码并改写 Image `Source`。  
-  `dotnet run --project Ra3.BattleNet.Metadata.StageB -- --dst=./Output`  
-  `build.sh` 默认会跑 Stage B；本地可设 `RUN_STAGE_B=0` 跳过。
+| 路径 | 做什么 | 何时用 |
+|---|---|---|
+| **核心构建** `build` | 校验、变量、XML 展平、复制资源（**纯 managed，无 SkiaSharp**） | 本地开发、测试、Desktop 调试默认 |
+| **Imaging** `build:webp` | 将 Output 内本地图转 WebP 并改写 `Source` | **仅发布**（显式开启） |
 
-本地与线上业务树同形；线上图片扩展名可能为 `.webp`，客户端应按节点 `Source` 读取，勿写死 `.png`。
+```bash
+# 本地默认：只要核心产物
+npm run build
+# 或
+dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Output
+
+# 正式发布：核心 + WebP
+npm run build:release
+# 或（CF / 装 dotnet 的环境）
+bash build.sh --webp
+```
+
+- Cloudflare：`wrangler.toml` 的 `[build].command = "bash build.sh --webp"`
+- **没有** `RUN_STAGE_B`：默认不转 WebP，发布用 `--webp` / `build:release` 正向开启
+- 本地与线上业务树同形；线上图片扩展名可能为 `.webp`，客户端按节点 `Source` 读，勿写死 `.png`
 
 ### 库 API
 
 ```csharp
-// Stage A 构建（本期 Build 仅支持本地 path；远程源构建延后）
+// 核心构建（本期 Build 仅支持本地 path；远程源构建延后）
 MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: "1.0", contentRevision: "git-sha");
 
 // 解析已展平产物（path 或 http(s) URL）
@@ -36,29 +49,21 @@ var doc = MetadataBuilder.Load(pathOrUrl);
 var app = doc.Catalog().Application("RA3BattleNet");
 ```
 
-主库 **无 SkiaSharp**；正式客户端可只引用 `Ra3.BattleNet.Metadata` 做解析与本地 Stage A。
+主库 **无 SkiaSharp**；正式客户端可只引用 `Ra3.BattleNet.Metadata` 做解析与本地核心构建。
 
 ### 硬失败
 
-下列情况 Stage A **非 0 退出**并清理半残输出：循环 Include、缺失资源、断开的 ID 引用、未替换的 `${...}`、校验失败。
+下列情况核心构建 **非 0 退出**并清理半残输出：循环 Include、缺失资源、断开的 ID 引用、未替换的 `${...}`、校验失败。
 
-## 本地构建
+## 本地命令
 
 ```bash
-# 仅 Stage A（推荐日常）
-dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Output
-
-# 测试（MSTest，无 xunit）
 dotnet test Metadata.sln
-
-# Cloudflare 风格完整脚本（安装 dotnet + Stage A + Stage B）
-bash build.sh
-# 跳过 WebP：RUN_STAGE_B=0 bash build.sh
-```
-
-```bash
-npm run build    # bash build.sh
-npm run deploy   # build + wrangler pages deploy Output
+npm run build              # 核心
+npm run build:webp         # 仅 Imaging（需已有 Output）
+npm run build:release      # 核心 + Imaging
+npm run preview            # 核心后 pages dev
+npm run deploy             # release + wrangler pages deploy
 ```
 
 ## 示例数据
@@ -70,14 +75,14 @@ npm run deploy   # build + wrangler pages deploy Output
 ## Desktop 下期对接（本期不改 Desktop 仓）
 
 1. 用户默认 `BaseUrl` 指向 Cloudflare Pages 展平产物。  
-2. 开发者调试页：选择本地 Metadata 仓库路径 → 调用 Stage A `MetadataBuilder.Build` → `Load` 缓存目录中的 `metadata.xml`。  
-3. 与线上同一套解析逻辑，仅换内容来源。
+2. 开发者调试页：选择本地 Metadata 仓库路径 → 调用核心 `MetadataBuilder.Build` → `Load` 缓存目录中的 `metadata.xml`。  
+3. 与线上同一套解析逻辑，仅换内容来源（本地一般不跑 Imaging）。
 
 ## 测试
 
-- 框架：**MSTest**（`MSTest.TestFramework` + `MSTest.TestAdapter`）  
-- **禁止**再引入 xunit / xunit.v3 / xunit.runner  
-- 覆盖：展平、硬失败（缺资源 / 坏 ID / 循环引用 / 变量残留）、示例 Stage A 成功路径
+- 框架：**MSTest**  
+- **禁止**再引入 xunit 系包  
+- 覆盖：展平、硬失败、示例核心构建成功路径  
 
 ## Include 与 public/private
 
@@ -95,10 +100,10 @@ npm run deploy   # build + wrangler pages deploy Output
 ## 目录
 
 ```
-Metadata/                      源数据
-Ra3.BattleNet.Metadata/        纯 managed 库 + Stage A CLI
-Ra3.BattleNet.Metadata.StageB/ 发布用 WebP（SkiaSharp）
-Ra3.BattleNet.Metadata.Tests/  MSTest
-build.sh                       CF：Stage A + Stage B
-PLAN.md                        详细计划与决策记录
+Metadata/                         源数据
+Ra3.BattleNet.Metadata/           纯 managed 库 + 核心 CLI
+Ra3.BattleNet.Metadata.Imaging/   发布用 WebP（SkiaSharp）
+Ra3.BattleNet.Metadata.Tests/     MSTest
+build.sh                          CF：默认核心；--webp 加 Imaging
+PLAN.md                           详细计划与决策记录
 ```

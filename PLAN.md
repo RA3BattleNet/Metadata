@@ -18,7 +18,7 @@
 | 用户默认 | Cloudflare Pages 展平产物（可配置默认 URL） |
 | 开发者（下期 Desktop） | 调试页指本地仓 → Stage A 编译 → 读缓存 |
 | 库形态 | **单一纯 managed 库**：解析 + 编译；支持 **path / URL** |
-| 图片 | 库不做 WebP；**仅 CF Stage B** 转 WebP |
+| 图片 | 库不做 WebP；**仅发布路径 Imaging**（`build.sh --webp`） |
 | 校验 | **硬失败**，不产出半残发布物 |
 | Manifest | **Updater 生成**，本仓只引用；Updater 改造 **记入路线图** |
 | MVP 数据 | App `RA3BattleNet` + Mod `Corona` **示例**；其余自行补充 |
@@ -30,7 +30,7 @@
 ## 1. 目标架构
 
 ```
-源仓 Metadata/          Stage A (库/CLI, 纯 managed)         Stage B (仅 CF)
+源仓 Metadata/          核心 build (库/CLI, 纯 managed)         Imaging (仅发布 --webp)
   xml 树 + 资源    →    校验 → 变量 → XML 展平 → Output/  →  WebP + 改写引用 → 部署 Pages
                               ↓
                      metadata.xml (数据, 含 SchemaVersion/ContentRevision)
@@ -68,7 +68,7 @@
 #### A1. 发布契约文档
 
 - 默认 URL 占位、路径规则、ID 引用、版本字段
-- Stage A vs B 产物差异（业务树同形，图片扩展名可能不同）
+- 核心 build vs Imaging 产物差异（业务树同形，图片扩展名可能不同）
 - 硬失败错误约定
 
 #### A2. XML 展平（核心）
@@ -113,7 +113,7 @@ Output/
 
 - `Ra3.BattleNet.Metadata`：类库（解析 + Stage A 构建）
 - 可执行入口：同解决方案 CLI（`dotnet run` / 日后 `dotnet tool`）
-- **主库无 SkiaSharp 等原生硬依赖**（WebP 仅 Stage B）
+- **主库无 SkiaSharp 等原生硬依赖**（WebP 仅 Imaging 项目）
 
 #### B2. 公共 API（最小面）
 
@@ -141,12 +141,12 @@ MetadataBuilder.Build(sourcePath | sourceUrl, outputDir) // Stage A
 
 ### 阶段 C — 发布管线
 
-#### C1. `build.sh` 两段式
+#### C1. `build.sh`：默认核心，发布 opt-in WebP
 
 1. 安装/使用 dotnet
-2. **Stage A**：CLI Build（纯 managed：校验、变量、XML 展平）
-3. **Stage B**（仅 CF/发布）：WebP 转换 + 更新 Image Source 引用
-4. 任一步失败即 fail
+2. **默认**：核心 build（纯 managed：校验、变量、XML 展平）
+3. **`--webp` / `--publish`**（CF `wrangler` 使用）：Imaging WebP + 改写 Image Source
+4. 任一步失败即 fail；**无** `RUN_STAGE_B` 环境变量
 
 #### C2. Cloudflare Pages
 
@@ -239,14 +239,15 @@ MetadataBuilder.Build(sourcePath | sourceUrl, outputDir) // Stage A
 - [x] 类库无 SkiaSharp 等原生硬依赖
 - [x] `metadata build --src Metadata --dst Output` 得到展平 `metadata.xml` + 资源
 - [x] 展平 XML 无 Include；含 SchemaVersion/ContentRevision；资源 ID 可解析（Manifest Source 指向叶子清单文件）
-- [x] CF 脚本含 Stage B WebP；本地 Stage A 可单独跑
-- [x] 示例：RA3BattleNet + Corona 可通过完整 Stage A
+- [x] CF 脚本含 Imaging WebP（`build.sh --webp`）；本地默认仅核心 build
+- [x] 示例：RA3BattleNet + Corona 可通过完整核心 build
 - [x] README：契约、默认 URL、Desktop 下期对接、Manifest 归属 Updater、测试用 MSTest
 
 ### 已实现说明（相对原文的偏差）
 
-- Stage B 为独立项目 `Ra3.BattleNet.Metadata.StageB`（SkiaSharp），由 `build.sh` 调用
+- Imaging 独立项目 `Ra3.BattleNet.Metadata.Imaging`（SkiaSharp）；默认不转 WebP，发布显式 `--webp` / `npm run build:release`
 - `Load(url)` 已支持；`Build(url)` 远程源构建延后（见 §4）
+- 用户可见面不再使用 StageA/StageB、`RUN_STAGE_B`
 
 ---
 
@@ -270,7 +271,7 @@ MetadataBuilder.Build(sourcePath | sourceUrl, outputDir) // Stage A
 6. 单库纯 managed；Parse/Build 支持 path 与 URL  
 7. 本地：编译到缓存再读（与线上同形）  
 8. URL 契约：单入口 + 相对资源 + SchemaVersion/ContentRevision  
-9. WebP 仅 CF Stage B；Stage A/B 两段式  
+9. WebP 仅发布 Imaging（opt-in `--webp`）；核心 build 与 Imaging 分离 
 10. 校验硬失败  
 11. Manifest 由 Updater 生成；Updater 改动进路线图  
 12. MVP 示例：RA3BattleNet + Corona；代码优先，数据示例后自行补  
