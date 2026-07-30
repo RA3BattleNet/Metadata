@@ -12,6 +12,8 @@
 
   <ItemGroup>
     <PackageReference Include="SkiaSharp" Version="4.150.1" />
+    <!-- CF 构建容器无 fontconfig 等系统依赖，用自包含的 Linux 原生资产 -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.150.1" />
   </ItemGroup>
 
 </Project>
