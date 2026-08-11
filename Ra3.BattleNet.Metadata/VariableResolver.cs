@@ -5,7 +5,8 @@ using System.Xml.Linq;
 namespace Ra3.BattleNet.Metadata;
 
 /// <summary>
-/// 处理 XML 元数据中的变量替换（${TIMESTAMP}、${ENV:}、${MD5:}、${META:}、${this:}）。
+/// 处理展平 XML 中的构建期变量替换（${TIMESTAMP}、${ENV:}、${MD5:}）。
+/// 只作用于单个展平文件，不递归 Include（展平产物无 Include）。
 /// </summary>
 public partial class VariableResolver
 {
@@ -25,43 +26,13 @@ public partial class VariableResolver
     /// </summary>
     public void ReplaceInFile(string filePath)
     {
-        var fullPath = Path.GetFullPath(filePath);
-        ReplaceInFileRecursive(
-            fullPath,
-            new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-            new HashSet<string>(StringComparer.OrdinalIgnoreCase));
-    }
-
-    private void ReplaceInFileRecursive(string filePath, HashSet<string> processingPaths, HashSet<string> processedPaths)
-    {
-        if (processedPaths.Contains(filePath))
-            return;
-
-        if (!processingPaths.Add(filePath))
-            throw new InvalidOperationException($"检测到循环引用: {filePath}");
-
         var doc = XDocument.Load(filePath);
         var root = doc.Root ?? throw new InvalidOperationException("无效的 XML 结构: 缺少根节点");
         var basePath = Path.GetDirectoryName(filePath)
             ?? throw new InvalidOperationException($"无法确定文件目录: {filePath}");
 
-        ValidateResources(root, basePath);
-
-        foreach (var include in root.Descendants().Where(e => e.Name.LocalName is "Include" or "Module"))
-        {
-            var path = include.Attribute("Path")?.Value ?? include.Attribute("Source")?.Value;
-            if (string.IsNullOrWhiteSpace(path)) continue;
-
-            var referencedFile = Path.GetFullPath(Path.Combine(basePath, path.Replace('\\', '/')));
-            if (File.Exists(referencedFile))
-                ReplaceInFileRecursive(referencedFile, processingPaths, processedPaths);
-        }
-
         ReplaceInElement(root, filePath);
         doc.Save(filePath);
-
-        processingPaths.Remove(filePath);
-        processedPaths.Add(filePath);
     }
 
     /// <summary>
@@ -74,7 +45,7 @@ public partial class VariableResolver
             // Markdown/Image 的 Hash=${MD5::} 按 Source 资源文件计算
             if (attr.Name.LocalName == "Hash"
                 && attr.Value.Contains("${MD5::}", StringComparison.Ordinal)
-                && element.Attribute("Source") is { Value: { Length: > 0 } source})
+                && element.Attribute("Source") is { Value: { Length: > 0 } source })
             {
                 var dir = Path.GetDirectoryName(currentFilePath)
                     ?? throw new InvalidOperationException($"无法确定文件目录: {currentFilePath}");
@@ -84,12 +55,12 @@ public partial class VariableResolver
                 attr.Value = attr.Value.Replace("${MD5::}", ComputeFileHash(resourcePath), StringComparison.Ordinal);
             }
 
-            attr.Value = Resolve(attr.Value, element, currentFilePath);
+            attr.Value = Resolve(attr.Value, currentFilePath);
         }
 
         if (!element.HasElements && !string.IsNullOrEmpty(element.Value))
         {
-            element.Value = Resolve(element.Value, element, currentFilePath);
+            element.Value = Resolve(element.Value, currentFilePath);
         }
 
         foreach (var child in element.Elements())
@@ -101,7 +72,7 @@ public partial class VariableResolver
     /// <summary>
     /// 解析单个变量表达式。
     /// </summary>
-    public string Resolve(string input, XElement context, string currentFilePath)
+    public string Resolve(string input, string currentFilePath)
     {
         return VariablePattern().Replace(input, match =>
         {
@@ -116,8 +87,6 @@ public partial class VariableResolver
                     ? envVal
                     : match.Value,
                 "MD5" => ResolveMd5(parts, currentFilePath),
-                "META" => ResolveMeta(parts, context),
-                "this" => ResolveThis(parts, context),
                 _ => match.Value
             };
         });
@@ -135,72 +104,6 @@ public partial class VariableResolver
         return ComputeFileHash(Path.Combine(dir, fileToHash));
     }
 
-    private string ResolveMeta(string[] parts, XElement context)
-    {
-        if (parts.Length < 2) return string.Empty;
-
-        var metaPath = string.Join(":", parts.Skip(1));
-        var target = FindMetaReference(context.Document?.Root, metaPath);
-        return target?.Value ?? throw new InvalidOperationException($"META 引用未找到: {metaPath}");
-    }
-
-    private string ResolveThis(string[] parts, XElement context)
-    {
-        if (parts.Length < 2) return string.Empty;
-
-        var container = FindNearestContainer(context)
-            ?? throw new InvalidOperationException($"this: 引用未找到容器: {parts[1]}");
-
-        return FindInDefines(container, parts[1])
-            ?? throw new InvalidOperationException($"this: 引用未找到: {parts[1]}");
-    }
-
-    /// <summary>
-    /// 查找最近的包含 Defines 的容器元素（向上遍历到 Application、Mod、Module 等）。
-    /// </summary>
-    private static XElement? FindNearestContainer(XElement element)
-    {
-        var current = element;
-        while (current != null)
-        {
-            // 这些元素类型都可以包含 Defines
-            if (current.Name.LocalName is "Application" or "Mod" or "Module")
-                return current;
-
-            // 如果当前元素本身包含 Defines 子元素，也视为容器
-            if (current.Element("Defines") != null)
-                return current;
-
-            current = current.Parent;
-        }
-        return null;
-    }
-
-    private static string? FindInDefines(XElement container, string key)
-    {
-        var defines = container.Element("Defines");
-        if (defines == null) return null;
-
-        var define = defines.Elements().FirstOrDefault(e => e.Name.LocalName == key);
-        return define?.Value;
-    }
-
-    private static XElement? FindMetaReference(XElement? root, string path)
-    {
-        if (root == null) return null;
-
-        var parts = path.Split(':');
-        XElement? current = root;
-
-        foreach (var part in parts)
-        {
-            current = current.Elements().FirstOrDefault(e => e.Name.LocalName == part);
-            if (current == null) return null;
-        }
-
-        return current;
-    }
-
     private string ComputeFileHash(string filePath)
     {
         if (_fileHashes.TryGetValue(filePath, out var hash))
@@ -212,24 +115,6 @@ public partial class VariableResolver
         hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
         _fileHashes[filePath] = hash;
         return hash;
-    }
-
-    private static void ValidateResources(XElement element, string basePath)
-    {
-        foreach (var include in element.Elements("Include").Concat(element.Elements("Module")))
-        {
-            var path = include.Attribute("Path")?.Value ?? include.Attribute("Source")?.Value;
-            if (string.IsNullOrEmpty(path)) continue;
-
-            var fullPath = Path.Combine(basePath, path.Replace('\\', '/'));
-            if (!File.Exists(fullPath))
-                throw new FileNotFoundException($"引用的资源文件不存在: {fullPath} (来自元素: {include.Name.LocalName})");
-        }
-
-        foreach (var child in element.Elements())
-        {
-            ValidateResources(child, basePath);
-        }
     }
 
     [GeneratedRegex(@"\$\{(.*?)\}")]

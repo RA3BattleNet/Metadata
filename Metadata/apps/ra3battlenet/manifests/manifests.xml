@@ -7,7 +7,7 @@
     <Includes>
         <!-- 子模块 -->
         <!-- 注册 Manifest 文件 -->
-        <Include Source="1.5.2.0.xml" Type="public" />
-        <Include Source="1.5.1.0.xml" Type="public" />
+        <Include Source="1.5.2.0.xml" />
+        <Include Source="1.5.1.0.xml" />
     </Includes>
 </Metadata>

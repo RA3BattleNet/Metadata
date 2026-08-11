@@ -158,7 +158,7 @@ public class StageATests
 <?xml version="1.0" encoding="UTF-8"?>
 <Metadata>
   <Includes>
-    <Include Source="b.xml" Type="public" />
+    <Include Source="b.xml" />
   </Includes>
 </Metadata>
 """);
@@ -166,7 +166,7 @@ public class StageATests
 <?xml version="1.0" encoding="UTF-8"?>
 <Metadata>
   <Includes>
-    <Include Source="a.xml" Type="public" />
+    <Include Source="a.xml" />
   </Includes>
 </Metadata>
 """);
@@ -174,7 +174,7 @@ public class StageATests
 <?xml version="1.0" encoding="UTF-8"?>
 <Metadata>
   <Includes>
-    <Include Source="a.xml" Type="public" />
+    <Include Source="a.xml" />
   </Includes>
 </Metadata>
 """);

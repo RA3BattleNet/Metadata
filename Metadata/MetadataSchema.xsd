@@ -14,8 +14,6 @@
       <xs:element name="Markdown" type="MarkdownRegType"/>
       <xs:element name="Image" type="ImageRegType"/>
       <xs:element name="Manifest" type="ManifestFullType"/>
-      <xs:element name="Defines" type="DefinesType"/>
-      <xs:element name="Module" type="ModuleType"/>
     </xs:choice>
     <xs:anyAttribute processContents="lax"/>
   </xs:complexType>
@@ -29,7 +27,6 @@
       <xs:element name="Style" type="StyleType"/>
       <xs:element name="Packages" type="PackagesType"/>
       <xs:element name="Posts" type="PostsType"/>
-      <xs:element name="Defines" type="DefinesType"/>
     </xs:choice>
     <xs:attribute name="ID" type="xs:string" use="required"/>
     <xs:attribute name="Kind" use="required">
@@ -56,29 +53,6 @@
 
   <xs:complexType name="IncludeType">
     <xs:attribute name="Source" type="xs:string" use="required"/>
-    <xs:attribute name="Type" use="required">
-      <xs:simpleType>
-        <xs:restriction base="xs:string">
-          <xs:enumeration value="public"/>
-          <xs:enumeration value="private"/>
-        </xs:restriction>
-      </xs:simpleType>
-    </xs:attribute>
-    <xs:attribute name="Path" type="xs:string"/>
-  </xs:complexType>
-
-  <xs:complexType name="ModuleType">
-    <xs:sequence>
-      <xs:element name="Defines" type="DefinesType" minOccurs="0"/>
-    </xs:sequence>
-    <xs:attribute name="Source" type="xs:string" use="required"/>
-    <xs:anyAttribute processContents="lax"/>
-  </xs:complexType>
-
-  <xs:complexType name="DefinesType">
-    <xs:sequence>
-      <xs:any minOccurs="0" maxOccurs="unbounded" processContents="lax"/>
-    </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="ApplicationType">
@@ -86,7 +60,6 @@
       <xs:element name="Version" type="xs:string" minOccurs="0"/>
       <xs:element name="Packages" type="PackagesType" minOccurs="0"/>
       <xs:element name="Posts" type="PostsType" minOccurs="0"/>
-      <xs:element name="Defines" type="DefinesType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="ID" type="xs:string" use="required"/>
     <xs:attribute name="InheritFrom" type="xs:string"/>
@@ -99,7 +72,6 @@
       <xs:element name="Style" type="StyleType" minOccurs="0"/>
       <xs:element name="Packages" type="PackagesType" minOccurs="0"/>
       <xs:element name="Posts" type="PostsType" minOccurs="0"/>
-      <xs:element name="Defines" type="DefinesType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="ID" type="xs:string" use="required"/>
     <xs:attribute name="InheritFrom" type="xs:string"/>

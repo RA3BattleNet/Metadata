@@ -44,8 +44,6 @@ public static class MetadataBuilder
                 ?? throw new FileNotFoundException($"找不到源树 XSD: {SchemaValidator.SourceSchemaFileName}");
             SchemaValidator.EnsureDirectoryValid(src, sourceSchema, "源树");
 
-            CopyAll(src, dst);
-
             var revision = string.IsNullOrWhiteSpace(contentRevision)
                 ? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
                 : contentRevision;
@@ -53,6 +51,12 @@ public static class MetadataBuilder
 
             var flattened = MetadataFlattener.Flatten(entry, src, version, revision);
             var flatPath = Path.Combine(dst, "metadata.xml");
+
+            // 发布面 = 展平 metadata.xml + 被引用资源 + _redirects；
+            // 源 XML / XSD / Templates 不进 Output
+            CopyReferencedResources(flattened, src, dst);
+            CopyIfExists(Path.Combine(src, "_redirects"), Path.Combine(dst, "_redirects"));
+
             flattened.Save(flatPath);
 
             var resolver = new VariableResolver();
@@ -87,6 +91,51 @@ public static class MetadataBuilder
     }
 
     /// <summary>
+    /// 从展平树收集被引用资源（Image/Markdown/Manifest 登记节点的 Source 文件；Url-only 图跳过），复制到 Output。
+    /// 缺失文件不在此报错——由 ValidateHard 统一硬失败。
+    /// </summary>
+    private static void CopyReferencedResources(XDocument flattened, string src, string dst)
+    {
+        var copied = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var el in flattened.Root!.DescendantsAndSelf())
+        {
+            if (el.Name.LocalName is not ("Image" or "Markdown" or "Manifest"))
+                continue;
+            if (string.IsNullOrWhiteSpace(el.Attribute("ID")?.Value))
+                continue; // 登记节点才有资源
+            if (!string.IsNullOrWhiteSpace(el.Attribute("Url")?.Value))
+                continue; // 外链不落盘
+            var source = el.Attribute("Source")?.Value;
+            if (string.IsNullOrWhiteSpace(source))
+                continue;
+
+            var rel = source.Replace('\\', '/');
+            if (!copied.Add(rel))
+                continue;
+
+            var from = Path.GetFullPath(Path.Combine(src, rel));
+            if (!File.Exists(from))
+                continue; // 缺文件由 ValidateHard 报
+
+            var target = Path.Combine(dst, rel);
+            var dir = Path.GetDirectoryName(target);
+            if (!string.IsNullOrEmpty(dir))
+                Directory.CreateDirectory(dir);
+            File.Copy(from, target, overwrite: true);
+        }
+    }
+
+    private static void CopyIfExists(string from, string to)
+    {
+        if (!File.Exists(from)) return;
+        var dir = Path.GetDirectoryName(to);
+        if (!string.IsNullOrEmpty(dir))
+            Directory.CreateDirectory(dir);
+        File.Copy(from, to, overwrite: true);
+    }
+
+    /// <summary>
     /// 从本地路径或 HTTP(S) URL 加载已展平的 metadata.xml。
     /// </summary>
     public static Metadata Load(string pathOrUrl)
@@ -117,19 +166,6 @@ public static class MetadataBuilder
         finally
         {
             try { File.Delete(temp); } catch { /* ignore */ }
-        }
-    }
-
-    private static void CopyAll(string src, string dst)
-    {
-        foreach (var file in Directory.GetFiles(src, "*", SearchOption.AllDirectories))
-        {
-            var rel = Path.GetRelativePath(src, file);
-            var target = Path.Combine(dst, rel);
-            var dir = Path.GetDirectoryName(target);
-            if (!string.IsNullOrEmpty(dir))
-                Directory.CreateDirectory(dir);
-            File.Copy(file, target, overwrite: true);
         }
     }
 

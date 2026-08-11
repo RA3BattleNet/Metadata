@@ -6,7 +6,7 @@
     </Tags>
     <Includes>
         <!-- 子模块 -->
-        <Include Source="ra3battlenet/ra3battlenet.xml" Type="public" />
-        <!-- <Include Source="coronalauncher/coronalauncher.xml" Type="public" /> -->
+        <Include Source="ra3battlenet/ra3battlenet.xml" />
+        <!-- <Include Source="coronalauncher/coronalauncher.xml" /> -->
     </Includes>
 </Metadata>

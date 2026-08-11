@@ -4,9 +4,9 @@
         <Commit>${TIMESTAMP}</Commit>
     </Tags>
     <Includes>
-        <Include Source="changelogs/changelogs.xml" Type="private" />
-        <Include Source="manifests/manifests.xml" Type="private" />
-        <Include Source="posts/posts.xml" Type="private" />
+        <Include Source="changelogs/changelogs.xml" />
+        <Include Source="manifests/manifests.xml" />
+        <Include Source="posts/posts.xml" />
     </Includes>
 
     <Application ID="RA3BattleNet">
