@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "bash build.sh",
-    "deploy": "npm run build && npx wrangler pages deploy Output",
+    "build": "dotnet run --project ./Ra3.BattleNet.Metadata --no-launch-profile -- build --src=./Metadata --dst=./Output",
+    "build:webp": "dotnet run --project ./Ra3.BattleNet.Metadata --no-launch-profile -- build --webp --src=./Metadata --dst=./Output",
+    "build:release": "npm run build:webp",
+    "deploy": "npm run build:release && npx wrangler pages deploy Output",
     "dev": "npx wrangler pages dev Output",
-    "preview": "npm run build && npx wrangler pages dev Output"
+    "preview": "npm run build && npx wrangler pages dev Output",
+    "test": "dotnet test Metadata.sln --nologo"
   },
   "devDependencies": {
     "wrangler": "^4.68.0"

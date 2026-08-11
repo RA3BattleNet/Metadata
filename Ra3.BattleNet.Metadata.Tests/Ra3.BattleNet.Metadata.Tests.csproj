@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -11,16 +11,13 @@
     <PackageReference Include="coverlet.collector" Version="10.0.1" />
     <PackageReference Include="FluentAssertions" Version="8.10.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
-    <PackageReference Include="xunit.v3" Version="3.2.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Using Include="Xunit" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.11.0" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.11.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Ra3.BattleNet.Metadata\Ra3.BattleNet.Metadata.csproj" />
+    <ProjectReference Include="..\Ra3.BattleNet.Metadata.Imaging\Ra3.BattleNet.Metadata.Imaging.csproj" />
   </ItemGroup>
 
   <ItemGroup>

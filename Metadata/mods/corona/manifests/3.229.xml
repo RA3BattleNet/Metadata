@@ -5,9 +5,9 @@
     </Tags>
     <Includes>
     </Includes>
-    <Manifest ID="manifest-3228">
-        <File Hash="BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB">
-            <FileName>corona_3.228.lyi</FileName>
+    <Manifest ID="manifest-3229">
+        <File Hash="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">
+            <FileName>corona_3.229.lyi</FileName>
             <RelativePath>/</RelativePath>
             <KindOf>MOD; ENCRYPTED_FILE; CAN_PATCH;</KindOf>
         </File>

@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Metadata>
     <Tags>
-        <!-- 预留标记 -->
         <Commit>${TIMESTAMP}</Commit>
     </Tags>
     <Includes>
-        <!-- 子模块 -->
     </Includes>
-    
-    <!-- 注册 Markdown 文件 -->
-    <Markdown ID="news-zh-3229" Source="news-zh-3229.md" Hash="${MD5::}"/>
 
+    <Markdown ID="news-zh-3229" Source="news-zh-3229.md" Hash="${MD5::}"/>
+    <Markdown ID="news-en-3229" Source="news-en-3229.md" Hash="${MD5::}"/>
 </Metadata>

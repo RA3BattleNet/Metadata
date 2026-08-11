@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Ra3.BattleNet.Metadata.Imaging</RootNamespace>
+    <!-- 编译/发布 CLI，不打进 Desktop 主 NuGet -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="4.150.1" />
+    <!-- CF 构建容器无 fontconfig 等系统依赖，用自包含的 Linux 原生资产 -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.150.1" />
+  </ItemGroup>
+
+</Project>

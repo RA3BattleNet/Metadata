@@ -70,33 +70,11 @@ public static class MetadataParser
     /// </summary>
     public static List<string> ValidateWithSchema(string xmlPath, string? schemaPath = null)
     {
-        var errors = new List<string>();
-
         schemaPath ??= FindSchemaFile(xmlPath);
         if (schemaPath == null || !File.Exists(schemaPath))
-        {
-            errors.Add($"找不到 XSD Schema 文件");
-            return errors;
-        }
+            return ["找不到 XSD Schema 文件"];
 
-        try
-        {
-            var schemas = new XmlSchemaSet();
-            using var schemaReader = XmlReader.Create(schemaPath);
-            schemas.Add(null, schemaReader);
-
-            var doc = XDocument.Load(xmlPath);
-            doc.Validate(schemas, (_, e) =>
-            {
-                errors.Add(e.Message);
-            });
-        }
-        catch (Exception ex)
-        {
-            errors.Add($"Schema 验证失败: {ex.Message}");
-        }
-
-        return errors;
+        return SchemaValidator.ValidateFile(xmlPath, schemaPath).ToList();
     }
 
     /// <summary>
@@ -192,9 +170,8 @@ public static class MetadataParser
 
             if (validationErrors.Count > 0)
             {
-                Console.WriteLine($"  Schema 验证警告 ({Path.GetFileName(fullPath)}):");
-                foreach (var err in validationErrors)
-                    Console.WriteLine($"    - {err}");
+                throw new InvalidOperationException(
+                    $"XSD 校验失败 ({Path.GetFileName(fullPath)}):\n- " + string.Join("\n- ", validationErrors));
             }
 
             return doc;
