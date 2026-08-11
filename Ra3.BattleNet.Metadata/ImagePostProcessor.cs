@@ -13,7 +13,7 @@ public static class ImagePostProcessor
     };
 
     /// <summary>
-    /// 处理 outputDir 下 metadata.xml；返回转换张数。
+    /// 处理 outputDir 下 metadata.xml；返回转换张数。转换成功后删除 Output 内原图（发布面只留被引用资源）。
     /// </summary>
     public static int ApplyWebP(string outputDir, TextWriter? log = null)
     {
@@ -25,6 +25,7 @@ public static class ImagePostProcessor
 
         var doc = XDocument.Load(flatPath);
         var converted = 0;
+        var removedSources = new List<string>();
 
         foreach (var image in doc.Descendants("Image"))
         {
@@ -53,10 +54,18 @@ public static class ImagePostProcessor
             var hash = ImagingInvoker.ConvertToWebP(abs, webpAbs);
             sourceAttr.Value = webpRel;
             image.SetAttributeValue("Hash", hash);
+            removedSources.Add(abs);
             converted++;
         }
 
         doc.Save(flatPath);
+
+        // XML 已指向 webp，删除 Output 内原图（源树不受影响）
+        foreach (var source in removedSources)
+        {
+            try { File.Delete(source); } catch { /* 尽力清理 */ }
+        }
+
         return converted;
     }
 }

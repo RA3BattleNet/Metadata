@@ -16,9 +16,9 @@ internal static class Program
 
         foreach (var arg in args)
         {
-            if (arg is "build" or "stage-a")
+            if (arg == "build")
                 command = "build";
-            else if (arg is "--webp" or "--with-webp" or "--publish")
+            else if (arg == "--webp")
                 withWebp = true;
             else if (arg.StartsWith("--src=", StringComparison.Ordinal))
                 srcFolder = arg["--src=".Length..];

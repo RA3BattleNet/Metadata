@@ -16,18 +16,41 @@ public static class MetadataFlattener
         var fullEntry = Path.GetFullPath(entryPath);
         var rootFull = Path.GetFullPath(sourceRoot);
         var processing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var root = LoadAndExpand(fullEntry, rootFull, processing);
+        var entitySources = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        var root = LoadAndExpand(fullEntry, rootFull, processing, entitySources);
 
         // Include 展开后、写出版本前：合并 Base/InheritFrom，发布物无继承痕迹
         MetadataInheritance.Resolve(root);
 
+        ValidateEntityIds(entitySources);
+
         root.SetAttributeValue("SchemaVersion", schemaVersion);
         root.SetAttributeValue("ContentRevision", contentRevision);
 
-        root.Descendants().Where(e => e.Name.LocalName is "Includes" or "Include" or "Module").ToList()
+        root.Descendants().Where(e => e.Name.LocalName is "Includes" or "Include").ToList()
             .ForEach(e => e.Remove());
 
         return new XDocument(new XDeclaration("1.0", "utf-8", null), root);
+    }
+
+    /// <summary>实体 ID（Mod/Application）全局唯一；含 ':' 一律拒绝（前缀由构建器生成）。</summary>
+    private static void ValidateEntityIds(Dictionary<string, List<string>> entitySources)
+    {
+        foreach (var kv in entitySources)
+        {
+            if (kv.Key.Contains(':', StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"实体 ID \"{kv.Key}\" 含 ':'——实体 ID 不加前缀，请写短名");
+            }
+        }
+
+        var duplicates = entitySources.Where(kv => kv.Value.Count > 1).ToList();
+        if (duplicates.Count == 0) return;
+
+        var lines = duplicates.SelectMany(kv =>
+            kv.Value.Select(src => $"  - {src} (ID=\"{kv.Key}\")"));
+        throw new InvalidOperationException("实体 ID 重复:\n" + string.Join("\n", lines));
     }
 
     /// <summary>由定义文件绝对路径生成路径前缀（相对 sourceRoot、/ 分隔、无扩展名）。</summary>
@@ -39,13 +62,14 @@ public static class MetadataFlattener
         return rel.Replace('\\', '/');
     }
 
-    /// <summary>将 localId 限定为 {prefix}:{localId}；已含 ':' 则原样返回。</summary>
+    /// <summary>将 localId 限定为 {prefix}:{localId}；含 ':' 一律拒绝（前缀由构建器生成）。</summary>
     public static string QualifyId(string pathPrefix, string localId)
     {
         if (string.IsNullOrWhiteSpace(localId))
             throw new InvalidOperationException("ID 不能为空");
         if (localId.Contains(':', StringComparison.Ordinal))
-            return localId;
+            throw new InvalidOperationException(
+                $"登记 ID \"{localId}\" 含 ':'——前缀由构建器自动生成，请写短名");
         if (string.IsNullOrWhiteSpace(pathPrefix))
             return localId;
         return $"{pathPrefix}:{localId}";
@@ -60,7 +84,7 @@ public static class MetadataFlattener
         return i < 0 ? id : id[(i + 1)..];
     }
 
-    private static XElement LoadAndExpand(string filePath, string sourceRoot, HashSet<string> processing)
+    private static XElement LoadAndExpand(string filePath, string sourceRoot, HashSet<string> processing, Dictionary<string, List<string>> entitySources)
     {
         var full = Path.GetFullPath(filePath);
         if (!processing.Add(full))
@@ -78,7 +102,11 @@ public static class MetadataFlattener
             ?? throw new InvalidOperationException($"无法确定目录: {full}");
         var prefix = PathPrefix(full, sourceRoot);
 
-        ExpandElement(root, baseDir, sourceRoot, processing);
+        // 展开前先校验本文件声明：登记/实体 ID 禁止手写 ':' 前缀（前缀由构建器生成）
+        ValidateOwnIds(root);
+        // 记录本文件声明的实体 ID（展开会把 include 的实体并进来，不能算本文件的）
+        RecordEntityIds(root, full, sourceRoot, entitySources);
+        ExpandElement(root, baseDir, sourceRoot, processing, entitySources);
         RewriteSources(root, baseDir, sourceRoot);
         QualifyRegistrationIds(root, prefix);
         var scope = BuildScopeMap(root);
@@ -88,24 +116,59 @@ public static class MetadataFlattener
         return root;
     }
 
-    private static void ExpandElement(XElement element, string baseDir, string sourceRoot, HashSet<string> processing)
+    /// <summary>拒绝本文件声明中的手工前缀 ID（Image/Markdown/Manifest/Mod/Application）。</summary>
+    private static void ValidateOwnIds(XElement root)
+    {
+        foreach (var el in root.DescendantsAndSelf())
+        {
+            var id = el.Attribute("ID")?.Value;
+            if (string.IsNullOrWhiteSpace(id) || !id.Contains(':', StringComparison.Ordinal))
+                continue;
+            if (el.Name.LocalName is "Image" or "Markdown" or "Manifest")
+            {
+                throw new InvalidOperationException(
+                    $"登记 ID \"{id}\" 含 ':'——前缀由构建器自动生成，请写短名");
+            }
+            if (el.Name.LocalName is "Mod" or "Application")
+            {
+                throw new InvalidOperationException(
+                    $"实体 ID \"{id}\" 含 ':'——实体 ID 不加前缀，请写短名");
+            }
+        }
+    }
+
+    /// <summary>记录本文件定义的实体 ID → 来源（供全局唯一校验与报错定位）。</summary>
+    private static void RecordEntityIds(XElement root, string filePath, string sourceRoot, Dictionary<string, List<string>> entitySources)
+    {
+        var rel = ToRootRelative(Path.GetFullPath(filePath), Path.GetFullPath(sourceRoot));
+        foreach (var entity in root.Elements().Where(e => e.Name.LocalName is "Mod" or "Application"))
+        {
+            var id = entity.Attribute("ID")?.Value;
+            if (string.IsNullOrWhiteSpace(id)) continue;
+            if (!entitySources.TryGetValue(id, out var list))
+                entitySources[id] = list = new List<string>();
+            list.Add($"{rel} ({entity.Name.LocalName})");
+        }
+    }
+
+    private static void ExpandElement(XElement element, string baseDir, string sourceRoot, HashSet<string> processing, Dictionary<string, List<string>> entitySources)
     {
         var includeHosts = element.Elements()
-            .Where(e => e.Name.LocalName is "Includes" or "Include" or "Module")
+            .Where(e => e.Name.LocalName is "Includes" or "Include")
             .ToList();
 
         foreach (var host in includeHosts)
         {
-            if (host.Name.LocalName is "Include" or "Module")
+            if (host.Name.LocalName == "Include")
             {
-                InsertInclude(host, baseDir, sourceRoot, processing);
+                InsertInclude(host, baseDir, sourceRoot, processing, entitySources);
                 host.Remove();
             }
             else
             {
-                foreach (var inc in host.Elements().Where(e => e.Name.LocalName is "Include" or "Module").ToList())
+                foreach (var inc in host.Elements().Where(e => e.Name.LocalName == "Include").ToList())
                 {
-                    InsertInclude(inc, baseDir, sourceRoot, processing);
+                    InsertInclude(inc, baseDir, sourceRoot, processing, entitySources);
                     inc.Remove();
                 }
                 if (!host.HasElements)
@@ -115,20 +178,20 @@ public static class MetadataFlattener
 
         foreach (var child in element.Elements().ToList())
         {
-            if (child.Name.LocalName is "Includes" or "Include" or "Module")
+            if (child.Name.LocalName is "Includes" or "Include")
                 continue;
-            ExpandElement(child, baseDir, sourceRoot, processing);
+            ExpandElement(child, baseDir, sourceRoot, processing, entitySources);
         }
     }
 
-    private static void InsertInclude(XElement includeEl, string baseDir, string sourceRoot, HashSet<string> processing)
+    private static void InsertInclude(XElement includeEl, string baseDir, string sourceRoot, HashSet<string> processing, Dictionary<string, List<string>> entitySources)
     {
-        var rel = includeEl.Attribute("Source")?.Value ?? includeEl.Attribute("Path")?.Value;
+        var rel = includeEl.Attribute("Source")?.Value;
         if (string.IsNullOrWhiteSpace(rel))
-            throw new InvalidOperationException("Include/Module 缺少 Source/Path");
+            throw new InvalidOperationException("Include 缺少 Source");
 
         var target = Path.GetFullPath(Path.Combine(baseDir, rel.Replace('\\', '/')));
-        var includedRoot = LoadAndExpand(target, sourceRoot, processing);
+        var includedRoot = LoadAndExpand(target, sourceRoot, processing, entitySources);
 
         var anchor = includeEl.Parent is { Name.LocalName: "Includes" } host
             ? host
@@ -154,6 +217,7 @@ public static class MetadataFlattener
                 }
 
                 var sourceRel = ToRootRelative(target, sourceRoot);
+                // 叶子 Manifest 经自身展平已限定（构建期产物）；贡献者手写前缀由 QualifyId 拒绝
                 var qualified = id.Contains(':', StringComparison.Ordinal)
                     ? id
                     : QualifyId(PathPrefix(target, sourceRoot), id);
@@ -168,7 +232,7 @@ public static class MetadataFlattener
         }
     }
 
-    /// <summary>仅限定本文件定义、尚未带 ':' 的登记节点 ID（Image/Markdown/Manifest）。</summary>
+    /// <summary>仅限定本文件尚未限定的登记节点 ID（include 进来的已限定节点跳过）。</summary>
     private static void QualifyRegistrationIds(XElement root, string pathPrefix)
     {
         foreach (var el in root.DescendantsAndSelf()

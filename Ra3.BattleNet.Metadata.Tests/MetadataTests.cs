@@ -41,15 +41,6 @@ public class MetadataTests
     }
 
     [TestMethod]
-    public void LoadFromFile_CircularReference_ThrowsException()
-    {
-        var filePath = Path.Combine(_testDataPath, "circular-a.xml");
-        var act = () => Metadata.LoadFromFile(filePath);
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*循环引用*");
-    }
-
-    [TestMethod]
     public void Get_MissingVariable_ReturnsDefault()
     {
         var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
@@ -65,16 +56,6 @@ public class MetadataTests
         var tags = metadata.Find("Tags");
         tags.Should().NotBeNull();
         tags!.Name.Should().Be("Tags");
-    }
-
-    [TestMethod]
-    public void GetElementById_ExistingId_ReturnsElement()
-    {
-        var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
-        var metadata = Metadata.LoadFromFile(filePath);
-        var app = metadata.GetElementById("TestApp");
-        app.Should().NotBeNull();
-        app!.Get("ID").Should().Be("TestApp");
     }
 
     [TestMethod]
@@ -99,89 +80,40 @@ public class MetadataTests
     }
 
     [TestMethod]
-    public void ReplaceVariablesInFile_RecursivelyProcessesIncludeFiles()
+    public void LoadFromFile_SourceTreeWithInclude_Throws()
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), $"metadata-test-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(tempDir);
+        // Load 只接受展平产物；源树（带 Include）必须走 Build 后再解析
+        var filePath = Path.Combine(_testDataPath, "source-with-include.xml");
+        var act = () => Metadata.LoadFromFile(filePath);
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*只接受展平*");
+    }
+
+    [TestMethod]
+    public void BuildThenLoad_RepoSample_AppAndModResolve()
+    {
+        var src = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Metadata"));
+        var dst = Path.Combine(Path.GetTempPath(), $"load-repo-{Guid.NewGuid():N}");
+
         try
         {
-            var rootPath = Path.Combine(tempDir, "metadata.xml");
-            var includePath = Path.Combine(tempDir, "included.xml");
-            File.WriteAllText(rootPath, """
-<?xml version="1.0" encoding="UTF-8"?>
-<Metadata>
-  <Defines>
-    <Commit>${ENV:TEST_COMMIT}</Commit>
-  </Defines>
-  <Include Source="included.xml" Type="public" />
-</Metadata>
-""");
-            File.WriteAllText(includePath, """
-<?xml version="1.0" encoding="UTF-8"?>
-<Metadata>
-  <Defines>
-    <Value>${ENV:TEST_COMMIT}</Value>
-  </Defines>
-</Metadata>
-""");
-            Environment.SetEnvironmentVariable("TEST_COMMIT", "abc123", EnvironmentVariableTarget.Process);
-            var metadata = Metadata.LoadFromFile(rootPath);
-            metadata.ReplaceVariablesInFile(rootPath);
-            File.ReadAllText(rootPath).Should().Contain("abc123").And.NotContain("${ENV:TEST_COMMIT}");
-            File.ReadAllText(includePath).Should().Contain("abc123").And.NotContain("${ENV:TEST_COMMIT}");
+            // 本地测试链路：Build(源仓) → Load(展平缓存)，与生产 URL 同一套解析
+            MetadataBuilder.Build(src, dst, schemaVersion: "1.0", contentRevision: "test-rev");
+            var metadata = MetadataBuilder.Load(Path.Combine(dst, "metadata.xml"));
+
+            var corona = metadata.Mods().Single(m => m.Id == "Corona");
+            corona.Version.Should().Be("3.229");
+            corona.Packages.Should().NotBeEmpty();
+            corona.Icon.Should().Contain(":");
+
+            var app = metadata.Catalog().Application("RA3BattleNet");
+            app.Should().NotBeNull();
+            app!.Version.Should().Be("1.5.2.0");
         }
         finally
         {
-            if (Directory.Exists(tempDir))
-                Directory.Delete(tempDir, recursive: true);
+            if (Directory.Exists(dst))
+                Directory.Delete(dst, recursive: true);
         }
-    }
-
-    [TestMethod]
-    public void GetIncludeTree_ReturnsTreeStructure()
-    {
-        var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
-        var metadata = Metadata.LoadFromFile(filePath);
-        metadata.GetIncludeTree().Should().Contain("Metadata");
-    }
-
-    [TestMethod]
-    public void ToNodeTree_ShouldKeepLeafValue()
-    {
-        var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
-        var metadata = Metadata.LoadFromFile(filePath);
-        var root = metadata.ToNodeTree();
-        var app = root.Children.Single(c => c.Name == "Application");
-        var appName = app.Children.Single(c => c.Name == "Name");
-        appName.Value.Should().Be("Test Application");
-    }
-
-    [TestMethod]
-    public void RepoSample_LoadSource_HasAppAndMod()
-    {
-        var filePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Metadata", "metadata.xml"));
-        var metadata = Metadata.LoadFromFile(filePath);
-        metadata.GetBusinessEntities().Should().Contain(e => e.EntityType == "Application" && e.Id == "RA3BattleNet");
-        metadata.GetBusinessEntities().Should().Contain(e => e.EntityType == "Mod" && e.Id == "Corona");
-    }
-
-    [TestMethod]
-    public void Mods_ShouldExposeVersionAndPackages()
-    {
-        var filePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Metadata", "metadata.xml"));
-        var metadata = Metadata.LoadFromFile(filePath);
-        var corona = metadata.Mods().Single(m => m.Id == "Corona");
-        corona.Version.Should().Be("3.229");
-        corona.Packages.Should().NotBeEmpty();
-    }
-
-    [TestMethod]
-    public void Catalog_ShouldProvideConvenientLookup()
-    {
-        var filePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Metadata", "metadata.xml"));
-        var metadata = Metadata.LoadFromFile(filePath);
-        var app = metadata.Catalog().Application("RA3BattleNet");
-        app.Should().NotBeNull();
-        app!.Version.Should().Be("1.5.2.0");
     }
 }

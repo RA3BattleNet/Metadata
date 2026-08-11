@@ -28,6 +28,127 @@ public class IdScopeTests
     }
 
     [TestMethod]
+    public void QualifyId_WithManualPrefix_Throws()
+    {
+        var act = () => MetadataFlattener.QualifyId("mods/corona/corona", "mods/corona/corona:icon");
+        act.Should().Throw<InvalidOperationException>().WithMessage("*含 ':'*");
+    }
+
+    [TestMethod]
+    public void Build_DuplicateEntityId_HardFailsWithBothSources()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"id-dup-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        SeedSchemas(src);
+        Directory.CreateDirectory(Path.Combine(src, "a"));
+        Directory.CreateDirectory(Path.Combine(src, "b"));
+        try
+        {
+            File.WriteAllText(Path.Combine(src, "a", "mod.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Mod ID="Same" />
+</Metadata>
+""");
+            File.WriteAllText(Path.Combine(src, "b", "mod.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Mod ID="Same" />
+</Metadata>
+""");
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Includes>
+    <Include Source="a/mod.xml" />
+    <Include Source="b/mod.xml" />
+  </Includes>
+</Metadata>
+""");
+
+            var act = () => MetadataBuilder.Build(src, Path.Combine(temp, "out"), contentRevision: "x");
+            act.Should().Throw<InvalidOperationException>()
+                .WithMessage("*实体 ID 重复*")
+                .WithMessage("*a/mod.xml*")
+                .WithMessage("*b/mod.xml*");
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_DuplicateEntityIdAcrossKinds_HardFails()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"id-dup-kind-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        SeedSchemas(src);
+        Directory.CreateDirectory(Path.Combine(src, "a"));
+        Directory.CreateDirectory(Path.Combine(src, "b"));
+        try
+        {
+            File.WriteAllText(Path.Combine(src, "a", "mod.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Mod ID="Corona" />
+</Metadata>
+""");
+            File.WriteAllText(Path.Combine(src, "b", "app.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Application ID="Corona" />
+</Metadata>
+""");
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Includes>
+    <Include Source="a/mod.xml" />
+    <Include Source="b/app.xml" />
+  </Includes>
+</Metadata>
+""");
+
+            var act = () => MetadataBuilder.Build(src, Path.Combine(temp, "out"), contentRevision: "x");
+            act.Should().Throw<InvalidOperationException>()
+                .WithMessage("*实体 ID 重复*")
+                .WithMessage("*Corona*");
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_ManualQualifiedRegistrationId_HardFails()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"id-manual-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        SeedSchemas(src);
+        try
+        {
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Image ID="mods/corona/corona:icon" Source="icon.png" />
+</Metadata>
+""");
+
+            var act = () => MetadataBuilder.Build(src, Path.Combine(temp, "out"), contentRevision: "x");
+            act.Should().Throw<InvalidOperationException>().WithMessage("*含 ':'*");
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [TestMethod]
     public void Build_SameLocalIdInDifferentMods_BothSurviveAsQualified()
     {
         var temp = Path.Combine(Path.GetTempPath(), $"id-scope-{Guid.NewGuid():N}");
@@ -64,8 +185,8 @@ public class IdScopeTests
 <?xml version="1.0" encoding="UTF-8"?>
 <Metadata>
   <Includes>
-    <Include Source="a/mod.xml" Type="public" />
-    <Include Source="b/mod.xml" Type="public" />
+    <Include Source="a/mod.xml" />
+    <Include Source="b/mod.xml" />
   </Includes>
 </Metadata>
 """);

@@ -28,7 +28,6 @@
       <xs:element name="Version" type="xs:string" minOccurs="0"/>
       <xs:element name="Packages" type="PackagesType" minOccurs="0"/>
       <xs:element name="Posts" type="PostsType" minOccurs="0"/>
-      <xs:element name="Defines" type="DefinesType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="ID" type="xs:string" use="required"/>
   </xs:complexType>
@@ -40,7 +39,6 @@
       <xs:element name="Style" type="StyleType" minOccurs="0"/>
       <xs:element name="Packages" type="PackagesType" minOccurs="0"/>
       <xs:element name="Posts" type="PostsType" minOccurs="0"/>
-      <xs:element name="Defines" type="DefinesType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="ID" type="xs:string" use="required"/>
   </xs:complexType>
@@ -119,12 +117,6 @@
   <xs:complexType name="ContentsType">
     <xs:sequence>
       <xs:element name="Content" type="LocalizedTextType" maxOccurs="unbounded"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <xs:complexType name="DefinesType">
-    <xs:sequence>
-      <xs:any minOccurs="0" maxOccurs="unbounded" processContents="lax"/>
     </xs:sequence>
   </xs:complexType>
 

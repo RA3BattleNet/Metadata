@@ -8,10 +8,10 @@ namespace Ra3.BattleNet.Metadata;
 public static class MetadataInheritance
 {
     private static readonly string[] ModChildOrder =
-        ["CurrentVersion", "Icon", "Style", "Packages", "Posts", "Defines"];
+        ["CurrentVersion", "Icon", "Style", "Packages", "Posts"];
 
     private static readonly string[] ApplicationChildOrder =
-        ["Version", "Packages", "Posts", "Defines"];
+        ["Version", "Packages", "Posts"];
 
     private static readonly string[] StyleChildOrder = ["Logo", "Controls", "Background"];
 

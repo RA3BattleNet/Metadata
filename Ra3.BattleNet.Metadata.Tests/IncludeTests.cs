@@ -3,6 +3,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Ra3.BattleNet.Metadata.Tests;
 
+/// <summary>
+/// Load 侧拒绝源树文件（含 Include/Module）。Include 展平语义由构建侧覆盖（StageATests）。
+/// </summary>
 [TestClass]
 public class IncludeTests
 {
@@ -15,57 +18,20 @@ public class IncludeTests
     }
 
     [TestMethod]
-    public void Include_PublicType_VisibleToParent()
+    public void LoadFromFile_WithInclude_Throws()
     {
-        var filePath = Path.Combine(_testDataPath, "access-control-test.xml");
-        var metadata = Metadata.LoadFromFile(filePath);
-        var publicElement = metadata.GetElementById("public-element");
-        publicElement.Should().NotBeNull();
-        publicElement!.Get("ID").Should().Be("public-element");
-    }
-
-    [TestMethod]
-    public void Include_PrivateType_ExistsInTree()
-    {
-        var filePath = Path.Combine(_testDataPath, "access-control-test.xml");
-        var metadata = Metadata.LoadFromFile(filePath);
-        metadata.GetElementById("private-element").Should().NotBeNull();
-    }
-
-    [TestMethod]
-    public void Include_ParentElement_Accessible()
-    {
-        var filePath = Path.Combine(_testDataPath, "access-control-test.xml");
-        var metadata = Metadata.LoadFromFile(filePath);
-        var parentElement = metadata.GetElementById("parent-element");
-        parentElement.Should().NotBeNull();
-        parentElement!.Get("ID").Should().Be("parent-element");
-    }
-
-    [TestMethod]
-    public void Include_CircularReference_ThrowsException()
-    {
-        var filePath = Path.Combine(_testDataPath, "circular-a.xml");
+        var filePath = Path.Combine(_testDataPath, "source-with-include.xml");
         var act = () => Metadata.LoadFromFile(filePath);
-        act.Should().Throw<InvalidOperationException>().WithMessage("*循环引用*");
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*Include*");
     }
 
     [TestMethod]
-    public void Include_HasParentReference()
+    public void LoadFromFile_WithIncludesContainer_Throws()
     {
-        var filePath = Path.Combine(_testDataPath, "access-control-test.xml");
-        var metadata = Metadata.LoadFromFile(filePath);
-        var child = metadata.Children.FirstOrDefault();
-        child.Should().NotBeNull();
-        child!.Parent.Should().Be(metadata);
-    }
-
-    [TestMethod]
-    public void Include_TypeAttribute_IsPreserved()
-    {
-        var filePath = Path.Combine(_testDataPath, "access-control-test.xml");
-        var metadata = Metadata.LoadFromFile(filePath);
-        metadata.Children.Any(c => c.IncludeType == "public").Should().BeTrue();
-        metadata.Children.Any(c => c.IncludeType == "private").Should().BeTrue();
+        var filePath = Path.Combine(_testDataPath, "source-with-includes-container.xml");
+        var act = () => Metadata.LoadFromFile(filePath);
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*Includes*");
     }
 }

@@ -4,7 +4,7 @@
         <Commit>${TIMESTAMP}</Commit>
     </Tags>
     <Includes>
-        <Include Source="3.229.xml" Type="public" />
-        <Include Source="3.228.xml" Type="public" />
+        <Include Source="3.229.xml" />
+        <Include Source="3.228.xml" />
     </Includes>
 </Metadata>

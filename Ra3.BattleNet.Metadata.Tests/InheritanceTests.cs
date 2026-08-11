@@ -179,7 +179,7 @@ public class InheritanceTests
 <?xml version="1.0" encoding="UTF-8"?>
 <Metadata>
   <Includes>
-    <Include Source="base.xml" Type="private" />
+    <Include Source="base.xml" />
   </Includes>
   <Mod ID="Demo" InheritFrom="StandardMod">
     <CurrentVersion>9</CurrentVersion>
@@ -243,8 +243,8 @@ public class InheritanceTests
 <?xml version="1.0" encoding="UTF-8"?>
 <Metadata>
   <Includes>
-    <Include Source="base.xml" Type="private" />
-    <Include Source="manifest-1.xml" Type="public" />
+    <Include Source="base.xml" />
+    <Include Source="manifest-1.xml" />
   </Includes>
   <Image ID="icon-a" Url="https://example.com/a.png" />
   <Mod ID="Demo" InheritFrom="StandardMod">

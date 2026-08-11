@@ -6,6 +6,6 @@
     </Tags>
     <Includes>
         <!-- 子模块 -->
-        <Include Source="corona/corona.xml" Type="public" />
+        <Include Source="corona/corona.xml" />
     </Includes>
 </Metadata>   

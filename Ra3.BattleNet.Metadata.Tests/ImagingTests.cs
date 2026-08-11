@@ -49,6 +49,9 @@ public class ImagingTests
             var webpPath = Path.Combine(dst, icon.Attribute("Source")!.Value.Replace('/', Path.DirectorySeparatorChar));
             File.Exists(webpPath).Should().BeTrue();
             ImageConverter.ComputeMd5(webpPath).Should().Be(hash);
+
+            // 发布面只留被引用资源：转换成功后原图删除
+            Directory.GetFiles(dst, "*.png", SearchOption.AllDirectories).Should().BeEmpty();
         }
         finally
         {
