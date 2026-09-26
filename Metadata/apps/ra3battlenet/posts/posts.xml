@@ -10,4 +10,6 @@
     <Markdown ID="news-en-1.5.2.0" Source="news-en-1.5.2.0.md" Hash="${MD5::}"/>
     <Markdown ID="news-zh-1.5.1.0" Source="news-zh-1.5.1.0.md" Hash="${MD5::}"/>
     <Markdown ID="news-en-1.5.1.0" Source="news-en-1.5.1.0.md" Hash="${MD5::}"/>
+    <Markdown ID="news-zh-1.5.5.2" Source="news-zh-1.5.5.2.md" Hash="${MD5::}"/>
+    <Markdown ID="news-en-1.5.5.2" Source="news-en-1.5.5.2.md" Hash="${MD5::}"/>
 </Metadata>

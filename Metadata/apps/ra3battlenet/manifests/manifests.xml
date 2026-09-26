@@ -9,5 +9,6 @@
         <!-- 注册 Manifest 文件 -->
         <Include Source="1.5.2.0.xml" />
         <Include Source="1.5.1.0.xml" />
+        <Include Source="1.5.5.2.xml" />
     </Includes>
 </Metadata>

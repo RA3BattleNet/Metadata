@@ -108,7 +108,7 @@ public class SchemaTests
 
             var app = doc.Catalog().Application("RA3BattleNet");
             app.Should().NotBeNull();
-            app!.Version.Should().Be("1.5.2.0");
+            app!.Version.Should().Be("1.5.5.2");
             app.Packages.Should().NotBeEmpty();
             var manifestId = app.Packages[0].ManifestId;
             manifestId.Should().NotBeNullOrWhiteSpace();
