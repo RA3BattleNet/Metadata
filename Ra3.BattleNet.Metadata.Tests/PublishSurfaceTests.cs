@@ -108,9 +108,9 @@ public class PublishSurfaceTests
 
             var entry = MetadataBuilder.Load(leafPath).Find("Manifest")!.ToManifestEntry();
             entry.HashAlgorithm.Should().Be("CRC32C");
-            entry.Files.Should().HaveCount(1);
-            entry.Files[0].DownloadName.Should().NotBeNull();
-            entry.Files[0].Sources.Should().NotBeEmpty();
+            entry.Files.Should().NotBeEmpty();
+            entry.Files.Should().OnlyContain(f => f.Sources.Count > 0);
+            entry.Files.Should().Contain(f => f.DownloadName != null);
         }
         finally
         {

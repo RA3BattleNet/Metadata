@@ -6,6 +6,42 @@
     <Includes>
     </Includes>
     <Manifest ID="manifest-3258" HashAlgorithm="CRC32C">
+        <File Hash="3507CD54" Size="5115638" Mount="optional" Package="disable-sky-and-patches">
+            <FileName>Disabler.big</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MISC;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://file.cor-games.com/srv/cor/miscs/Disabler.big" />
+                <Source Type="BT" Url="https://file.cor-games.com/srv/cor/miscs/Disabler.big.torrent" />
+            </Sources>
+        </File>
+        <File Hash="88BE39D6" Size="4693884" Mount="optional" Package="hd-shadow">
+            <FileName>HighResShadow.big</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MISC;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://file.cor-games.com/srv/cor/miscs/HighResShadow.big" />
+                <Source Type="BT" Url="https://file.cor-games.com/srv/cor/miscs/HighResShadow.big.torrent" />
+            </Sources>
+        </File>
+        <File Hash="95DC8BF4" Size="13152004" Mount="language" Language="en">
+            <FileName>Cor_ENG_3.250.big</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MISC;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://file.cor-games.com/srv/cor/miscs/Cor_ENG_3.250.big" />
+                <Source Type="BT" Url="https://file.cor-games.com/srv/cor/miscs/Cor_ENG_3.250.big.torrent" />
+            </Sources>
+        </File>
+        <File Hash="385546B3" Size="320502871" DownloadName="coronaBGM_3.228.zst" Compression="zstd">
+            <FileName>coronaBGM_3.228.lyi</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://file.cor-games.com/srv/cor/bgm/coronaBGM_3.228.zst" />
+                <Source Type="BT" Url="https://file.cor-games.com/srv/cor/bgm/coronaBGM_3.228.zst.torrent" />
+            </Sources>
+        </File>
         <File Hash="30823F46" Size="1019525102" DownloadName="corona_3.258.zst" Compression="zstd">
             <FileName>corona_3.258.lyi</FileName>
             <RelativePath>/</RelativePath>
@@ -13,6 +49,15 @@
             <Sources>
                 <Source Type="HTTP" Url="https://file.cor-games.com/srv/cor/mod/corona_3.258.zst" />
                 <Source Type="BT" Url="https://file.cor-games.com/srv/cor/mod/corona_3.258.zst.torrent" />
+            </Sources>
+        </File>
+        <File Hash="7A24FEEF" Size="118" Mount="optional" Package="world-builder">
+            <FileName>StaticVersion.big</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MISC;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://file.cor-games.com/srv/cor/miscs/StaticVersion.big" />
+                <Source Type="BT" Url="https://file.cor-games.com/srv/cor/miscs/StaticVersion.big.torrent" />
             </Sources>
         </File>
     </Manifest>

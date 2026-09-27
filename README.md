@@ -64,6 +64,8 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: "1.0", contentRevisio
 服务端只放压缩包（如 `corona_3.258.zst`），安装名是解压结果（`corona_3.258.lyi`），两者用
 `DownloadName` + `Compression` 表达。客户端下载后先解压，再按 `@Hash` 校验解压结果。
 
+不压缩直发的文件（如启动器资源 `Disabler.big`）不写 `DownloadName` 与 `Compression`，此时 `@Size` 与 `@Hash` 描述的就是 `FileName` 本身。
+
 声明了新格式（带 `HashAlgorithm`，或任一 `File` 含 `Sources`）的清单，构建期额外硬校验：哈希长度与算法匹配、禁止占位哈希、每个 File 至少一个 Source、Size 为正整数、`FileName + RelativePath` 唯一、`Dll@Name` 唯一、`RelativePath` 必须是相对路径、`DownloadName` 必须是不含路径分隔符的文件名、`Compression` 只能是 `zstd` 且必须配 `DownloadName`（且与 `FileName` 不同名）。旧清单不触发。
 
 解析：`doc.ManifestRegistration(id)` 取登记节点，叶子清单节点 `ToManifestEntry()` → `ManifestEntry`（Files / Dependencies）。
