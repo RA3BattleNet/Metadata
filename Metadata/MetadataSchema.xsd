@@ -188,6 +188,8 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <!-- FileName 是安装名（解压后的名字），DownloadName 是下载名（临时目录里的名字，缺省等于 FileName）；
+       Hash/Size 描述下载物（DownloadName 对应的字节）；Compression 表示校验通过后解压成 FileName -->
   <xs:complexType name="FileType">
     <xs:sequence>
       <xs:element name="FileName" type="xs:string"/>
@@ -198,7 +200,15 @@
     </xs:sequence>
     <xs:attribute name="Hash" type="xs:string" use="required"/>
     <xs:attribute name="Size" type="xs:long"/>
+    <xs:attribute name="DownloadName" type="xs:string"/>
+    <xs:attribute name="Compression" type="CompressionType"/>
   </xs:complexType>
+
+  <xs:simpleType name="CompressionType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="zstd"/>
+    </xs:restriction>
+  </xs:simpleType>
 
   <xs:complexType name="SourcesType">
     <xs:sequence>

@@ -50,6 +50,19 @@ public class ManifestValidationTests
 """;
     }
 
+    /// <summary>带下载名与压缩声明的文件块。</summary>
+    private static string CompressedFileBlock(string downloadName, string compression, string fileName = "a.bin")
+    {
+        return $"""
+    <File Hash="9B623C7C" DownloadName="{downloadName}" Compression="{compression}">
+      <FileName>{fileName}</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      {HttpSource("https://example.com/a.zst")}
+    </File>
+""";
+    }
+
     private static string HttpSource(string url) => $"<Sources><Source Type=\"HTTP\" Url=\"{url}\" /></Sources>";
 
     private static string BtSource(string url) => $"<Sources><Source Type=\"BT\" Url=\"{url}\" /></Sources>";
@@ -154,6 +167,85 @@ public class ManifestValidationTests
         AssertBuildFails(
             ManifestXml(FileBlock("9B623C7C", HttpSource("https://example.com/a.bin"), relativePath: "C:/evil/")),
             "必须是相对路径");
+    }
+
+    [TestMethod]
+    public void Build_UnknownCompression_HardFails()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"manifest-comp-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        var dst = Path.Combine(temp, "out");
+        try
+        {
+            SeedSchemas(src);
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), "<Metadata />");
+            File.WriteAllText(Path.Combine(src, "manifest.xml"), ManifestXml(CompressedFileBlock("a.zst", "lz4")));
+
+            // Compression 的取值由 XSD 枚举兜住，构建在 schema 阶段就失败
+            var act = () => MetadataBuilder.Build(src, dst, contentRevision: "x");
+            act.Should().Throw<InvalidOperationException>().WithMessage("*Compression*");
+            Directory.Exists(dst).Should().BeFalse("半残输出应被清理");
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_CompressionWithoutDownloadName_HardFails()
+    {
+        AssertBuildFails(
+            ManifestXml($"""
+    <File Hash="9B623C7C" Compression="zstd">
+      <FileName>a.lyi</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      {HttpSource("https://example.com/a.zst")}
+    </File>
+"""),
+            "必须写 DownloadName");
+    }
+
+    [TestMethod]
+    public void Build_DownloadNameEqualsFileName_HardFails()
+    {
+        AssertBuildFails(
+            ManifestXml(CompressedFileBlock("a.bin", "zstd", fileName: "a.bin")),
+            "不能同名");
+    }
+
+    [TestMethod]
+    public void Build_DownloadNameWithPathSeparator_HardFails()
+    {
+        AssertBuildFails(
+            ManifestXml(CompressedFileBlock("sub/a.zst", "zstd")),
+            "不含路径分隔符");
+    }
+
+    [TestMethod]
+    public void Build_CompressedFile_Succeeds()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"manifest-zstd-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        var dst = Path.Combine(temp, "out");
+        try
+        {
+            SeedSchemas(src);
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), "<Metadata />");
+            File.WriteAllText(
+                Path.Combine(src, "manifest.xml"),
+                ManifestXml(CompressedFileBlock("a.zst", "zstd", fileName: "a.lyi")));
+
+            MetadataBuilder.Build(src, dst, contentRevision: "x");
+            File.Exists(Path.Combine(dst, "metadata.xml")).Should().BeTrue();
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
     }
 
     [TestMethod]

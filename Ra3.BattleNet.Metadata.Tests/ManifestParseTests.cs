@@ -32,6 +32,8 @@ public class ManifestParseTests
         first.RelativePath.Should().Be("/");
         first.Hash.Should().Be("E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855");
         first.Size.Should().Be(1024);
+        first.DownloadName.Should().Be("corona.zst");
+        first.Compression.Should().Be("zstd");
         first.KindOf.Should().Be("MOD; ENCRYPTED_FILE; CAN_PATCH;");
         first.Sources.Should().HaveCount(2);
         first.Sources[0].Type.Should().Be("HTTP");
@@ -41,6 +43,8 @@ public class ManifestParseTests
         first.Raw.Name.Should().Be("File");
 
         entry.Files[1].Size.Should().BeNull("Size 缺失返回 null");
+        entry.Files[1].DownloadName.Should().BeNull("DownloadName 缺失返回 null");
+        entry.Files[1].Compression.Should().BeNull("Compression 缺失返回 null");
         entry.Files[1].Sources.Should().HaveCount(1);
 
         entry.Dependencies.Should().HaveCount(1);

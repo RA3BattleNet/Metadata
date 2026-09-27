@@ -373,6 +373,20 @@ public static class MetadataBuilder
             if (sizeAttr != null && (!long.TryParse(sizeAttr.Value, out var size) || size <= 0))
                 errors.Add($"{where}: Size 必须是正整数: {sizeAttr.Value}");
 
+            var downloadName = file.Attribute("DownloadName")?.Value;
+            if (downloadName != null && (string.IsNullOrWhiteSpace(downloadName)
+                || downloadName.Contains('/') || downloadName.Contains('\\')))
+                errors.Add($"{where}: DownloadName 必须是不含路径分隔符的文件名: {downloadName}");
+
+            var compression = file.Attribute("Compression")?.Value;
+            if (compression != null)
+            {
+                if (string.IsNullOrWhiteSpace(downloadName))
+                    errors.Add($"{where}: 声明 Compression 时必须写 DownloadName");
+                else if (string.Equals(downloadName, fileName, StringComparison.OrdinalIgnoreCase))
+                    errors.Add($"{where}: DownloadName 与 FileName 相同，解压源与安装名不能同名");
+            }
+
             var sources = file.Elements()
                 .FirstOrDefault(e => e.Name.LocalName == "Sources")?
                 .Elements().Where(e => e.Name.LocalName == "Source").ToList()

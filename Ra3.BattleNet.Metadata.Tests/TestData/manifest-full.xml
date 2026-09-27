@@ -2,7 +2,7 @@
 <!-- 新格式清单样例：显式 SHA256、多 File、双来源、Size 缺失、Dependencies -->
 <Metadata>
     <Manifest ID="manifest-full" HashAlgorithm="SHA256">
-        <File Hash="E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855" Size="1024">
+        <File Hash="E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855" Size="1024" DownloadName="corona.zst" Compression="zstd">
             <FileName>corona.lyi</FileName>
             <RelativePath>/</RelativePath>
             <KindOf>MOD; ENCRYPTED_FILE; CAN_PATCH;</KindOf>

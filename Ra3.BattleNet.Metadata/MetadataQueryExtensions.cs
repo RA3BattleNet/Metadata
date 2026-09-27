@@ -140,6 +140,10 @@ public static class MetadataQueryExtensions
                 RelativePath: file.Find("RelativePath")?.Value ?? string.Empty,
                 Hash: file.Get("Hash") ?? string.Empty,
                 Size: long.TryParse(file.Get("Size"), out var size) ? size : (long?)null,
+                DownloadName: file.Get("DownloadName"),
+                Compression: string.IsNullOrWhiteSpace(file.Get("Compression"))
+                    ? null
+                    : file.Get("Compression")!.Trim().ToLowerInvariant(),
                 KindOf: file.Find("KindOf")?.Value ?? string.Empty,
                 Sources: ReadSources(file),
                 Raw: file))
