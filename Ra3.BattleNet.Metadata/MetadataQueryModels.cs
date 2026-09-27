@@ -112,7 +112,10 @@ public sealed record ManifestSourceEntry(string Type, string Url);
 /// <param name="KindOf">文件种类标记（原样保留）。</param>
 /// <param name="Sources">下载来源列表；清单未声明时为空列表。</param>
 /// <param name="Raw">原始元数据节点。</param>
-public sealed record ManifestFileEntry(string FileName, string RelativePath, string Hash, long? Size, string? DownloadName, string? Compression, string KindOf, IReadOnlyList<ManifestSourceEntry> Sources, Metadata Raw);
+/// <param name="Mount">挂载角色，小写；清单未声明时为 base。</param>
+/// <param name="Language">语言包标记；仅 language 角色使用。</param>
+/// <param name="Package">可选包标记；仅 optional 角色使用。</param>
+public sealed record ManifestFileEntry(string FileName, string RelativePath, string Hash, long? Size, string? DownloadName, string? Compression, string KindOf, IReadOnlyList<ManifestSourceEntry> Sources, Metadata Raw, string? Mount, string? Language, string? Package);
 
 /// <summary>
 /// 清单依赖 DLL 实体。

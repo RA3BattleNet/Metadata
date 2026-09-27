@@ -66,6 +66,14 @@ public class ManifestValidationTests
     private static string HttpSource(string url) => $"<Sources><Source Type=\"HTTP\" Url=\"{url}\" /></Sources>";
 
     private static string BtSource(string url) => $"<Sources><Source Type=\"BT\" Url=\"{url}\" /></Sources>";
+    private static string MountedFileBlock(string mountAttributes) => $"""
+    <File Hash="9B623C7C"{mountAttributes}>
+      <FileName>a.bin</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      {HttpSource("https://example.com/a.bin")}
+    </File>
+""";
 
     /// <summary>写临时源树（schema + 入口 + 一个清单文件）跑构建，断言硬失败且消息带来源路径与 Manifest ID。</summary>
     private static void AssertBuildFails(string manifestXml, params string[] fragments)
@@ -222,6 +230,30 @@ public class ManifestValidationTests
         AssertBuildFails(
             ManifestXml(CompressedFileBlock("sub/a.zst", "zstd")),
             "不含路径分隔符");
+    }
+
+    [TestMethod]
+    public void Build_LanguageMountWithoutLanguage_HardFails()
+    {
+        AssertBuildFails(ManifestXml(MountedFileBlock(" Mount=\"language\"")), "必须写 Language");
+    }
+
+    [TestMethod]
+    public void Build_OptionalMountWithoutPackage_HardFails()
+    {
+        AssertBuildFails(ManifestXml(MountedFileBlock(" Mount=\"optional\"")), "必须写 Package");
+    }
+
+    [TestMethod]
+    public void Build_BaseMountWithLanguage_HardFails()
+    {
+        AssertBuildFails(ManifestXml(MountedFileBlock(" Mount=\"base\" Language=\"chs\"")), "不能带 Language");
+    }
+
+    [TestMethod]
+    public void Build_MountTokenWithSlash_HardFails()
+    {
+        AssertBuildFails(ManifestXml(MountedFileBlock(" Mount=\"language\" Language=\"ch/s\"")), "Language");
     }
 
     [TestMethod]

@@ -146,7 +146,10 @@ public static class MetadataQueryExtensions
                     : file.Get("Compression")!.Trim().ToLowerInvariant(),
                 KindOf: file.Find("KindOf")?.Value ?? string.Empty,
                 Sources: ReadSources(file),
-                Raw: file))
+                Raw: file,
+                Mount: string.IsNullOrWhiteSpace(file.Get("Mount")) ? "base" : file.Get("Mount")!.Trim().ToLowerInvariant(),
+                Language: file.Get("Language"),
+                Package: file.Get("Package")))
             .ToList();
 
         var dependencies = manifestNode.Find("Dependencies")?.Children

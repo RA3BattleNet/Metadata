@@ -52,6 +52,50 @@ public class ManifestParseTests
         entry.Dependencies[0].Version.Should().Be("1.5.5.2");
         entry.Dependencies[0].KindOf.Should().Be("APPLICATION");
     }
+    [TestMethod]
+    public void ToManifestEntry_MissingMount_DefaultsToBase()
+    {
+        var entry = LoadManifestNode("manifest-full.xml").ToManifestEntry();
+
+        entry.Files.Should().OnlyContain(file => file.Mount == "base" && file.Language == null && file.Package == null);
+    }
+
+    [TestMethod]
+    public void ToManifestEntry_ExplicitMount_ReadsLanguageAndPackage()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"manifest-mount-{Guid.NewGuid():N}.xml");
+        try
+        {
+            File.WriteAllText(temp, """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-mount" HashAlgorithm="CRC32C">
+    <File Hash="9B623C7C" Mount="LANGUAGE" Language="chs">
+      <FileName>chs.big</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+    </File>
+    <File Hash="9B623C7C" Mount="optional" Package="crates">
+      <FileName>crates.big</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+    </File>
+  </Manifest>
+</Metadata>
+""");
+            var entry = Metadata.LoadFromFile(temp).Find("Manifest")!.ToManifestEntry();
+            entry.Files[0].Mount.Should().Be("language");
+            entry.Files[0].Language.Should().Be("chs");
+            entry.Files[0].Package.Should().BeNull();
+            entry.Files[1].Mount.Should().Be("optional");
+            entry.Files[1].Package.Should().Be("crates");
+        }
+        finally
+        {
+            if (File.Exists(temp)) File.Delete(temp);
+        }
+    }
+
 
     [TestMethod]
     public void ToManifestEntry_MissingAlgorithm_DefaultsToCrc32C()

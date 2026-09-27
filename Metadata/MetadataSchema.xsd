@@ -202,6 +202,10 @@
     <xs:attribute name="Size" type="xs:long"/>
     <xs:attribute name="DownloadName" type="xs:string"/>
     <xs:attribute name="Compression" type="CompressionType"/>
+    <!-- Mount 缺省 base。language 必填 Language，optional 必填 Package；base 不能带这两个属性。取值由构建期校验 -->
+    <xs:attribute name="Mount" type="xs:string"/>
+    <xs:attribute name="Language" type="xs:string"/>
+    <xs:attribute name="Package" type="xs:string"/>
   </xs:complexType>
 
   <xs:simpleType name="CompressionType">

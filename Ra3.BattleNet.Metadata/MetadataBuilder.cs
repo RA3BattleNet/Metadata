@@ -11,6 +11,7 @@ public static class MetadataBuilder
     public const string DefaultSchemaVersion = "1.0";
 
     private static readonly Regex LeftoverVariablePattern = new(@"\$\{[^}]+\}", RegexOptions.Compiled);
+    private static readonly Regex MountTokenPattern = new(@"^[A-Za-z0-9_-]+$", RegexOptions.Compiled);
 
     private const string DefaultHashAlgorithm = "CRC32C";
 
@@ -431,6 +432,7 @@ public static class MetadataBuilder
                     errors.Add($"{where}: Source Type 非法: {type}");
                 }
             }
+            ValidateMountRole(file, where, errors);
         }
 
         var dependencies = manifest.Elements().FirstOrDefault(e => e.Name.LocalName == "Dependencies");
@@ -449,6 +451,43 @@ public static class MetadataBuilder
             if (hash.Length != hashLen)
                 errors.Add($"{where}: Hash 长度应为 {hashLen}（{algo}），实际 {hash.Length}");
         }
+    }
+
+    /// <summary>Mount 缺省 base。language 必填 Language，optional 必填 Package，base 不能带这两个属性。</summary>
+    private static void ValidateMountRole(XElement file, string where, List<string> errors)
+    {
+        var mountRaw = file.Attribute("Mount")?.Value;
+        var mount = string.IsNullOrWhiteSpace(mountRaw) ? "base" : mountRaw.Trim().ToLowerInvariant();
+        if (mount is not ("base" or "language" or "optional"))
+        {
+            errors.Add($"{where}: Mount 非法: {mountRaw}（仅支持 base/language/optional）");
+            return;
+        }
+
+        var language = file.Attribute("Language")?.Value;
+        var package = file.Attribute("Package")?.Value;
+        if (mount == "base")
+        {
+            if (language != null)
+                errors.Add($"{where}: Mount=\"base\" 不能带 Language");
+            if (package != null)
+                errors.Add($"{where}: Mount=\"base\" 不能带 Package");
+            return;
+        }
+
+        if (mount == "language")
+        {
+            if (string.IsNullOrWhiteSpace(language))
+                errors.Add($"{where}: Mount=\"language\" 必须写 Language");
+            else if (!MountTokenPattern.IsMatch(language))
+                errors.Add($"{where}: Language 只能是字母、数字、下划线或连字符: {language}");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(package))
+            errors.Add($"{where}: Mount=\"optional\" 必须写 Package");
+        else if (!MountTokenPattern.IsMatch(package))
+            errors.Add($"{where}: Package 只能是字母、数字、下划线或连字符: {package}");
     }
 
     private static string ChildValue(XElement element, string childName)
