@@ -55,7 +55,7 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: "1.0", contentRevisio
 | `Manifest@HashAlgorithm` | 属性（可选） | `CRC32C` / `MD5` / `SHA256`，缺省 `CRC32C` |
 | `File@Hash` | 属性（必填） | **解压后安装文件**（`FileName`）的哈希，算法由 `Manifest@HashAlgorithm` 决定 |
 | `File@Size` | 属性（可选） | **下载物**的字节数，正整数 |
-| `File@DownloadName` | 属性（可选） | 下载名（临时目录里的文件名）；缺省与 `FileName` 相同 |
+| `File@DownloadName` | 属性（可选） | 下载物的服务端文件名；缺省与 `FileName` 相同 |
 | `File@Compression` | 属性（可选） | 下载物的压缩格式，目前只有 `zstd`；校验通过后解压成 `FileName` |
 | `Sources/Source` | 子元素（可选） | `@Type`（`HTTP` / `BT`）+ `@Url`；HTTP 必须 http/https 绝对地址，BT 必须以 `.torrent` 结尾 |
 | `Dependencies/Dll` | 子元素（可选） | `@Name`、`@Hash` 必填，`@Version`、`@KindOf` 可选 |
