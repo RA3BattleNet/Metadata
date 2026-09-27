@@ -90,4 +90,32 @@ public class PublishSurfaceTests
                 Directory.Delete(temp, recursive: true);
         }
     }
+
+    [TestMethod]
+    public void Build_RepoSample_LeafManifestIsFlattenedAndLoadable()
+    {
+        var dst = Path.Combine(Path.GetTempPath(), $"publish-leaf-{Guid.NewGuid():N}");
+
+        try
+        {
+            MetadataBuilder.Build(RepoMetadataDir, dst, schemaVersion: "1.0", contentRevision: "publish-test");
+
+            // 叶子清单不能照抄源文件：客户端解析器拒绝 Includes，也不该收到未替换的变量
+            var leafPath = Path.Combine(dst, "mods", "corona", "manifests", "3.258.xml");
+            var text = File.ReadAllText(leafPath);
+            text.Should().NotContain("<Includes");
+            text.Should().NotMatchRegex(@"\$\{[^}]+\}");
+
+            var entry = MetadataBuilder.Load(leafPath).Find("Manifest")!.ToManifestEntry();
+            entry.HashAlgorithm.Should().Be("CRC32C");
+            entry.Files.Should().HaveCount(1);
+            entry.Files[0].DownloadName.Should().NotBeNull();
+            entry.Files[0].Sources.Should().NotBeEmpty();
+        }
+        finally
+        {
+            if (Directory.Exists(dst))
+                Directory.Delete(dst, recursive: true);
+        }
+    }
 }

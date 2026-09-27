@@ -62,18 +62,17 @@ public static class MetadataBuilder
 
             var flattened = MetadataFlattener.Flatten(entry, src, version, revision);
             var flatPath = Path.Combine(dst, "metadata.xml");
+            var resolver = new VariableResolver();
 
             // 发布面 = 展平 metadata.xml + 被引用资源 + _redirects；
             // 源 XML / XSD / Templates 不进 Output
-            CopyReferencedResources(flattened, src, dst);
+            var leafPaths = CopyReferencedResources(flattened, src, dst, version, revision, resolver);
             CopyIfExists(Path.Combine(src, "_redirects"), Path.Combine(dst, "_redirects"));
 
             flattened.Save(flatPath);
-
-            var resolver = new VariableResolver();
             resolver.ReplaceInFile(flatPath);
 
-            var leftover = FindLeftoverVariables(flatPath);
+            var leftover = FindLeftoverVariables([flatPath, .. leafPaths]);
             if (leftover.Count > 0)
                 throw new InvalidOperationException("变量替换后仍有残留: " + string.Join("; ", leftover));
 
@@ -103,11 +102,15 @@ public static class MetadataBuilder
 
     /// <summary>
     /// 从展平树收集被引用资源（Image/Markdown/Manifest 登记节点的 Source 文件；Url-only 图跳过），复制到 Output。
-    /// 缺失文件不在此报错——由 ValidateHard 统一硬失败。
+    /// 叶子清单不照抄源文件：它同样走一遍展平并解析变量（去掉源树专用的 Includes、限定 ID、替换 ${TIMESTAMP}），
+    /// 否则发布物里会留下客户端解析器拒绝的 Includes 元素与未替换的变量。
+    /// 返回写出的叶子清单路径。缺失文件不在此报错——由 ValidateHard 统一硬失败。
     /// </summary>
-    private static void CopyReferencedResources(XDocument flattened, string src, string dst)
+    private static List<string> CopyReferencedResources(
+        XDocument flattened, string src, string dst, string schemaVersion, string contentRevision, VariableResolver resolver)
     {
         var copied = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var leafPaths = new List<string>();
 
         foreach (var el in flattened.Root!.DescendantsAndSelf())
         {
@@ -133,8 +136,20 @@ public static class MetadataBuilder
             var dir = Path.GetDirectoryName(target);
             if (!string.IsNullOrEmpty(dir))
                 Directory.CreateDirectory(dir);
-            File.Copy(from, target, overwrite: true);
+
+            if (el.Name.LocalName == "Manifest")
+            {
+                MetadataFlattener.Flatten(from, src, schemaVersion, contentRevision).Save(target);
+                resolver.ReplaceInFile(target);
+                leafPaths.Add(target);
+            }
+            else
+            {
+                File.Copy(from, target, overwrite: true);
+            }
         }
+
+        return leafPaths;
     }
 
     private static void CopyIfExists(string from, string to)
@@ -180,10 +195,12 @@ public static class MetadataBuilder
         }
     }
 
-    private static List<string> FindLeftoverVariables(string xmlPath)
+    private static List<string> FindLeftoverVariables(IEnumerable<string> xmlPaths)
     {
-        var text = File.ReadAllText(xmlPath);
-        return LeftoverVariablePattern.Matches(text).Select(m => m.Value).Distinct().ToList();
+        return xmlPaths
+            .SelectMany(path => LeftoverVariablePattern.Matches(File.ReadAllText(path)).Select(m => m.Value))
+            .Distinct()
+            .ToList();
     }
 
     private static void ValidateHard(string flatPath, string outputDir)

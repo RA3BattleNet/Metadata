@@ -90,6 +90,7 @@ npm run deploy          # 构建 + Cloudflare Pages 部署
 ```
 
 - **核心构建**（纯 managed）：XSD → 展平 → 变量 → 复制被引用资源 → 语义校验；`Output/` 只含 `metadata.xml` + 被引用资源 + `_redirects`
+- **叶子清单**：`Manifest` 登记节点的 Source 文件与入口一样走展平（去掉 `Includes`、限定 ID、替换变量）后发布，客户端 `MetadataBuilder.Load` 可直接解析；图片与 Markdown 原样复制
 - **Imaging**：只转图并回传 MD5，不进主 NuGet；`--webp` 时展平后按图调用
 - **Schema**：`Metadata/MetadataSchema.xsd`（源树）、`Metadata/MetadataPublishSchema.xsd`（发布物）
 - **变量**：`${TIMESTAMP}` / `${ENV:NAME}` / `${MD5:}`
