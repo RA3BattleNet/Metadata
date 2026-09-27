@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 新格式清单样例：显式 SHA256、多 File、双来源、Size 缺失、Dependencies -->
+<Metadata>
+    <Manifest ID="manifest-full" HashAlgorithm="SHA256">
+        <File Hash="E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855" Size="1024">
+            <FileName>corona.lyi</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MOD; ENCRYPTED_FILE; CAN_PATCH;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://example.com/files/corona.lyi" />
+                <Source Type="BT" Url="https://example.com/files/corona.lyi.torrent" />
+            </Sources>
+        </File>
+        <File Hash="BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD">
+            <FileName>extra.dat</FileName>
+            <RelativePath>/contents/</RelativePath>
+            <KindOf>DATA;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://example.com/files/extra.dat" />
+            </Sources>
+        </File>
+        <Dependencies>
+            <Dll Name="NativeDll.dll" Version="1.5.5.2" Hash="248D6A61D20638B8E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1" KindOf="APPLICATION" />
+        </Dependencies>
+        <SubManifest>
+            <RelativePath>/WorldBuilder/</RelativePath>
+            <ID>NewWorldBuilder-v20</ID>
+        </SubManifest>
+    </Manifest>
+</Metadata>

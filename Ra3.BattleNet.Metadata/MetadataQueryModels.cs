@@ -92,3 +92,40 @@ public sealed record MarkdownEntry(string Id, string? Source, string? Hash, Meta
 /// <param name="Url">远程图片 URL。</param>
 /// <param name="Raw">原始元数据节点。</param>
 public sealed record ImageEntry(string Id, string? Source, string? Url, Metadata Raw);
+
+/// <summary>
+/// 清单文件来源实体（HTTP 直链或 BT 种子）。
+/// </summary>
+/// <param name="Type">来源类型，统一大写（HTTP/BT）。</param>
+/// <param name="Url">来源地址。</param>
+public sealed record ManifestSourceEntry(string Type, string Url);
+
+/// <summary>
+/// 清单文件条目实体。
+/// </summary>
+/// <param name="FileName">文件名。</param>
+/// <param name="RelativePath">相对安装根的路径。</param>
+/// <param name="Hash">文件哈希值。</param>
+/// <param name="Size">文件字节数；缺失或无法解析为 null。</param>
+/// <param name="KindOf">文件种类标记（原样保留）。</param>
+/// <param name="Sources">下载来源列表；清单未声明时为空列表。</param>
+/// <param name="Raw">原始元数据节点。</param>
+public sealed record ManifestFileEntry(string FileName, string RelativePath, string Hash, long? Size, string KindOf, IReadOnlyList<ManifestSourceEntry> Sources, Metadata Raw);
+
+/// <summary>
+/// 清单依赖 DLL 实体。
+/// </summary>
+/// <param name="Name">DLL 名称。</param>
+/// <param name="Version">DLL 版本；可缺省。</param>
+/// <param name="Hash">DLL 哈希值。</param>
+/// <param name="KindOf">DLL 种类标记；可缺省。</param>
+public sealed record ManifestDllEntry(string Name, string? Version, string Hash, string? KindOf);
+
+/// <summary>
+/// 叶子清单实体。
+/// </summary>
+/// <param name="Id">清单 ID。</param>
+/// <param name="HashAlgorithm">哈希算法；缺失按 CRC32C。</param>
+/// <param name="Files">文件条目列表。</param>
+/// <param name="Dependencies">依赖 DLL 列表。</param>
+public sealed record ManifestEntry(string Id, string HashAlgorithm, IReadOnlyList<ManifestFileEntry> Files, IReadOnlyList<ManifestDllEntry> Dependencies);

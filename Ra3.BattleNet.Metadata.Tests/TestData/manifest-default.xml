@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 未声明 HashAlgorithm：按 CRC32C 解析；Size 缺失 -->
+<Metadata>
+    <Manifest ID="manifest-default">
+        <File Hash="9B623C7C">
+            <FileName>corona.lyi</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MOD;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://example.com/files/corona.lyi" />
+            </Sources>
+        </File>
+        <Dependencies>
+            <Dll Name="NativeDll.dll" Hash="9B623C7C" />
+        </Dependencies>
+    </Manifest>
+</Metadata>

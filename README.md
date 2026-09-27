@@ -44,7 +44,22 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: "1.0", contentRevisio
 
 ### 校验与失败
 
-核心构建**硬失败**（非 0、清理半残输出）：源树 XSD、发布物 XSD、循环 Include、缺资源、断 ID、残留 `${...}`。
+核心构建**硬失败**（非 0、清理半残输出）：源树 XSD、发布物 XSD、循环 Include、缺资源、断 ID、残留 `${...}`、新格式清单校验。
+
+### 文件级清单（叶子 Manifest）
+
+叶子 Manifest 的 File 表可声明下载来源与哈希算法（新格式）；未声明新格式的旧清单照旧可用。
+
+| 成员 | 位置 | 说明 |
+|---|---|---|
+| `Manifest@HashAlgorithm` | 属性（可选） | `CRC32C` / `MD5` / `SHA256`，缺省 `CRC32C` |
+| `File@Size` | 属性（可选） | 文件字节数，正整数 |
+| `Sources/Source` | 子元素（可选） | `@Type`（`HTTP` / `BT`）+ `@Url`；HTTP 必须 http/https 绝对地址，BT 必须以 `.torrent` 结尾 |
+| `Dependencies/Dll` | 子元素（可选） | `@Name`、`@Hash` 必填，`@Version`、`@KindOf` 可选 |
+
+声明了新格式（带 `HashAlgorithm`，或任一 `File` 含 `Sources`）的清单，构建期额外硬校验：哈希长度与算法匹配、禁止占位哈希、每个 File 至少一个 Source、Size 为正整数、`FileName + RelativePath` 唯一、`Dll@Name` 唯一、`RelativePath` 必须是相对路径。旧清单不触发。
+
+解析：`doc.ManifestRegistration(id)` 取登记节点，叶子清单节点 `ToManifestEntry()` → `ManifestEntry`（Files / Dependencies）。
 
 ## 模块属性清单
 

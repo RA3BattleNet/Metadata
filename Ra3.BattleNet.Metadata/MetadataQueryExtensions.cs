@@ -116,4 +116,61 @@ public static class MetadataQueryExtensions
                 Raw: package))
             .ToList();
     }
+
+    /// <summary>按登记 ID 找到 Manifest 登记节点（返回 null 表示不存在）。</summary>
+    public static Metadata? ManifestRegistration(this Metadata root, string manifestId)
+    {
+        return root.GetAllElements("Manifest")
+            .FirstOrDefault(m => string.Equals(m.Get("ID"), manifestId, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>把叶子清单节点解析成业务模型。</summary>
+    public static ManifestEntry ToManifestEntry(this Metadata manifestNode)
+    {
+        var id = manifestNode.Get("ID") ?? string.Empty;
+        var algo = manifestNode.Get("HashAlgorithm");
+        algo = string.IsNullOrWhiteSpace(algo) ? "CRC32C" : algo.Trim().ToUpperInvariant();
+        if (algo is not ("CRC32C" or "MD5" or "SHA256"))
+            throw new InvalidOperationException($"Manifest '{id}' 的 HashAlgorithm 非法: {algo}");
+
+        var files = manifestNode.Children
+            .Where(c => c.Name == "File")
+            .Select(file => new ManifestFileEntry(
+                FileName: file.Find("FileName")?.Value ?? string.Empty,
+                RelativePath: file.Find("RelativePath")?.Value ?? string.Empty,
+                Hash: file.Get("Hash") ?? string.Empty,
+                Size: long.TryParse(file.Get("Size"), out var size) ? size : (long?)null,
+                KindOf: file.Find("KindOf")?.Value ?? string.Empty,
+                Sources: ReadSources(file),
+                Raw: file))
+            .ToList();
+
+        var dependencies = manifestNode.Find("Dependencies")?.Children
+            .Where(c => c.Name == "Dll")
+            .Select(dll => new ManifestDllEntry(
+                Name: dll.Get("Name") ?? string.Empty,
+                Version: dll.Get("Version"),
+                Hash: dll.Get("Hash") ?? string.Empty,
+                KindOf: dll.Get("KindOf")))
+            .ToList()
+            ?? [];
+
+        return new ManifestEntry(id, algo, files, dependencies);
+    }
+
+    private static IReadOnlyList<ManifestSourceEntry> ReadSources(Metadata file)
+    {
+        var sourcesNode = file.Find("Sources");
+        if (sourcesNode == null)
+        {
+            return [];
+        }
+
+        return sourcesNode.Children
+            .Where(c => c.Name == "Source")
+            .Select(source => new ManifestSourceEntry(
+                Type: (source.Get("Type") ?? string.Empty).ToUpperInvariant(),
+                Url: source.Get("Url") ?? string.Empty))
+            .ToList();
+    }
 }

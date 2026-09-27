@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 旧格式清单样例：无 HashAlgorithm、无 Sources、占位哈希；不触发新格式硬校验 -->
+<Metadata>
+    <Manifest ID="manifest-legacy">
+        <File Hash="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">
+            <FileName>corona_3.229.lyi</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MOD; ENCRYPTED_FILE; CAN_PATCH;</KindOf>
+        </File>
+        <SubManifest>
+            <RelativePath>/WorldBuilder/</RelativePath>
+            <ID>NewWorldBuilder-v20</ID>
+        </SubManifest>
+    </Manifest>
+</Metadata>

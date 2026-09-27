@@ -169,23 +169,66 @@
     <xs:attribute name="Hash" type="xs:string"/>
   </xs:complexType>
 
-  <!-- 源侧叶子清单：含 File 表（Updater 生成） -->
+  <!-- 源侧叶子清单：含 File 表（Updater 生成）；HashAlgorithm 缺省按 CRC32C -->
   <xs:complexType name="ManifestFullType">
     <xs:sequence>
       <xs:element name="File" type="FileType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Dependencies" type="DependenciesType" minOccurs="0"/>
       <xs:element name="SubManifest" type="SubManifestType" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
     <xs:attribute name="ID" type="xs:string" use="required"/>
+    <xs:attribute name="HashAlgorithm" type="HashAlgorithmType"/>
   </xs:complexType>
+
+  <xs:simpleType name="HashAlgorithmType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="CRC32C"/>
+      <xs:enumeration value="MD5"/>
+      <xs:enumeration value="SHA256"/>
+    </xs:restriction>
+  </xs:simpleType>
 
   <xs:complexType name="FileType">
     <xs:sequence>
       <xs:element name="FileName" type="xs:string"/>
       <xs:element name="RelativePath" type="xs:string"/>
       <xs:element name="KindOf" type="xs:string"/>
+      <xs:element name="Sources" type="SourcesType" minOccurs="0"/>
       <xs:element name="PatchInfo" type="PatchInfoType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="Hash" type="xs:string" use="required"/>
+    <xs:attribute name="Size" type="xs:long"/>
+  </xs:complexType>
+
+  <xs:complexType name="SourcesType">
+    <xs:sequence>
+      <xs:element name="Source" type="SourceType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SourceType">
+    <xs:attribute name="Type" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="HTTP"/>
+          <xs:enumeration value="BT"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+    <xs:attribute name="Url" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="DependenciesType">
+    <xs:sequence>
+      <xs:element name="Dll" type="DllType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="DllType">
+    <xs:attribute name="Name" type="xs:string" use="required"/>
+    <xs:attribute name="Version" type="xs:string"/>
+    <xs:attribute name="Hash" type="xs:string" use="required"/>
+    <xs:attribute name="KindOf" type="xs:string"/>
   </xs:complexType>
 
   <xs:complexType name="PatchInfoType">

@@ -12,6 +12,16 @@ public static class MetadataBuilder
 
     private static readonly Regex LeftoverVariablePattern = new(@"\$\{[^}]+\}", RegexOptions.Compiled);
 
+    private const string DefaultHashAlgorithm = "CRC32C";
+
+    /// <summary>各算法的十六进制哈希长度。</summary>
+    private static readonly Dictionary<string, int> HashHexLengths = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["CRC32C"] = 8,
+        ["MD5"] = 32,
+        ["SHA256"] = 64,
+    };
+
     /// <summary>
     /// 从本地源目录执行核心构建。
     /// </summary>
@@ -43,6 +53,7 @@ public static class MetadataBuilder
             var sourceSchema = SchemaValidator.FindSchema(src, SchemaValidator.SourceSchemaFileName)
                 ?? throw new FileNotFoundException($"找不到源树 XSD: {SchemaValidator.SourceSchemaFileName}");
             SchemaValidator.EnsureDirectoryValid(src, sourceSchema, "源树");
+            ValidateManifests(src);
 
             var revision = string.IsNullOrWhiteSpace(contentRevision)
                 ? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
@@ -289,5 +300,137 @@ public static class MetadataBuilder
         if (string.IsNullOrWhiteSpace(id)) return;
         if (!idIndex.Contains(id))
             errors.Add($"{kind} 引用未找到 ID: {id}");
+    }
+
+    /// <summary>
+    /// 源树 Manifest 语义硬校验：仅当清单声明新格式（带 HashAlgorithm 属性，或任一 File 含 Sources）时执行；
+    /// 旧清单不触发，保持原样可构建。File 表只存在于源树叶子清单，不进展平物，故在此阶段扫描源文件。
+    /// </summary>
+    private static void ValidateManifests(string sourceRoot)
+    {
+        var errors = new List<string>();
+        foreach (var xmlPath in Directory.GetFiles(sourceRoot, "*.xml", SearchOption.AllDirectories))
+        {
+            XDocument doc;
+            try
+            {
+                doc = XDocument.Load(xmlPath);
+            }
+            catch
+            {
+                continue; // 语法错误已由 XSD 校验报出
+            }
+
+            var rel = Path.GetRelativePath(sourceRoot, xmlPath).Replace('\\', '/');
+            foreach (var manifest in doc.Root!.DescendantsAndSelf().Where(e => e.Name.LocalName == "Manifest"))
+                ValidateManifestNode(manifest, rel, errors);
+        }
+
+        if (errors.Count > 0)
+            throw new InvalidOperationException("Manifest 校验失败:\n- " + string.Join("\n- ", errors));
+    }
+
+    private static void ValidateManifestNode(XElement manifest, string rel, List<string> errors)
+    {
+        var id = manifest.Attribute("ID")?.Value ?? string.Empty;
+        var files = manifest.Elements().Where(e => e.Name.LocalName == "File").ToList();
+        var algoAttr = manifest.Attribute("HashAlgorithm")?.Value;
+
+        // 新格式触发条件：声明 HashAlgorithm，或任一 File 带 Sources
+        var isNewFormat = algoAttr != null
+            || files.Any(f => f.Elements().Any(e => e.Name.LocalName == "Sources"));
+        if (!isNewFormat)
+            return;
+
+        var algo = string.IsNullOrWhiteSpace(algoAttr) ? DefaultHashAlgorithm : algoAttr.Trim().ToUpperInvariant();
+        if (!HashHexLengths.ContainsKey(algo))
+        {
+            errors.Add($"{rel} (Manifest ID: {id}): HashAlgorithm 非法: {algoAttr}（仅支持 CRC32C/MD5/SHA256）");
+            algo = DefaultHashAlgorithm;
+        }
+        var hashLen = HashHexLengths[algo];
+
+        var seenFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var file in files)
+        {
+            var fileName = ChildValue(file, "FileName");
+            var where = $"{rel} (Manifest ID: {id}) File \"{fileName}\"";
+
+            var hash = file.Attribute("Hash")?.Value ?? string.Empty;
+            if (hash.Length != hashLen)
+                errors.Add($"{where}: Hash 长度应为 {hashLen}（{algo}），实际 {hash.Length}");
+            else if (hash.All(c => char.ToUpperInvariant(c) == char.ToUpperInvariant(hash[0])))
+                errors.Add($"{where}: Hash 为占位值（全部同一字符）");
+
+            var relativePath = ChildValue(file, "RelativePath");
+            if (relativePath.StartsWith("..", StringComparison.Ordinal) || IsAbsolutePath(relativePath))
+                errors.Add($"{where}: RelativePath 必须是相对路径: {relativePath}");
+
+            if (!seenFiles.Add(fileName + "\u0000" + relativePath))
+                errors.Add($"{where}: FileName + RelativePath 重复: {fileName} + {relativePath}");
+
+            var sizeAttr = file.Attribute("Size");
+            if (sizeAttr != null && (!long.TryParse(sizeAttr.Value, out var size) || size <= 0))
+                errors.Add($"{where}: Size 必须是正整数: {sizeAttr.Value}");
+
+            var sources = file.Elements()
+                .FirstOrDefault(e => e.Name.LocalName == "Sources")?
+                .Elements().Where(e => e.Name.LocalName == "Source").ToList()
+                ?? new List<XElement>();
+            if (sources.Count == 0)
+                errors.Add($"{where}: 缺少 Source（新格式清单每个 File 至少一个来源）");
+
+            foreach (var source in sources)
+            {
+                var type = (source.Attribute("Type")?.Value ?? string.Empty).Trim().ToUpperInvariant();
+                var url = source.Attribute("Url")?.Value ?? string.Empty;
+                if (type == "BT")
+                {
+                    if (!url.EndsWith(".torrent", StringComparison.OrdinalIgnoreCase))
+                        errors.Add($"{where}: BT 地址必须以 .torrent 结尾: {url}");
+                }
+                else if (type == "HTTP")
+                {
+                    if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
+                        || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                        errors.Add($"{where}: HTTP 地址必须是 http/https 绝对地址: {url}");
+                }
+                else
+                {
+                    errors.Add($"{where}: Source Type 非法: {type}");
+                }
+            }
+        }
+
+        var dependencies = manifest.Elements().FirstOrDefault(e => e.Name.LocalName == "Dependencies");
+        if (dependencies == null)
+            return;
+
+        var seenDlls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var dll in dependencies.Elements().Where(e => e.Name.LocalName == "Dll"))
+        {
+            var name = dll.Attribute("Name")?.Value ?? string.Empty;
+            var where = $"{rel} (Manifest ID: {id}) Dll \"{name}\"";
+            if (!seenDlls.Add(name))
+                errors.Add($"{where}: Dll Name 重复");
+
+            var hash = dll.Attribute("Hash")?.Value ?? string.Empty;
+            if (hash.Length != hashLen)
+                errors.Add($"{where}: Hash 长度应为 {hashLen}（{algo}），实际 {hash.Length}");
+        }
+    }
+
+    private static string ChildValue(XElement element, string childName)
+    {
+        return element.Elements().FirstOrDefault(e => e.Name.LocalName == childName)?.Value ?? string.Empty;
+    }
+
+    /// <summary>盘符或 UNC 视为绝对路径；以 <c>/</c> 开头的清单内路径合法（相对安装根）。</summary>
+    private static bool IsAbsolutePath(string path)
+    {
+        var p = path.Replace('\\', '/');
+        if (p.StartsWith("//", StringComparison.Ordinal))
+            return true;
+        return p.Length >= 2 && char.IsAsciiLetter(p[0]) && p[1] == ':';
     }
 }
