@@ -105,7 +105,7 @@ public sealed record ManifestSourceEntry(string Type, string Url);
 /// </summary>
 /// <param name="FileName">安装名（解压后的文件名）。</param>
 /// <param name="RelativePath">相对安装根的路径。</param>
-/// <param name="Hash">下载物的哈希值。</param>
+/// <param name="Hash">解压后安装文件的 CRC32C。</param>
 /// <param name="Size">下载物字节数；缺失或无法解析为 null。</param>
 /// <param name="DownloadName">下载名；清单未声明时为 null（等同 <paramref name="FileName"/>）。</param>
 /// <param name="Compression">下载物的压缩格式（小写）；清单未声明时为 null。</param>

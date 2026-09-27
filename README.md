@@ -53,15 +53,16 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: "1.0", contentRevisio
 | 成员 | 位置 | 说明 |
 |---|---|---|
 | `Manifest@HashAlgorithm` | 属性（可选） | `CRC32C` / `MD5` / `SHA256`，缺省 `CRC32C` |
+| `File@Hash` | 属性（必填） | **解压后安装文件**（`FileName`）的哈希，算法由 `Manifest@HashAlgorithm` 决定 |
 | `File@Size` | 属性（可选） | **下载物**的字节数，正整数 |
 | `File@DownloadName` | 属性（可选） | 下载名（临时目录里的文件名）；缺省与 `FileName` 相同 |
 | `File@Compression` | 属性（可选） | 下载物的压缩格式，目前只有 `zstd`；校验通过后解压成 `FileName` |
 | `Sources/Source` | 子元素（可选） | `@Type`（`HTTP` / `BT`）+ `@Url`；HTTP 必须 http/https 绝对地址，BT 必须以 `.torrent` 结尾 |
 | `Dependencies/Dll` | 子元素（可选） | `@Name`、`@Hash` 必填，`@Version`、`@KindOf` 可选 |
 
-`File@Hash` / `@Size` 描述的是**下载物**（`DownloadName` 对应的字节），不是解压后的安装文件：
+`File@Hash` 描述的是**解压后**的安装文件（`FileName`）的 CRC32C；`File@Size` 描述的是**下载物**（`DownloadName` 对应的字节）：
 服务端只放压缩包（如 `corona_3.258.zst`），安装名是解压结果（`corona_3.258.lyi`），两者用
-`DownloadName` + `Compression` 表达。
+`DownloadName` + `Compression` 表达。客户端下载后先解压，再按 `@Hash` 校验解压结果。
 
 声明了新格式（带 `HashAlgorithm`，或任一 `File` 含 `Sources`）的清单，构建期额外硬校验：哈希长度与算法匹配、禁止占位哈希、每个 File 至少一个 Source、Size 为正整数、`FileName + RelativePath` 唯一、`Dll@Name` 唯一、`RelativePath` 必须是相对路径、`DownloadName` 必须是不含路径分隔符的文件名、`Compression` 只能是 `zstd` 且必须配 `DownloadName`（且与 `FileName` 不同名）。旧清单不触发。
 

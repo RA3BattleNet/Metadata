@@ -6,7 +6,7 @@
     <Includes>
     </Includes>
     <Manifest ID="manifest-3258" HashAlgorithm="CRC32C">
-        <File Hash="14E63130" Size="1019525102" DownloadName="corona_3.258.zst" Compression="zstd">
+        <File Hash="30823F46" Size="1019525102" DownloadName="corona_3.258.zst" Compression="zstd">
             <FileName>corona_3.258.lyi</FileName>
             <RelativePath>/</RelativePath>
             <KindOf>MOD; ENCRYPTED_FILE;</KindOf>

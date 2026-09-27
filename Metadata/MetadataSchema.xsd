@@ -189,7 +189,8 @@
   </xs:simpleType>
 
   <!-- FileName 是安装名（解压后的名字），DownloadName 是下载名（临时目录里的名字，缺省等于 FileName）；
-       Hash/Size 描述下载物（DownloadName 对应的字节）；Compression 表示校验通过后解压成 FileName -->
+       Hash 描述解压后的安装文件（FileName），Size 描述下载物（DownloadName 对应的字节）；
+       Compression 表示校验通过后解压成 FileName -->
   <xs:complexType name="FileType">
     <xs:sequence>
       <xs:element name="FileName" type="xs:string"/>
