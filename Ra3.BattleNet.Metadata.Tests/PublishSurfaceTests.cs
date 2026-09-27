@@ -38,8 +38,7 @@ public class PublishSurfaceTests
 
             // 被引用资源都在
             File.Exists(Path.Combine(dst, "mods", "corona", "images", "icon-64px.png")).Should().BeTrue();
-            File.Exists(Path.Combine(dst, "mods", "corona", "changelogs", "zh-3229.md")).Should().BeTrue();
-            File.Exists(Path.Combine(dst, "mods", "corona", "manifests", "3.229.xml")).Should().BeTrue();
+            File.Exists(Path.Combine(dst, "mods", "corona", "manifests", "3.258.xml")).Should().BeTrue();
             File.Exists(Path.Combine(dst, "apps", "ra3battlenet", "manifests", "1.5.2.0.xml")).Should().BeTrue();
 
             // _redirects 自动带出

@@ -61,8 +61,8 @@ public class StageATests
             File.ReadAllText(manifestPath).Should().Contain("<File").And.Contain("NativeDll.dll");
 
             var coronaManifest = loaded.GetAllElements("Manifest")
-                .First(m => MetadataFlattener.LocalId(m.Get("ID")!) == "manifest-3229");
-            coronaManifest.Get("Source")!.Replace('\\', '/').Should().EndWith("manifests/3.229.xml");
+                .First(m => MetadataFlattener.LocalId(m.Get("ID")!) == "manifest-3258");
+            coronaManifest.Get("Source")!.Replace('\\', '/').Should().EndWith("manifests/3.258.xml");
 
             var md = loaded.GetAllElements("Markdown")
                 .First(m => MetadataFlattener.LocalId(m.Get("ID")!) == "changelog-zh-1.5.2.0");

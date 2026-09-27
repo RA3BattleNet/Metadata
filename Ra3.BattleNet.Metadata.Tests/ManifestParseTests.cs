@@ -151,10 +151,10 @@ public class ManifestParseTests
             var root = MetadataBuilder.Load(Path.Combine(dst, "metadata.xml"));
 
             var registered = root.GetAllElements("Manifest")
-                .First(m => MetadataFlattener.LocalId(m.Get("ID")) == "manifest-3229");
+                .First(m => MetadataFlattener.LocalId(m.Get("ID")) == "manifest-3258");
             var found = root.ManifestRegistration(registered.Get("ID")!);
             found.Should().BeSameAs(registered);
-            found!.Get("Source").Should().EndWith("manifests/3.229.xml");
+            found!.Get("Source").Should().EndWith("manifests/3.258.xml");
 
             root.ManifestRegistration("no-such-manifest").Should().BeNull();
         }

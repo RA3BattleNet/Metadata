@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Includes>
+    </Includes>
+    <Manifest ID="manifest-3258" HashAlgorithm="CRC32C">
+        <File Hash="14E63130" Size="1019525102" DownloadName="corona_3.258.zst" Compression="zstd">
+            <FileName>corona_3.258.lyi</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://file.cor-games.com/srv/cor/mod/corona_3.258.zst" />
+                <Source Type="BT" Url="https://file.cor-games.com/srv/cor/mod/corona_3.258.zst.torrent" />
+            </Sources>
+        </File>
+    </Manifest>
+</Metadata>

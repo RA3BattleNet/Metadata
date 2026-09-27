@@ -102,7 +102,7 @@ public class MetadataTests
             var metadata = MetadataBuilder.Load(Path.Combine(dst, "metadata.xml"));
 
             var corona = metadata.Mods().Single(m => m.Id == "Corona");
-            corona.Version.Should().Be("3.229");
+            corona.Version.Should().Be("3.258");
             corona.Packages.Should().NotBeEmpty();
             corona.Icon.Should().Contain(":");
 

@@ -4,9 +4,7 @@
         <Commit>${TIMESTAMP}</Commit>
     </Tags>
     <Includes>
-        <Include Source="changelogs/changelogs.xml" />
         <Include Source="manifests/manifests.xml" />
-        <Include Source="posts/posts.xml" />
     </Includes>
 
     <Image ID="corona-icon-64px" Source="images/icon-64px.png" />
@@ -19,7 +17,7 @@
     <Image ID="background-5" Source="images/background-5.png" />
 
     <Mod ID="Corona">
-        <CurrentVersion>3.229</CurrentVersion>
+        <CurrentVersion>3.258</CurrentVersion>
         <Icon>corona-icon-64px</Icon>
         <Style>
             <Logo Width="400" Height="80">corona-logo-colored</Logo>
@@ -41,34 +39,10 @@
             </Background>
         </Style>
         <Packages>
-            <Package Version="3.229">
-                <ReleaseDate>2025-04-01</ReleaseDate>
-                <Changelogs>
-                    <Changelog Language="zh-CN">changelog-zh-3229</Changelog>
-                    <Changelog Language="en-US">changelog-en-3229</Changelog>
-                </Changelogs>
-                <Manifest>manifest-3229</Manifest>
-            </Package>
-            <Package Version="3.228">
-                <ReleaseDate>2025-03-28</ReleaseDate>
-                <Changelogs>
-                    <Changelog Language="zh-CN">changelog-zh-3228</Changelog>
-                    <Changelog Language="en-US">changelog-en-3228</Changelog>
-                </Changelogs>
-                <Manifest>manifest-3228</Manifest>
+            <Package Version="3.258">
+                <ReleaseDate>2026-08-13</ReleaseDate>
+                <Manifest>manifest-3258</Manifest>
             </Package>
         </Packages>
-        <Posts>
-            <Post DateTime="2025-04-01T00:00:00+08:00">
-                <Titles>
-                    <Title Language="zh-CN">版本更新 3.229</Title>
-                    <Title Language="en-US">Update 3.229</Title>
-                </Titles>
-                <Contents>
-                    <Content Language="zh-CN">news-zh-3229</Content>
-                    <Content Language="en-US">news-en-3229</Content>
-                </Contents>
-            </Post>
-        </Posts>
     </Mod>
 </Metadata>
