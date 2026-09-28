@@ -7,5 +7,6 @@
     <Includes>
         <!-- 子模块 -->
         <Include Source="corona/corona.xml" />
+        <Include Source="armor-rush/armor-rush.xml" />
     </Includes>
 </Metadata>   

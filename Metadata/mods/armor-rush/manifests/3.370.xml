@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Includes>
+    </Includes>
+    <Manifest ID="manifest-3370" HashAlgorithm="CRC32C">
+        <Skudef GameVersion="1.12">
+            <AddBig File="AR_Core_3.370.lyi" />
+            <AddBig File="AR_Data_3.370.big" />
+            <AddBig File="AR_chs_3.370.big" />
+            <AddBig File="AR_misc_3.370.big" />
+            <AddBig File="ARCrates_3.370.lyi" Package="crates" />
+        </Skudef>
+        <File Hash="EA025348" Size="104990667" DownloadName="AR_Core_3.370.zst" Compression="zstd">
+            <FileName>AR_Core_3.370.lyi</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://web.file.cor-games.com/srv/ar/AR_Core_3.370.zst" />
+                <Source Type="BT" Url="https://web.file.cor-games.com/srv/ar/AR_Core_3.370.zst.torrent" />
+            </Sources>
+        </File>
+        <File Hash="5E6AABF8" Size="185814470" DownloadName="AR_Data_3.370.zst" Compression="zstd">
+            <FileName>AR_Data_3.370.big</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MISC;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://web.file.cor-games.com/srv/ar/AR_Data_3.370.zst" />
+                <Source Type="BT" Url="https://web.file.cor-games.com/srv/ar/AR_Data_3.370.zst.torrent" />
+            </Sources>
+        </File>
+        <File Hash="CC4510B1" Size="13040759">
+            <FileName>AR_chs_3.370.big</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MISC;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://web.file.cor-games.com/srv/ar/AR_chs_3.370.big" />
+                <Source Type="BT" Url="https://web.file.cor-games.com/srv/ar/AR_chs_3.370.big.torrent" />
+            </Sources>
+        </File>
+        <File Hash="F3F71CB2" Size="74648958" DownloadName="AR_misc_3.370.zst" Compression="zstd">
+            <FileName>AR_misc_3.370.big</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MISC;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://web.file.cor-games.com/srv/ar/AR_misc_3.370.zst" />
+                <Source Type="BT" Url="https://web.file.cor-games.com/srv/ar/AR_misc_3.370.zst.torrent" />
+            </Sources>
+        </File>
+        <File Hash="9859C8A8" Size="52398594">
+            <FileName>ARCrates_3.370.lyi</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://web.file.cor-games.com/srv/ar/ARCrates_3.370.lyi" />
+                <Source Type="BT" Url="https://web.file.cor-games.com/srv/ar/ARCrates_3.370.lyi.torrent" />
+            </Sources>
+        </File>
+        <Dependencies>
+            <Dll Name="Lyi.dll" KindOf="APPLICATION" Hash="A4A7924F" />
+            <Dll Name="EnhancerCorona.dll" KindOf="APPLICATION" Hash="CA0A66D6" />
+            <Dll Name="RA3LuaBridge.dll" KindOf="APPLICATION" Hash="20815E53" />
+        </Dependencies>
+    </Manifest>
+</Metadata>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Includes>
+        <Include Source="manifests/manifests.xml" />
+    </Includes>
+
+    <Mod ID="ArmorRush">
+        <CurrentVersion>3.370</CurrentVersion>
+        <DisplayName Language="zh-CN">装甲冲击</DisplayName>
+        <DisplayName Language="en">Armor Rush</DisplayName>
+        <Packages>
+            <Package Version="3.370">
+                <ReleaseDate>2026-02-18</ReleaseDate>
+                <Manifest>manifest-3370</Manifest>
+            </Package>
+        </Packages>
+    </Mod>
+</Metadata>
