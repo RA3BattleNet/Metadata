@@ -167,17 +167,25 @@ public static class MetadataBuilder
     }
 
     /// <summary>
-    /// 从本地路径或 HTTP(S) URL 加载已展平的 metadata.xml。
+    /// 从本地路径（含 <c>file://</c> 形式）或 HTTP(S) URL 加载已展平的 metadata.xml。
     /// </summary>
     public static Metadata Load(string pathOrUrl)
     {
         if (string.IsNullOrWhiteSpace(pathOrUrl))
             throw new ArgumentException("路径或 URL 不能为空", nameof(pathOrUrl));
 
-        if (Uri.TryCreate(pathOrUrl, UriKind.Absolute, out var uri)
-            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+        if (Uri.TryCreate(pathOrUrl, UriKind.Absolute, out var uri))
         {
-            return LoadFromUrl(uri);
+            if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            {
+                return LoadFromUrl(uri);
+            }
+
+            // MetadataResourceUri.Resolve 对本地入口返回 file:// 地址，这里还原成本地路径
+            if (uri.IsFile)
+            {
+                return Metadata.LoadFromFile(uri.LocalPath);
+            }
         }
 
         return Metadata.LoadFromFile(pathOrUrl);
