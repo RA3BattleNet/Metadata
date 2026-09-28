@@ -74,6 +74,7 @@ public static class MetadataQueryExtensions
             Id: node.Get("ID") ?? string.Empty,
             Version: node.Find("CurrentVersion")?.Value,
             Icon: node.Find("Icon")?.Value,
+            DisplayNames: ReadDisplayNames(node),
             Packages: ReadPackages(node),
             Raw: node);
     }
@@ -88,6 +89,17 @@ public static class MetadataQueryExtensions
             Version: node.Find("Version")?.Value,
             Packages: ReadPackages(node),
             Raw: node);
+    }
+
+    /// <summary>
+    /// 读取实体下分语言的显示名；节点顺序就是声明顺序。
+    /// </summary>
+    private static IReadOnlyList<LocalizedTextEntry> ReadDisplayNames(Metadata node)
+    {
+        return node.Children
+            .Where(c => c.Name == "DisplayName")
+            .Select(c => new LocalizedTextEntry(c.Get("Language") ?? string.Empty, c.Value ?? string.Empty))
+            .ToList();
     }
 
     /// <summary>

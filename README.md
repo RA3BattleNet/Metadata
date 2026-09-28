@@ -117,7 +117,7 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: "1.0", contentRevisio
 |---|---|---|
 | `SchemaVersion` / `ContentRevision` | 根属性 | 契约版本 / 构建注入修订 |
 | `Application` | 子元素 | `@ID`、`Version`、`Packages`、`Posts` |
-| `Mod` | 子元素 | `@ID`、`CurrentVersion`、`Icon`（Image ID）、`Style`、`Packages`、`Posts` |
+| `Mod` | 子元素 | `@ID`、`CurrentVersion`、`Icon`（Image ID）、`DisplayName`（`@Language` + 文本，可多条）、`Style`、`Packages`、`Posts` |
 | `Package` | 子元素 | `@Version`、`ReleaseDate`、`Changelogs`（`@Language`+Markdown ID）、`Manifest`（ID） |
 | `Post` | 子元素 | `@DateTime`、`Titles`/`Contents`（`@Language` + Markdown ID） |
 | `Image` / `Markdown` / `Manifest` | 登记节点 | `@ID`（限定 ID）、`@Source`（相对路径）；Image 可 `@Url` 外链；Manifest 为 stub |

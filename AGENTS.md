@@ -76,6 +76,7 @@ Metadata/
   <Mod ID="Corona">                              <!-- 实体 ID：全仓库唯一 -->
     <CurrentVersion>3.229</CurrentVersion>
     <Icon>icon-64px</Icon>                       <!-- 引用写短名 -->
+    <DisplayName Language="zh-CN">日冕</DisplayName>   <!-- 可选：分语言显示名，可写多条 -->
     <Style>
       <Logo Width="400" Height="80">icon-64px</Logo>
       <Controls>

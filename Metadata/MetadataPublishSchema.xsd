@@ -36,6 +36,7 @@
     <xs:sequence>
       <xs:element name="CurrentVersion" type="xs:string" minOccurs="0"/>
       <xs:element name="Icon" type="xs:string" minOccurs="0"/>
+      <xs:element name="DisplayName" type="LocalizedTextType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Style" type="StyleType" minOccurs="0"/>
       <xs:element name="Packages" type="PackagesType" minOccurs="0"/>
       <xs:element name="Posts" type="PostsType" minOccurs="0"/>
