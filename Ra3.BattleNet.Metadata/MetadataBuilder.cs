@@ -12,6 +12,10 @@ public static class MetadataBuilder
 
     private static readonly Regex LeftoverVariablePattern = new(@"\$\{[^}]+\}", RegexOptions.Compiled);
     private static readonly Regex MountTokenPattern = new(@"^[A-Za-z0-9_-]+$", RegexOptions.Compiled);
+    private static readonly Regex GameVersionPattern = new(@"^\d+\.\d+$", RegexOptions.Compiled);
+
+    /// <summary>本地配置文件必须是纯文件名：无路径分隔符、无通配/保留字符、无空格与控制字符、不是 . 或 ..</summary>
+    private static readonly Regex ModSkudefLocalFilePattern = new(@"^(?!\.\.?$)[^\\/:*?""<>|\x00-\x1f ]+$", RegexOptions.Compiled);
 
     private const string DefaultHashAlgorithm = "CRC32C";
 
@@ -353,9 +357,11 @@ public static class MetadataBuilder
         var id = manifest.Attribute("ID")?.Value ?? string.Empty;
         var files = manifest.Elements().Where(e => e.Name.LocalName == "File").ToList();
         var algoAttr = manifest.Attribute("HashAlgorithm")?.Value;
+        var skudef = manifest.Elements().FirstOrDefault(e => e.Name.LocalName == "Skudef");
 
-        // 新格式触发条件：声明 HashAlgorithm，或任一 File 带 Sources
+        // 新格式触发条件：声明 HashAlgorithm、写了 Skudef，或任一 File 带 Sources
         var isNewFormat = algoAttr != null
+            || skudef != null
             || files.Any(f => f.Elements().Any(e => e.Name.LocalName == "Sources"));
         if (!isNewFormat)
             return;
@@ -432,8 +438,19 @@ public static class MetadataBuilder
                     errors.Add($"{where}: Source Type 非法: {type}");
                 }
             }
-            ValidateMountRole(file, where, errors);
+            if (skudef != null)
+            {
+                if (file.Attribute("Mount") != null || file.Attribute("Language") != null || file.Attribute("Package") != null)
+                    errors.Add($"{where}: 带 Skudef 的清单里 File 不能再写 Mount/Language/Package（加载条件写在 AddBig 上）");
+            }
+            else
+            {
+                ValidateMountRole(file, where, errors);
+            }
         }
+
+        if (skudef != null)
+            ValidateSkudef(skudef, files, rel, id, errors);
 
         var dependencies = manifest.Elements().FirstOrDefault(e => e.Name.LocalName == "Dependencies");
         if (dependencies == null)
@@ -451,6 +468,86 @@ public static class MetadataBuilder
             if (hash.Length != hashLen)
                 errors.Add($"{where}: Hash 长度应为 {hashLen}（{algo}），实际 {hash.Length}");
         }
+    }
+
+    /// <summary>
+    /// Skudef 语义硬校验：GameVersion 格式、FileName 唯一、AddBig/AddConfig 的属性与引用关系
+    /// （每个 File 恰好被引用一次，不允许悬空或重复引用）。
+    /// </summary>
+    private static void ValidateSkudef(XElement skudef, List<XElement> files, string rel, string id, List<string> errors)
+    {
+        var where = $"{rel} (Manifest ID: {id}) Skudef";
+
+        var gameVersion = skudef.Attribute("GameVersion")?.Value;
+        if (!string.IsNullOrWhiteSpace(gameVersion) && !GameVersionPattern.IsMatch(gameVersion))
+            errors.Add($"{where}: GameVersion 非法: {gameVersion}（形如 1.12）");
+
+        var commands = skudef.Elements().ToList();
+        if (commands.Count == 0)
+            errors.Add($"{where}: 没有任何指令");
+
+        var fileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var file in files)
+        {
+            var fileName = ChildValue(file, "FileName");
+            if (!fileNames.Add(fileName))
+                errors.Add($"{where}: FileName 重复: {fileName}");
+        }
+
+        var referenced = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var command in commands)
+        {
+            if (command.Name.LocalName == "AddBig")
+            {
+                var target = command.Attribute("File")?.Value ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(target))
+                {
+                    errors.Add($"{where}: AddBig 缺少 File");
+                    continue;
+                }
+
+                if (!fileNames.Contains(target))
+                    errors.Add($"{where}: 引用了不存在的 FileName: {target}");
+                if (!referenced.Add(target))
+                    errors.Add($"{where}: FileName 被多条 AddBig 引用: {target}");
+                ValidateAddBigCondition(command, $"{where} AddBig \"{target}\"", errors);
+            }
+            else
+            {
+                var target = command.Attribute("LocalFile")?.Value ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(target))
+                {
+                    errors.Add($"{where}: AddConfig 缺少 LocalFile");
+                    continue;
+                }
+
+                if (!ModSkudefLocalFilePattern.IsMatch(target))
+                    errors.Add($"{where}: AddConfig LocalFile 必须是纯文件名: {target}");
+            }
+        }
+
+        foreach (var fileName in fileNames)
+        {
+            if (!referenced.Contains(fileName))
+                errors.Add($"{where}: File \"{fileName}\" 没有被 AddBig 引用（每个文件都要恰好引用一次）");
+        }
+    }
+
+    /// <summary>AddBig 的加载条件：Language 与 Package 只能写一个，取值必须是 token。</summary>
+    private static void ValidateAddBigCondition(XElement command, string where, List<string> errors)
+    {
+        var language = command.Attribute("Language")?.Value;
+        var package = command.Attribute("Package")?.Value;
+        if (language != null && package != null)
+        {
+            errors.Add($"{where}: 同时写了 Language 与 Package");
+            return;
+        }
+
+        if (language != null && !MountTokenPattern.IsMatch(language))
+            errors.Add($"{where}: Language 只能包含字母数字下划线连字符: {language}");
+        if (package != null && !MountTokenPattern.IsMatch(package))
+            errors.Add($"{where}: Package 只能包含字母数字下划线连字符: {package}");
     }
 
     /// <summary>Mount 缺省 base。language 必填 Language，optional 必填 Package，base 不能带这两个属性。</summary>

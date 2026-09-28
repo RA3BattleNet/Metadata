@@ -75,6 +75,13 @@ public class ManifestValidationTests
     </File>
 """;
 
+    /// <summary>Skudef 块；必须写在 File 表前面，故与 FileBlock 拼接时放在前面。</summary>
+    private static string SkudefBlock(string body, string gameVersion = "1.12")
+        => $"<Skudef GameVersion=\"{gameVersion}\">{body}</Skudef>\n";
+
+    private static string SingleFile(string fileName = "a.bin", string relativePath = "/")
+        => FileBlock("9B623C7C", HttpSource("https://example.com/a.bin"), fileName: fileName, relativePath: relativePath);
+
     /// <summary>写临时源树（schema + 入口 + 一个清单文件）跑构建，断言硬失败且消息带来源路径与 Manifest ID。</summary>
     private static void AssertBuildFails(string manifestXml, params string[] fragments)
     {
@@ -317,6 +324,95 @@ public class ManifestValidationTests
             File.Copy(
                 Path.Combine(AppContext.BaseDirectory, "TestData", "manifest-legacy.xml"),
                 Path.Combine(src, "manifest.xml"));
+
+            MetadataBuilder.Build(src, dst, contentRevision: "x");
+            File.Exists(Path.Combine(dst, "metadata.xml")).Should().BeTrue();
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_SkudefWithFileMount_HardFails()
+    {
+        var body = SkudefBlock("<AddBig File=\"a.bin\" />") + MountedFileBlock(" Mount=\"optional\" Package=\"hd-shadow\"");
+        AssertBuildFails(ManifestXml(body), "不能再写 Mount/Language/Package");
+    }
+
+    [TestMethod]
+    public void Build_AddBigDanglingFile_HardFails()
+    {
+        var body = SkudefBlock("<AddBig File=\"missing.bin\" />") + SingleFile();
+        AssertBuildFails(ManifestXml(body), "引用了不存在的 FileName");
+    }
+
+    [TestMethod]
+    public void Build_FileNotReferencedByAddBig_HardFails()
+    {
+        var body = SkudefBlock("<AddBig File=\"b.bin\" />") + SingleFile() + SingleFile("b.bin");
+        AssertBuildFails(ManifestXml(body), "没有被 AddBig 引用");
+    }
+
+    [TestMethod]
+    public void Build_FileNameReferencedTwice_HardFails()
+    {
+        var body = SkudefBlock("<AddBig File=\"a.bin\" /><AddBig File=\"a.bin\" />") + SingleFile();
+        AssertBuildFails(ManifestXml(body), "被多条 AddBig 引用");
+    }
+
+    [TestMethod]
+    public void Build_DuplicateFileNameWithSkudef_HardFails()
+    {
+        var body = SkudefBlock("<AddBig File=\"a.bin\" />") + SingleFile() + SingleFile(relativePath: "/sub/");
+        AssertBuildFails(ManifestXml(body), "FileName 重复");
+    }
+
+    [TestMethod]
+    public void Build_AddBigWithLanguageAndPackage_HardFails()
+    {
+        var body = SkudefBlock("<AddBig File=\"a.bin\" Language=\"en\" Package=\"hd-shadow\" />") + SingleFile();
+        AssertBuildFails(ManifestXml(body), "同时写了 Language 与 Package");
+    }
+
+    [TestMethod]
+    public void Build_AddConfigWithPathSeparator_HardFails()
+    {
+        var body = SkudefBlock("<AddConfig LocalFile=\"sub/Config.txt\" /><AddBig File=\"a.bin\" />") + SingleFile();
+        AssertBuildFails(ManifestXml(body), "必须是纯文件名");
+    }
+
+    [TestMethod]
+    public void Build_EmptySkudef_HardFails()
+    {
+        var body = SkudefBlock(string.Empty) + SingleFile();
+        AssertBuildFails(ManifestXml(body), "没有任何指令");
+    }
+
+    [TestMethod]
+    public void Build_BadGameVersion_HardFails()
+    {
+        var body = SkudefBlock("<AddBig File=\"a.bin\" />", gameVersion: "v1") + SingleFile();
+        AssertBuildFails(ManifestXml(body), "GameVersion 非法");
+    }
+
+    [TestMethod]
+    public void Build_SkudefManifest_Succeeds()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"manifest-skudef-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        var dst = Path.Combine(temp, "out");
+        try
+        {
+            SeedSchemas(src);
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), "<Metadata />");
+            File.WriteAllText(
+                Path.Combine(src, "manifest.xml"),
+                ManifestXml(SkudefBlock(
+                    "<AddConfig LocalFile=\"CustomConfig.txt\" Optional=\"1\" />"
+                    + "<AddBig File=\"a.bin\" Package=\"hd-shadow\" />") + SingleFile()));
 
             MetadataBuilder.Build(src, dst, contentRevision: "x");
             File.Exists(Path.Combine(dst, "metadata.xml")).Should().BeTrue();

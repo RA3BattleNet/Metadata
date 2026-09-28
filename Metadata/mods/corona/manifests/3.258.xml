@@ -6,7 +6,16 @@
     <Includes>
     </Includes>
     <Manifest ID="manifest-3258" HashAlgorithm="CRC32C">
-        <File Hash="3507CD54" Size="5115638" Mount="optional" Package="disable-sky-and-patches">
+        <Skudef GameVersion="1.12">
+            <AddConfig LocalFile="CustomConfig.txt" Optional="true" />
+            <AddBig File="Disabler.big" Package="disable-sky-and-patches" />
+            <AddBig File="HighResShadow.big" Package="hd-shadow" />
+            <AddBig File="Cor_ENG_3.250.big" Language="en" />
+            <AddBig File="coronaBGM_3.228.lyi" />
+            <AddBig File="corona_3.258.lyi" />
+            <AddBig File="StaticVersion.big" Package="world-builder" />
+        </Skudef>
+        <File Hash="3507CD54" Size="5115638">
             <FileName>Disabler.big</FileName>
             <RelativePath>/</RelativePath>
             <KindOf>MISC;</KindOf>
@@ -15,7 +24,7 @@
                 <Source Type="BT" Url="https://file.cor-games.com/srv/cor/miscs/Disabler.big.torrent" />
             </Sources>
         </File>
-        <File Hash="88BE39D6" Size="4693884" Mount="optional" Package="hd-shadow">
+        <File Hash="88BE39D6" Size="4693884">
             <FileName>HighResShadow.big</FileName>
             <RelativePath>/</RelativePath>
             <KindOf>MISC;</KindOf>
@@ -24,7 +33,7 @@
                 <Source Type="BT" Url="https://file.cor-games.com/srv/cor/miscs/HighResShadow.big.torrent" />
             </Sources>
         </File>
-        <File Hash="95DC8BF4" Size="13152004" Mount="language" Language="en">
+        <File Hash="95DC8BF4" Size="13152004">
             <FileName>Cor_ENG_3.250.big</FileName>
             <RelativePath>/</RelativePath>
             <KindOf>MISC;</KindOf>
@@ -51,7 +60,7 @@
                 <Source Type="BT" Url="https://file.cor-games.com/srv/cor/mod/corona_3.258.zst.torrent" />
             </Sources>
         </File>
-        <File Hash="7A24FEEF" Size="118" Mount="optional" Package="world-builder">
+        <File Hash="7A24FEEF" Size="118">
             <FileName>StaticVersion.big</FileName>
             <RelativePath>/</RelativePath>
             <KindOf>MISC;</KindOf>

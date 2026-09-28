@@ -169,15 +169,39 @@
     <xs:attribute name="Hash" type="xs:string"/>
   </xs:complexType>
 
-  <!-- 源侧叶子清单：含 File 表（Updater 生成）；HashAlgorithm 缺省按 CRC32C -->
+  <!-- 源侧叶子清单：含 File 表（Updater 生成）；HashAlgorithm 缺省按 CRC32C。
+       Skudef 声明挂载顺序与加载条件，写在 File 表前面；写了 Skudef 就不能再在 File 上写 Mount/Language/Package -->
   <xs:complexType name="ManifestFullType">
     <xs:sequence>
+      <xs:element name="Skudef" type="SkudefType" minOccurs="0"/>
       <xs:element name="File" type="FileType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Dependencies" type="DependenciesType" minOccurs="0"/>
       <xs:element name="SubManifest" type="SubManifestType" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
     <xs:attribute name="ID" type="xs:string" use="required"/>
     <xs:attribute name="HashAlgorithm" type="HashAlgorithmType"/>
+  </xs:complexType>
+
+  <!-- 客户端 skudef 的声明：子元素顺序就是 skudef 里的行顺序；GameVersion 缺省 1.12 -->
+  <xs:complexType name="SkudefType">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="AddBig" type="AddBigType"/>
+      <xs:element name="AddConfig" type="AddConfigType"/>
+    </xs:choice>
+    <xs:attribute name="GameVersion" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- 挂载清单里的一个文件；Language/Package 是加载条件，不写就是总是挂；两者只能写一个 -->
+  <xs:complexType name="AddBigType">
+    <xs:attribute name="File" type="xs:string" use="required"/>
+    <xs:attribute name="Language" type="xs:string"/>
+    <xs:attribute name="Package" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- 挂载模组目录下用户自己放的文件；LocalFile 必须是纯文件名（不带路径） -->
+  <xs:complexType name="AddConfigType">
+    <xs:attribute name="LocalFile" type="xs:string" use="required"/>
+    <xs:attribute name="Optional" type="xs:boolean"/>
   </xs:complexType>
 
   <xs:simpleType name="HashAlgorithmType">

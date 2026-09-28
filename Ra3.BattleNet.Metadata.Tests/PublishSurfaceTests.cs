@@ -118,4 +118,38 @@ public class PublishSurfaceTests
                 Directory.Delete(dst, recursive: true);
         }
     }
+
+    [TestMethod]
+    public void Build_RepoSample_SkudefSurvivesFlattenInDeclaredOrder()
+    {
+        var dst = Path.Combine(Path.GetTempPath(), $"publish-skudef-{Guid.NewGuid():N}");
+
+        try
+        {
+            MetadataBuilder.Build(RepoMetadataDir, dst, schemaVersion: "1.0", contentRevision: "publish-test");
+
+            var entry = MetadataBuilder.Load(Path.Combine(dst, "mods", "corona", "manifests", "3.258.xml"))
+                .Find("Manifest")!.ToManifestEntry();
+            var skudef = entry.Skudef;
+
+            skudef.Should().NotBeNull("展平后叶子清单要保住 Skudef");
+            skudef!.GameVersion.Should().Be("1.12");
+            skudef.Commands.Select(c => c.Target).Should().ContainInOrder(
+                "CustomConfig.txt", "Disabler.big", "HighResShadow.big", "Cor_ENG_3.250.big",
+                "coronaBGM_3.228.lyi", "corona_3.258.lyi", "StaticVersion.big");
+            skudef.Commands.Should().ContainSingle(c => c.Target == "CustomConfig.txt" && c.Kind == SkudefCommandKind.Config && c.Optional);
+            skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "Disabler.big" && c.Package == "disable-sky-and-patches");
+            skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "HighResShadow.big" && c.Package == "hd-shadow");
+            skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "Cor_ENG_3.250.big" && c.Language == "en");
+            skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "StaticVersion.big" && c.Package == "world-builder");
+
+            // 加载条件单源：File 上不能再留 Mount/Language/Package
+            entry.Files.Should().OnlyContain(f => f.Mount == "base" && f.Language == null && f.Package == null);
+        }
+        finally
+        {
+            if (Directory.Exists(dst))
+                Directory.Delete(dst, recursive: true);
+        }
+    }
 }

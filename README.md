@@ -59,6 +59,13 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: "1.0", contentRevisio
 | `File@Compression` | 属性（可选） | 下载物的压缩格式，目前只有 `zstd`；校验通过后解压成 `FileName` |
 | `Sources/Source` | 子元素（可选） | `@Type`（`HTTP` / `BT`）+ `@Url`；HTTP 必须 http/https 绝对地址，BT 必须以 `.torrent` 结尾 |
 | `Dependencies/Dll` | 子元素（可选） | `@Name`、`@Hash` 必填，`@Version`、`@KindOf` 可选 |
+| `Skudef` | 子元素（可选） | 客户端 skudef 的声明，必须写在 `File` 之前；`@GameVersion` 缺省 `1.12` |
+| `Skudef/AddBig` | 子元素（`Skudef` 内） | `@File`（必填，引用同清单的 `FileName`）配可选条件 `@Language` 或 `@Package`（只能写一个）；不写条件就是总是挂 |
+| `Skudef/AddConfig` | 子元素（`Skudef` 内） | `@LocalFile`（必填，模组目录下的纯文件名）、`@Optional`（缺省 false：客户端找不到该文件就报错） |
+
+`Skudef` 是「写什么、按什么顺序」的唯一来源：客户端按子元素的文档顺序生成 `add-big` / `add-config` 行，
+`@Language` 与客户端语言设置一致、`@Package` 在客户端开关里才挂。**写了 `Skudef` 的清单，`File` 上不许再写 `Mount` / `Language` / `Package`**，
+且每个 `File` 必须被恰好一条 `AddBig` 引用。
 
 `File@Hash` 描述的是**解压后**的安装文件（`FileName`）的 CRC32C；`File@Size` 描述的是**下载物**（`DownloadName` 对应的字节）：
 服务端只放压缩包（如 `corona_3.258.zst`），安装名是解压结果（`corona_3.258.lyi`），两者用
@@ -66,9 +73,11 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: "1.0", contentRevisio
 
 不压缩直发的文件（如启动器资源 `Disabler.big`）不写 `DownloadName` 与 `Compression`，此时 `@Size` 与 `@Hash` 描述的就是 `FileName` 本身。
 
-声明了新格式（带 `HashAlgorithm`，或任一 `File` 含 `Sources`）的清单，构建期额外硬校验：哈希长度与算法匹配、禁止占位哈希、每个 File 至少一个 Source、Size 为正整数、`FileName + RelativePath` 唯一、`Dll@Name` 唯一、`RelativePath` 必须是相对路径、`DownloadName` 必须是不含路径分隔符的文件名、`Compression` 只能是 `zstd` 且必须配 `DownloadName`（且与 `FileName` 不同名）。旧清单不触发。
+声明了新格式（带 `HashAlgorithm`、写了 `Skudef`，或任一 `File` 含 `Sources`）的清单，构建期额外硬校验：哈希长度与算法匹配、禁止占位哈希、每个 File 至少一个 Source、Size 为正整数、`FileName + RelativePath` 唯一、`Dll@Name` 唯一、`RelativePath` 必须是相对路径、`DownloadName` 必须是不含路径分隔符的文件名、`Compression` 只能是 `zstd` 且必须配 `DownloadName`（且与 `FileName` 不同名）。旧清单不触发。
 
-解析：`doc.ManifestRegistration(id)` 取登记节点，叶子清单节点 `ToManifestEntry()` → `ManifestEntry`（Files / Dependencies）。
+写了 `Skudef` 的清单再多查一层：`GameVersion` 形如 `1.12`、至少一条指令、`FileName` 全表唯一、每条 `AddBig@File` 指向存在的 `FileName` 且只指一次、所有 `File` 都被引用到、`Language` / `Package` 只能写一个且只含字母数字下划线连字符、`AddConfig@LocalFile` 必须是纯文件名、`File` 上不能再写 `Mount` / `Language` / `Package`。没写 `Skudef` 的旧清单继续用 `File@Mount`（`base` / `language` / `optional`）那套角色标记，规则不变。
+
+解析：`doc.ManifestRegistration(id)` 取登记节点，叶子清单节点 `ToManifestEntry()` → `ManifestEntry`（Files / Dependencies / Skudef）。
 
 ## 模块属性清单
 

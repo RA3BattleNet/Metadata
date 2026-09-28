@@ -113,7 +113,27 @@ Metadata/
 ## Manifest 两种写法（都合法，File 表都不内联进 metadata.xml）
 
 1. **省事写法**：模块文件顶层直接写 `<Manifest ID="..."><File .../></Manifest>`——发布 stub 的 `Source` 指向**本模块文件**（示例/占位够用，叶子清单里会含实体定义，略冗余）；
-2. **规范写法（推荐，corona 模式）**：`manifests/manifests.xml` Include 独立叶子文件 `manifests/<版本号>.xml`（只含 `Manifest` + `File` 表）——stub 指向独立叶子文件，**Hash 由 Updater 维护**，本仓示例 Hash 可为占位。
+2. **规范写法（推荐，corona 模式）**：`manifests/manifests.xml` Include 独立叶子文件 `manifests/<版本号>.xml`（只含 `Manifest` + `Skudef` + `File` 表）——stub 指向独立叶子文件，**Hash 由 Updater 维护**，本仓示例 Hash 可为占位。
+
+叶子清单里的 `<Skudef>` 决定客户端 skudef 写什么、按什么顺序写（子元素顺序就是行顺序）：
+
+```xml
+<Manifest ID="manifest-3258" HashAlgorithm="CRC32C">
+  <Skudef GameVersion="1.12">
+    <AddConfig LocalFile="CustomConfig.txt" Optional="true" />
+    <AddBig File="Cor_ENG_3.250.big" Language="en" />
+    <AddBig File="corona_3.258.lyi" />
+  </Skudef>
+  <File Hash="95DC8BF4" ...>
+    <FileName>Cor_ENG_3.250.big</FileName>
+    ...
+  </File>
+</Manifest>
+```
+
+- `AddBig@File` 写 `FileName`，每个 `FileName` 恰好被引用一次；`AddConfig@LocalFile` 写模组目录下用户自己放的纯文件名。
+- 条件二选一：`@Language`（客户端语言等于它才挂）、`@Package`（客户端开关开启才挂）；都不写就是总是挂。
+- 写了 `Skudef` 就不许再在 `File` 上写 `Mount` / `Language` / `Package`（加载条件只有一处）。
 
 ## 变量（构建时替换）
 

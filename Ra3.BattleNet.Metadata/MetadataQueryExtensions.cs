@@ -162,7 +162,59 @@ public static class MetadataQueryExtensions
             .ToList()
             ?? [];
 
-        return new ManifestEntry(id, algo, files, dependencies);
+        var skudefNode = manifestNode.Find("Skudef");
+        return new ManifestEntry(id, algo, files, dependencies, skudefNode == null ? null : ReadSkudef(skudefNode, id));
+    }
+
+    /// <summary>把 <c>Skudef</c> 节点解析成有序指令；子元素顺序即输出顺序。</summary>
+    private static ManifestSkudefEntry ReadSkudef(Metadata skudefNode, string manifestId)
+    {
+        var commands = new List<ManifestSkudefCommand>();
+        foreach (var command in skudefNode.Children)
+        {
+            if (command.Name == "AddBig")
+            {
+                var target = command.Get("File");
+                if (string.IsNullOrWhiteSpace(target))
+                    throw new InvalidOperationException($"Manifest '{manifestId}' 的 AddBig 缺少 File");
+
+                var language = command.Get("Language");
+                var package = command.Get("Package");
+                if (language != null && package != null)
+                    throw new InvalidOperationException($"Manifest '{manifestId}' 的 AddBig 同时写了 Language 与 Package");
+
+                commands.Add(new ManifestSkudefCommand(SkudefCommandKind.Big, target, false, language, package));
+            }
+            else if (command.Name == "AddConfig")
+            {
+                var target = command.Get("LocalFile");
+                if (string.IsNullOrWhiteSpace(target))
+                    throw new InvalidOperationException($"Manifest '{manifestId}' 的 AddConfig 缺少 LocalFile");
+
+                commands.Add(new ManifestSkudefCommand(SkudefCommandKind.Config, target, ReadOptional(command, manifestId), null, null));
+            }
+            else
+            {
+                throw new InvalidOperationException($"Manifest '{manifestId}' 的 Skudef 未知指令: {command.Name}");
+            }
+        }
+
+        var gameVersion = skudefNode.Get("GameVersion");
+        return new ManifestSkudefEntry(
+            string.IsNullOrWhiteSpace(gameVersion) ? ManifestSkudefEntry.DefaultGameVersion : gameVersion,
+            commands);
+    }
+
+    /// <summary>读 AddConfig 的 Optional；取值按 XSD boolean 的写法（true/false/1/0），其他写法直接抛。</summary>
+    private static bool ReadOptional(Metadata command, string manifestId)
+    {
+        var raw = command.Get("Optional")?.Trim().ToLowerInvariant();
+        return raw switch
+        {
+            null or "false" or "0" => false,
+            "true" or "1" => true,
+            _ => throw new InvalidOperationException($"Manifest '{manifestId}' 的 AddConfig Optional 不是布尔值: {raw}"),
+        };
     }
 
     private static IReadOnlyList<ManifestSourceEntry> ReadSources(Metadata file)
