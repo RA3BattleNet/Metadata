@@ -15,11 +15,11 @@
 ## 使用方如何解析（Desktop 视角）
 
 1. 配置 `BaseUrl`（生产 = CDN；调试 = 本地缓存目录）。
-2. `MetadataBuilder.Load(url|path)` → `Catalog` / `Applications` / `Mods`。
-3. `SchemaVersion` 不兼容 → 提示升级客户端；`ContentRevision` 变化 → 整树刷新。
-4. Package.Manifest / Icon / Changelog / Post.Content 等一律是**限定 ID**（`路径前缀:localId`），在展平树中找同 ID 的登记节点。
-5. 资源 = `BaseUrl` + 登记节点 `Source`；图片扩展名以 `Source` 为准（发布后可能是 `.webp`）。
-6. 叶子 Manifest（含 File 表）用 `Source` 再拉一次并解析——File 表不在 `metadata.xml` 内。
+2. `MetadataBuilder.Load(url|path)` → 列出实体、接 LINQ 组合（见下表）。
+3. `SchemaVersion` 不兼容 → 提示升级客户端（`MetadataSchema.IsCompatible`）；`ContentRevision` 变化 → 整树刷新。
+4. Package.Manifest / Icon / Changelog / Post.Content 等一律是**限定 ID**（`路径前缀:localId`），在展平树中找同 ID 的登记节点——别自己走树，用库的导航方法。
+5. 资源 = `BaseUrl` + 登记节点 `Source`（`MetadataResourceUri.Resolve`）；图片扩展名以 `Source` 为准（发布后可能是 `.webp`）。
+6. 叶子 Manifest（含 File 表）用 `Source` 再拉一次并解析——File 表不在 `metadata.xml` 内；挂载顺序交给 `ManifestMountPlanner`。
 
 **开发调试 = 同一套解析**：`MetadataBuilder.Build(本地源仓, 缓存目录)` → `Load(cache/metadata.xml)`。
 
@@ -27,12 +27,44 @@
 // 生产：URL；开发：本地展平文件
 var doc = MetadataBuilder.Load("https://metadata.ra3battle.net/metadata.xml");
 
-var app = doc.Catalog().Application("RA3BattleNet");
-var corona = doc.Mods().Single(m => m.Id == "Corona");
-var iconId = corona.Icon;                       // 限定 ID，如 mods/corona/corona:corona-icon-64px
-var reg = doc.GetAllElements("Image").First(i => i.Get("ID") == iconId);
-var relative = reg.Get("Source");               // 拼 BaseUrl/BasePath 取文件
+// 列出实体：延迟序列，直接接 LINQ
+foreach (var mod in doc.Mods().Where(m => m.Version is not null).OrderBy(m => m.Id))
+{
+    Console.WriteLine($"{mod.Id}@{mod.Version}");
+}
+var app = doc.Catalog().Application("RA3BattleNet");   // 按 ID 查，大小写不敏感
+
+// 导航：条目 → 叶子清单地址 → 叶子清单
+var corona = doc.Catalog().Mod("Corona")!;
+var leafUrl = MetadataResourceUri.Resolve("https://metadata.ra3battle.net/metadata.xml", corona.ManifestSource());
+var manifest = MetadataBuilder.Load(leafUrl.AbsoluteUri).Find("Manifest")!.ToManifestEntry();
+
+// 导航：应用更新日志的相对 Source（找不到该语言返回 null）
+var changelog = app!.ChangelogSource("zh-CN");
+
+// 挂载计划：写了 Skudef 按声明顺序与条件，没写按旧 File@Mount 角色
+var plan = ManifestMountPlanner.Build(
+    manifest.Skudef,
+    manifest.Files.Select(f => new ManifestMountFile(f.FileName, f.Mount, f.Language, f.Package)).ToList(),
+    language: "en",
+    packages: ["hd-shadow"],
+    localConfigExists: _ => false);
 ```
+
+### 查询与导航 API
+
+| API | 作用 |
+|---|---|
+| `root.Mods()` / `Applications()` / `Markdowns()` / `Images()` | 列出全部实体/资源；延迟求值，可接 `Where`/`OrderBy`/`Select`/`First` |
+| `root.Catalog()` | 目录入口：`Mods`/`Applications`/`Markdowns`/`Images` 属性 + `Mod(id)` / `Application(id)`（大小写不敏感） |
+| `root.GetAllElements(name)` | 按节点名遍历展平树（延迟） |
+| `root.ManifestRegistration(id)` | 按限定 ID 找 Manifest 登记节点；不存在返回 null |
+| `ModEntry.Package(version)` / `ManifestSource(version)` | 取版本包（缺省取当前版本）/ 取叶子清单相对 Source；缺版本、缺 Manifest、缺 Source 都抛，消息带原因 |
+| `ApplicationEntry.Package(version)` / `ChangelogSource(language)` | 取版本包 / 取更新日志相对 Source；没配该语言返回 null |
+| `node.ToManifestEntry()` | 叶子清单节点 → `ManifestEntry`（Files / Dependencies / Skudef） |
+| `MetadataSchema.Current` / `IsCompatible(version)` | 契约版本常量与兼容判断 |
+| `MetadataResourceUri.Resolve(baseUrl, source)` | 相对 Source → 绝对地址 |
+| `ManifestMountPlanner.Build(skudef, files, language, packages, localConfigExists)` | `Skudef` 声明或 `File@Mount` 角色 → 有序挂载计划 `ManifestMountCommand`（`Big` / `Config`） |
 
 核心构建（作者/CI/Desktop 调试）：
 
@@ -110,7 +142,7 @@ npm run deploy          # 构建 + Cloudflare Pages 部署
 ## 测试
 
 - **MSTest** only（禁止 xunit）；`dotnet test Metadata.sln`
-- 覆盖：展平、XSD 硬失败、ID/资源、防冲突、发布面、消费端 Catalog 解析
+- 覆盖：展平、XSD 硬失败、ID/资源、防冲突、发布面、消费端 Catalog 解析、查询/导航 API、挂载计划（Skudef 与旧 Mount 角色）
 
 ## 目录
 

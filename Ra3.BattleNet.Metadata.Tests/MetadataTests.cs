@@ -64,8 +64,7 @@ public class MetadataTests
         var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
         var metadata = Metadata.LoadFromFile(filePath);
         var applications = metadata.GetAllElements("Application");
-        applications.Should().HaveCount(1);
-        applications[0].Get("ID").Should().Be("TestApp");
+        applications.Should().ContainSingle().Which.Get("ID").Should().Be("TestApp");
     }
 
     [TestMethod]

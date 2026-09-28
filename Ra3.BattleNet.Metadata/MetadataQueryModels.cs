@@ -17,24 +17,24 @@ public sealed class MetadataCatalog
     }
 
     /// <summary>
-    /// 获取全部 Mod 实体。
+    /// 获取全部 Mod 实体（延迟求值，可接 LINQ）。
     /// </summary>
-    public IReadOnlyList<ModEntry> Mods => _root.Mods();
+    public IEnumerable<ModEntry> Mods => _root.Mods();
 
     /// <summary>
-    /// 获取全部 Application 实体。
+    /// 获取全部 Application 实体（延迟求值，可接 LINQ）。
     /// </summary>
-    public IReadOnlyList<ApplicationEntry> Applications => _root.Applications();
+    public IEnumerable<ApplicationEntry> Applications => _root.Applications();
 
     /// <summary>
-    /// 获取全部 Markdown 资源。
+    /// 获取全部 Markdown 资源（延迟求值，可接 LINQ）。
     /// </summary>
-    public IReadOnlyList<MarkdownEntry> Markdowns => _root.Markdowns();
+    public IEnumerable<MarkdownEntry> Markdowns => _root.Markdowns();
 
     /// <summary>
-    /// 获取全部图片资源。
+    /// 获取全部图片资源（延迟求值，可接 LINQ）。
     /// </summary>
-    public IReadOnlyList<ImageEntry> Images => _root.Images();
+    public IEnumerable<ImageEntry> Images => _root.Images();
 
     /// <summary>
     /// 按 ID 查找 Mod。

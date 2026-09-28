@@ -208,4 +208,116 @@ public class ManifestParseTests
                 Directory.Delete(dst, recursive: true);
         }
     }
+
+    private static Metadata LoadInlineManifest(string xml)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"manifest-inline-{Guid.NewGuid():N}.xml");
+        try
+        {
+            File.WriteAllText(path, xml);
+            var node = Metadata.LoadFromFile(path).Find("Manifest");
+            node.Should().NotBeNull();
+            return node!;
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public void ToManifestEntry_Skudef_ParsesCommandsInDocumentOrder()
+    {
+        var entry = LoadInlineManifest("""
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-skudef">
+    <Skudef GameVersion="1.12">
+      <AddConfig LocalFile="CustomConfig.txt" Optional="true" />
+      <AddBig File="b.big" Package="hd-shadow" />
+      <AddBig File="a.lyi" Language="en" />
+      <AddBig File="c.lyi" />
+    </Skudef>
+  </Manifest>
+</Metadata>
+""").ToManifestEntry();
+
+        entry.Skudef.Should().NotBeNull();
+        entry.Skudef!.GameVersion.Should().Be("1.12");
+        entry.Skudef.Commands.Select(c => c.Target)
+            .Should().Equal("CustomConfig.txt", "b.big", "a.lyi", "c.lyi");
+        entry.Skudef.Commands[0].Kind.Should().Be(SkudefCommandKind.Config);
+        entry.Skudef.Commands[0].Optional.Should().BeTrue();
+        entry.Skudef.Commands[1].Package.Should().Be("hd-shadow");
+        entry.Skudef.Commands[2].Language.Should().Be("en");
+        entry.Skudef.Commands[3].Language.Should().BeNull();
+    }
+
+    [TestMethod]
+    public void ToManifestEntry_SkudefWithoutGameVersion_UsesDefault()
+    {
+        var entry = LoadInlineManifest("""
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-nodefault">
+    <Skudef>
+      <AddBig File="c.lyi" />
+    </Skudef>
+  </Manifest>
+</Metadata>
+""").ToManifestEntry();
+
+        entry.Skudef!.GameVersion.Should().Be(ManifestSkudefEntry.DefaultGameVersion);
+    }
+
+    [TestMethod]
+    public void ToManifestEntry_UnknownSkudefCommand_Throws()
+    {
+        var act = () => LoadInlineManifest("""
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-unknown">
+    <Skudef>
+      <AddPatch File="x.patch" />
+    </Skudef>
+  </Manifest>
+</Metadata>
+""").ToManifestEntry();
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*未知指令*");
+    }
+
+    [TestMethod]
+    public void ToManifestEntry_AddBigWithLanguageAndPackage_Throws()
+    {
+        var act = () => LoadInlineManifest("""
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-both">
+    <Skudef>
+      <AddBig File="b.big" Language="en" Package="hd-shadow" />
+    </Skudef>
+  </Manifest>
+</Metadata>
+""").ToManifestEntry();
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*同时写了 Language 与 Package*");
+    }
+
+    [TestMethod]
+    public void ToManifestEntry_AddConfigBadOptional_Throws()
+    {
+        var act = () => LoadInlineManifest("""
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-optional">
+    <Skudef>
+      <AddConfig LocalFile="CustomConfig.txt" Optional="maybe" />
+    </Skudef>
+  </Manifest>
+</Metadata>
+""").ToManifestEntry();
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*Optional 不是布尔值*");
+    }
 }

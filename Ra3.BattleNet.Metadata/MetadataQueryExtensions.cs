@@ -16,59 +16,53 @@ public static class MetadataQueryExtensions
     }
 
     /// <summary>
-    /// 获取所有 Mod 实体。
+    /// 获取所有 Mod 实体（延迟求值，可继续用 LINQ 过滤/排序）。
     /// </summary>
     /// <param name="root">元数据根对象。</param>
-    /// <returns>Mod 实体列表。</returns>
-    public static IReadOnlyList<ModEntry> Mods(this Metadata root)
+    /// <returns>Mod 实体序列。</returns>
+    public static IEnumerable<ModEntry> Mods(this Metadata root)
     {
-        return root.GetAllElements("Mod")
-            .Select(ToMod)
-            .ToList();
+        return root.GetAllElements("Mod").Select(ToMod);
     }
 
     /// <summary>
-    /// 获取所有 Application 实体。
+    /// 获取所有 Application 实体（延迟求值，可继续用 LINQ 过滤/排序）。
     /// </summary>
     /// <param name="root">元数据根对象。</param>
-    /// <returns>Application 实体列表。</returns>
-    public static IReadOnlyList<ApplicationEntry> Applications(this Metadata root)
+    /// <returns>Application 实体序列。</returns>
+    public static IEnumerable<ApplicationEntry> Applications(this Metadata root)
     {
-        return root.GetAllElements("Application")
-            .Select(ToApplication)
-            .ToList();
+        return root.GetAllElements("Application").Select(ToApplication);
     }
 
     /// <summary>
-    /// 获取所有 Markdown 资源。
+    /// 获取所有 Markdown 资源（延迟求值）。
     /// </summary>
     /// <param name="root">元数据根对象。</param>
-    /// <returns>Markdown 资源列表。</returns>
-    public static IReadOnlyList<MarkdownEntry> Markdowns(this Metadata root)
+    /// <returns>Markdown 资源序列。</returns>
+    public static IEnumerable<MarkdownEntry> Markdowns(this Metadata root)
     {
         return root.GetAllElements("Markdown")
             .Select(node => new MarkdownEntry(
                 Id: node.Get("ID") ?? string.Empty,
                 Source: node.Get("Source"),
                 Hash: node.Get("Hash"),
-                Raw: node))
-            .ToList();
+                Raw: node));
     }
 
     /// <summary>
-    /// 获取所有图片资源。
+    /// 获取所有图片资源（延迟求值）。
     /// </summary>
     /// <param name="root">元数据根对象。</param>
-    /// <returns>图片资源列表。</returns>
-    public static IReadOnlyList<ImageEntry> Images(this Metadata root)
+    /// <returns>图片资源序列。</returns>
+    public static IEnumerable<ImageEntry> Images(this Metadata root)
     {
         return root.GetAllElements("Image")
             .Select(node => new ImageEntry(
                 Id: node.Get("ID") ?? string.Empty,
                 Source: node.Get("Source"),
                 Url: node.Get("Url"),
-                Raw: node))
-            .ToList();
+                Raw: node));
     }
 
     /// <summary>
@@ -115,6 +109,76 @@ public static class MetadataQueryExtensions
                 ManifestId: package.Find("Manifest")?.Value,
                 Raw: package))
             .ToList();
+    }
+
+    /// <summary>
+    /// 取实体自身版本对应的版本包；没有该版本时返回 null。
+    /// </summary>
+    /// <param name="mod">Mod 实体。</param>
+    /// <param name="version">版本号；null 表示实体声明的当前版本。</param>
+    public static PackageEntry? Package(this ModEntry mod, string? version = null)
+    {
+        var wanted = version ?? mod.Version;
+        return string.IsNullOrWhiteSpace(wanted)
+            ? null
+            : mod.Packages.FirstOrDefault(p => string.Equals(p.Version, wanted, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// 取实体自身版本对应的版本包；没有该版本时返回 null。
+    /// </summary>
+    /// <param name="app">Application 实体。</param>
+    /// <param name="version">版本号；null 表示实体声明的当前版本。</param>
+    public static PackageEntry? Package(this ApplicationEntry app, string? version = null)
+    {
+        var wanted = version ?? app.Version;
+        return string.IsNullOrWhiteSpace(wanted)
+            ? null
+            : app.Packages.FirstOrDefault(p => string.Equals(p.Version, wanted, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// 取某个版本包的叶子清单在发布物里的相对 Source（配合 <see cref="MetadataResourceUri.Resolve"/> 拼地址）。
+    /// 版本包、Manifest 登记节点或 Source 缺失时抛，消息带具体原因。
+    /// </summary>
+    /// <param name="mod">Mod 实体。</param>
+    /// <param name="version">版本号；null 表示实体声明的当前版本。</param>
+    public static string ManifestSource(this ModEntry mod, string? version = null)
+    {
+        var wanted = version ?? mod.Version;
+        if (string.IsNullOrWhiteSpace(wanted))
+            throw new InvalidOperationException($"Mod '{mod.Id}' 没有声明版本");
+
+        var package = mod.Package(wanted)
+            ?? throw new InvalidOperationException($"Mod '{mod.Id}' 没有版本 {wanted}");
+
+        var manifestId = package.ManifestId
+            ?? throw new InvalidOperationException($"Mod '{mod.Id}' 的版本 {wanted} 没有声明 Manifest");
+        var registration = mod.Raw.Root.ManifestRegistration(manifestId)
+            ?? throw new InvalidOperationException($"元数据里没有清单 {manifestId}");
+
+        return registration.Get("Source")
+            ?? throw new InvalidOperationException($"清单 {manifestId} 没有 Source");
+    }
+
+    /// <summary>
+    /// 取应用自身版本包在指定语言下的更新日志 Markdown 的 Source；没配该语言或找不到登记节点时返回 null。
+    /// </summary>
+    /// <param name="app">Application 实体。</param>
+    /// <param name="language">语言标记，如 <c>zh-CN</c>。</param>
+    public static string? ChangelogSource(this ApplicationEntry app, string language)
+    {
+        var entry = app.Package()?.Raw
+            .Find("Changelogs")?.Children
+            .FirstOrDefault(c => c.Name == "Changelog"
+                && string.Equals(c.Get("Language"), language, StringComparison.Ordinal));
+        var id = entry?.Value;
+        if (string.IsNullOrEmpty(id))
+            return null;
+
+        return app.Raw.Root.GetAllElements("Markdown")
+            .FirstOrDefault(m => string.Equals(m.Get("ID"), id, StringComparison.Ordinal))
+            ?.Get("Source");
     }
 
     /// <summary>按登记 ID 找到 Manifest 登记节点（返回 null 表示不存在）。</summary>

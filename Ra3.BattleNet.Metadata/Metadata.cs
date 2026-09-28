@@ -51,15 +51,30 @@ namespace Ra3.BattleNet.Metadata
         }
 
         /// <summary>
-        /// 获取所有指定名称的元素。
+        /// 获取所有指定名称的元素（深度优先，延迟求值，可直接接 LINQ）。
         /// </summary>
-        public List<Metadata> GetAllElements(string name)
+        public IEnumerable<Metadata> GetAllElements(string name)
         {
-            var results = new List<Metadata>();
-            if (Name == name) results.Add(this);
+            if (Name == name) yield return this;
             foreach (var child in _children)
-                results.AddRange(child.GetAllElements(name));
-            return results;
+            {
+                foreach (var found in child.GetAllElements(name))
+                    yield return found;
+            }
+        }
+
+        /// <summary>
+        /// 沿父链上溯到根节点。登记节点要回头查别的登记节点时用它。
+        /// </summary>
+        public Metadata Root
+        {
+            get
+            {
+                var node = this;
+                while (node._parent is not null)
+                    node = node._parent;
+                return node;
+            }
         }
 
         /// <summary>
