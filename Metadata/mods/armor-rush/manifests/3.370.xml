@@ -18,7 +18,7 @@
             <RelativePath>/</RelativePath>
             <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
             <Sources>
-                <Source Type="BT" Url="https://web.file.cor-games.com/srv/ar/AR_Core_3.370.zst.torrent" />
+                <Source Type="BT" Url="https://file.cor-games.com/srv/ar/AR_Core_3.370.zst.torrent" />
             </Sources>
         </File>
         <File Hash="5E6AABF8" Size="185814470" DownloadName="AR_Data_3.370.zst" Compression="zstd">
@@ -26,7 +26,7 @@
             <RelativePath>/</RelativePath>
             <KindOf>MISC;</KindOf>
             <Sources>
-                <Source Type="BT" Url="https://web.file.cor-games.com/srv/ar/AR_Data_3.370.zst.torrent" />
+                <Source Type="BT" Url="https://file.cor-games.com/srv/ar/AR_Data_3.370.zst.torrent" />
             </Sources>
         </File>
         <File Hash="CC4510B1" Size="13040759">
@@ -34,7 +34,7 @@
             <RelativePath>/</RelativePath>
             <KindOf>MISC;</KindOf>
             <Sources>
-                <Source Type="BT" Url="https://web.file.cor-games.com/srv/ar/AR_chs_3.370.big.torrent" />
+                <Source Type="BT" Url="https://file.cor-games.com/srv/ar/AR_chs_3.370.big.torrent" />
             </Sources>
         </File>
         <File Hash="F3F71CB2" Size="74648958" DownloadName="AR_misc_3.370.zst" Compression="zstd">
@@ -42,7 +42,7 @@
             <RelativePath>/</RelativePath>
             <KindOf>MISC;</KindOf>
             <Sources>
-                <Source Type="BT" Url="https://web.file.cor-games.com/srv/ar/AR_misc_3.370.zst.torrent" />
+                <Source Type="BT" Url="https://file.cor-games.com/srv/ar/AR_misc_3.370.zst.torrent" />
             </Sources>
         </File>
         <File Hash="9859C8A8" Size="52398594">
@@ -50,7 +50,7 @@
             <RelativePath>/</RelativePath>
             <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
             <Sources>
-                <Source Type="BT" Url="https://web.file.cor-games.com/srv/ar/ARCrates_3.370.lyi.torrent" />
+                <Source Type="BT" Url="https://file.cor-games.com/srv/ar/ARCrates_3.370.lyi.torrent" />
             </Sources>
         </File>
         <Dependencies>
