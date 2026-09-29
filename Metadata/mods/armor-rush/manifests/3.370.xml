@@ -18,7 +18,6 @@
             <RelativePath>/</RelativePath>
             <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
             <Sources>
-                <Source Type="HTTP" Url="https://web.file.cor-games.com/srv/ar/AR_Core_3.370.zst" />
                 <Source Type="BT" Url="https://web.file.cor-games.com/srv/ar/AR_Core_3.370.zst.torrent" />
             </Sources>
         </File>
@@ -27,7 +26,6 @@
             <RelativePath>/</RelativePath>
             <KindOf>MISC;</KindOf>
             <Sources>
-                <Source Type="HTTP" Url="https://web.file.cor-games.com/srv/ar/AR_Data_3.370.zst" />
                 <Source Type="BT" Url="https://web.file.cor-games.com/srv/ar/AR_Data_3.370.zst.torrent" />
             </Sources>
         </File>
@@ -36,7 +34,6 @@
             <RelativePath>/</RelativePath>
             <KindOf>MISC;</KindOf>
             <Sources>
-                <Source Type="HTTP" Url="https://web.file.cor-games.com/srv/ar/AR_chs_3.370.big" />
                 <Source Type="BT" Url="https://web.file.cor-games.com/srv/ar/AR_chs_3.370.big.torrent" />
             </Sources>
         </File>
@@ -45,7 +42,6 @@
             <RelativePath>/</RelativePath>
             <KindOf>MISC;</KindOf>
             <Sources>
-                <Source Type="HTTP" Url="https://web.file.cor-games.com/srv/ar/AR_misc_3.370.zst" />
                 <Source Type="BT" Url="https://web.file.cor-games.com/srv/ar/AR_misc_3.370.zst.torrent" />
             </Sources>
         </File>
@@ -54,7 +50,6 @@
             <RelativePath>/</RelativePath>
             <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
             <Sources>
-                <Source Type="HTTP" Url="https://web.file.cor-games.com/srv/ar/ARCrates_3.370.lyi" />
                 <Source Type="BT" Url="https://web.file.cor-games.com/srv/ar/ARCrates_3.370.lyi.torrent" />
             </Sources>
         </File>

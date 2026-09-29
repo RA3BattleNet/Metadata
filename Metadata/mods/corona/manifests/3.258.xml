@@ -20,7 +20,6 @@
             <RelativePath>/</RelativePath>
             <KindOf>MISC;</KindOf>
             <Sources>
-                <Source Type="HTTP" Url="https://file.cor-games.com/srv/cor/miscs/Disabler.big" />
                 <Source Type="BT" Url="https://file.cor-games.com/srv/cor/miscs/Disabler.big.torrent" />
             </Sources>
         </File>
@@ -29,7 +28,6 @@
             <RelativePath>/</RelativePath>
             <KindOf>MISC;</KindOf>
             <Sources>
-                <Source Type="HTTP" Url="https://file.cor-games.com/srv/cor/miscs/HighResShadow.big" />
                 <Source Type="BT" Url="https://file.cor-games.com/srv/cor/miscs/HighResShadow.big.torrent" />
             </Sources>
         </File>
@@ -38,7 +36,6 @@
             <RelativePath>/</RelativePath>
             <KindOf>MISC;</KindOf>
             <Sources>
-                <Source Type="HTTP" Url="https://file.cor-games.com/srv/cor/miscs/Cor_ENG_3.250.big" />
                 <Source Type="BT" Url="https://file.cor-games.com/srv/cor/miscs/Cor_ENG_3.250.big.torrent" />
             </Sources>
         </File>
@@ -47,7 +44,6 @@
             <RelativePath>/</RelativePath>
             <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
             <Sources>
-                <Source Type="HTTP" Url="https://file.cor-games.com/srv/cor/bgm/coronaBGM_3.228.zst" />
                 <Source Type="BT" Url="https://file.cor-games.com/srv/cor/bgm/coronaBGM_3.228.zst.torrent" />
             </Sources>
         </File>
@@ -56,7 +52,6 @@
             <RelativePath>/</RelativePath>
             <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
             <Sources>
-                <Source Type="HTTP" Url="https://file.cor-games.com/srv/cor/mod/corona_3.258.zst" />
                 <Source Type="BT" Url="https://file.cor-games.com/srv/cor/mod/corona_3.258.zst.torrent" />
             </Sources>
         </File>
@@ -65,7 +60,6 @@
             <RelativePath>/</RelativePath>
             <KindOf>MISC;</KindOf>
             <Sources>
-                <Source Type="HTTP" Url="https://file.cor-games.com/srv/cor/miscs/StaticVersion.big" />
                 <Source Type="BT" Url="https://file.cor-games.com/srv/cor/miscs/StaticVersion.big.torrent" />
             </Sources>
         </File>
