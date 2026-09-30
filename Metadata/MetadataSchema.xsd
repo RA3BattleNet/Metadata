@@ -60,9 +60,35 @@
       <xs:element name="Version" type="xs:string" minOccurs="0"/>
       <xs:element name="Packages" type="PackagesType" minOccurs="0"/>
       <xs:element name="Posts" type="PostsType" minOccurs="0"/>
+      <xs:element name="UpdateKind" type="UpdateKindType" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
     <xs:attribute name="ID" type="xs:string" use="required"/>
     <xs:attribute name="InheritFrom" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- 更新线：客户端据此定位"当前该用哪份更新器清单"及资源地址。
+       Current = 目标版本，必须对应下面某条 Updater@Version（客户端只做等值查找，不比较版本号）。
+       BaseUrl / FallbackBaseUrl = 资源（files/、patches/）主备地址，与清单地址互相独立。 -->
+  <xs:complexType name="UpdateKindType">
+    <xs:sequence>
+      <xs:element name="Updater" type="UpdaterType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="ID" type="xs:string" use="required"/>
+    <xs:attribute name="DisplayName" type="xs:string"/>
+    <xs:attribute name="Current" type="xs:string"/>
+    <xs:attribute name="BaseUrl" type="xs:string"/>
+    <xs:attribute name="FallbackBaseUrl" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- 一条已发布的更新器清单记录：Source 是清单地址（绝对或相对），
+       Hash/Size 描述清单文件本身的字节（清单内部的文件哈希由 Updater 负责，是另一回事）。 -->
+  <xs:complexType name="UpdaterType">
+    <xs:attribute name="Version" type="xs:string" use="required"/>
+    <xs:attribute name="Source" type="xs:string" use="required"/>
+    <xs:attribute name="Hash" type="xs:string"/>
+    <xs:attribute name="Size" type="xs:string"/>
+    <xs:attribute name="ReleaseDate" type="xs:string"/>
+    <xs:attribute name="Commit" type="xs:string"/>
   </xs:complexType>
 
   <xs:complexType name="ModType">
