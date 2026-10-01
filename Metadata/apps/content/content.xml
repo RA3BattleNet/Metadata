@@ -3,9 +3,34 @@
     <Tags>
         <Commit>${TIMESTAMP}</Commit>
     </Tags>
+    <Includes>
+        <Include Source="manifests/manifests.xml" />
+    </Includes>
 
     <Application ID="content">
         <Version>1.5.5.2</Version>
+        <Packages>
+            <Package Version="1.5.3.0">
+                <ReleaseDate>2025-05-21</ReleaseDate>
+                <Manifest>manifest-1.5.3.0</Manifest>
+            </Package>
+            <Package Version="1.5.4.0">
+                <ReleaseDate>2025-09-23</ReleaseDate>
+                <Manifest>manifest-1.5.4.0</Manifest>
+            </Package>
+            <Package Version="1.5.5.0">
+                <ReleaseDate>2026-07-30</ReleaseDate>
+                <Manifest>manifest-1.5.5.0</Manifest>
+            </Package>
+            <Package Version="1.5.5.1">
+                <ReleaseDate>2026-08-14</ReleaseDate>
+                <Manifest>manifest-1.5.5.1</Manifest>
+            </Package>
+            <Package Version="1.5.5.2">
+                <ReleaseDate>2026-08-14</ReleaseDate>
+                <Manifest>manifest-1.5.5.2</Manifest>
+            </Package>
+        </Packages>
         <UpdateKind ID="content" DisplayName="游戏资源" Current="1.5.5.2"
                     BaseUrl="https://update.ra3battle.net/app/contents/"
                     FallbackBaseUrl="">

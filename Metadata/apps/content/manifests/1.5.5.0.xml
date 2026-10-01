@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Manifest ID="manifest-1.5.5.0" HashAlgorithm="CRC32C">
+        <File Hash="039F7993" Size="97220084" DownloadName="LiveContent_1.5.5.0.zip.zst" Compression="zstd">
+            <FileName>LiveContent_1.5.5.0.zip</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>APPLICATION</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://file.cor-games.com/srv/ra3battlenet/content/LiveContent_1.5.5.0.zip.zst" />
+                <Source Type="BT" Url="https://file.cor-games.com/srv/ra3battlenet/content/LiveContent_1.5.5.0.zip.zst.torrent" />
+            </Sources>
+        </File>
+    </Manifest>
+</Metadata>
