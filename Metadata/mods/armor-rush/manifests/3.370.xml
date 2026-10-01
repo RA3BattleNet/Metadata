@@ -55,8 +55,8 @@
         </File>
         <Dependencies>
             <Dll Name="Lyi.dll" KindOf="APPLICATION" Hash="A4A7924F" />
-            <Dll Name="EnhancerCorona.dll" KindOf="APPLICATION" Hash="CA0A66D6" />
-            <Dll Name="RA3LuaBridge.dll" KindOf="APPLICATION" Hash="20815E53" />
+            <Dll Name="RA3LuaBridge.dll" KindOf="APPLICATION" Hash="0D49B9A0" />
+            <Dll Name="EnhancerCorona.dll" KindOf="APPLICATION" Hash="01C6510C" />
         </Dependencies>
     </Manifest>
 </Metadata>

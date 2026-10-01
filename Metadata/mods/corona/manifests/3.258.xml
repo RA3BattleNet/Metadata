@@ -63,5 +63,10 @@
                 <Source Type="BT" Url="https://file.cor-games.com/srv/cor/miscs/StaticVersion.big.torrent" />
             </Sources>
         </File>
+        <Dependencies>
+            <Dll Name="Lyi.dll" KindOf="APPLICATION" Hash="A4A7924F" />
+            <Dll Name="RA3LuaBridge.dll" KindOf="APPLICATION" Hash="0D49B9A0" />
+            <Dll Name="EnhancerCorona.dll" KindOf="APPLICATION" Hash="01C6510C" />
+        </Dependencies>
     </Manifest>
 </Metadata>

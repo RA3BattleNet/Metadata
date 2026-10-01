@@ -52,6 +52,28 @@ public class ManifestParseTests
         entry.Dependencies[0].Version.Should().Be("1.5.5.2");
         entry.Dependencies[0].KindOf.Should().Be("APPLICATION");
     }
+
+    [TestMethod]
+    public void ToManifestEntry_MultipleDependencies_KeepDeclarationOrder()
+    {
+        var entry = LoadInlineManifest("""
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-dlls" HashAlgorithm="CRC32C">
+    <Dependencies>
+      <Dll Name="Lyi.dll" KindOf="APPLICATION" Hash="A4A7924F" />
+      <Dll Name="RA3LuaBridge.dll" KindOf="APPLICATION" Hash="0D49B9A0" />
+      <Dll Name="EnhancerCorona.dll" KindOf="APPLICATION" Hash="01C6510C" />
+    </Dependencies>
+  </Manifest>
+</Metadata>
+""").ToManifestEntry();
+
+        entry.Dependencies.Select(d => d.Name)
+            .Should().Equal("Lyi.dll", "RA3LuaBridge.dll", "EnhancerCorona.dll");
+        entry.Dependencies.Select(d => d.Hash)
+            .Should().Equal("A4A7924F", "0D49B9A0", "01C6510C");
+    }
     [TestMethod]
     public void ToManifestEntry_MissingMount_DefaultsToBase()
     {

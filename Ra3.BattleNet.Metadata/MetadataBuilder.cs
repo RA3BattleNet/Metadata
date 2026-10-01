@@ -469,6 +469,12 @@ public static class MetadataBuilder
         {
             var name = dll.Attribute("Name")?.Value ?? string.Empty;
             var where = $"{rel} (Manifest ID: {id}) Dll \"{name}\"";
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                errors.Add($"{rel} (Manifest ID: {id}): Dll Name 不能为空");
+                continue;
+            }
+
             if (!seenDlls.Add(name))
                 errors.Add($"{where}: Dll Name 重复");
 

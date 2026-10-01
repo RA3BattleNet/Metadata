@@ -169,6 +169,18 @@ public class ManifestValidationTests
     }
 
     [TestMethod]
+    public void Build_EmptyDllName_HardFails()
+    {
+        var body = FileBlock("9B623C7C", HttpSource("https://example.com/a.bin"))
+            + """
+    <Dependencies>
+      <Dll Name="" Hash="9B623C7C" />
+    </Dependencies>
+""";
+        AssertBuildFails(ManifestXml(body), "Dll Name 不能为空");
+    }
+
+    [TestMethod]
     public void Build_RelativePathWithParentPrefix_HardFails()
     {
         AssertBuildFails(
