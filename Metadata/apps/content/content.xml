@@ -6,35 +6,34 @@
 
     <Application ID="content">
         <Version>1.5.5.2</Version>
-
-        <UpdateKind ID="content" DisplayName="游戏内容" Current="1.5.5.2"
+        <UpdateKind ID="content" DisplayName="游戏资源" Current="1.5.5.2"
                     BaseUrl="https://update.ra3battle.net/app/contents/"
                     FallbackBaseUrl="">
             <Updater Version="1.5.3.0"
                      Source="https://update.ra3battle.net/app/contents/manifests/manifest-1.5.3.0.xml"
                      Hash="ED6A28153B9E6507F7743596823E258D"
                      Size="115416"
-                     ReleaseDate="2026-10-01" />
+                     ReleaseDate="2025-05-21" />
             <Updater Version="1.5.4.0"
                      Source="https://update.ra3battle.net/app/contents/manifests/manifest-1.5.4.0.xml"
                      Hash="BABED8221D3B5398EE182FB67F5979C5"
                      Size="118081"
-                     ReleaseDate="2026-10-01" />
+                     ReleaseDate="2025-09-23" />
             <Updater Version="1.5.5.0"
                      Source="https://update.ra3battle.net/app/contents/manifests/manifest-1.5.5.0.xml"
                      Hash="D7BA9BF0C1C0D3D16EF9B37EBE8032BB"
                      Size="133712"
-                     ReleaseDate="2026-10-01" />
+                     ReleaseDate="2026-07-30" />
             <Updater Version="1.5.5.1"
                      Source="https://update.ra3battle.net/app/contents/manifests/manifest-1.5.5.1.xml"
                      Hash="1F046D314461F7A70CAAD428992E9916"
                      Size="133712"
-                     ReleaseDate="2026-10-01" />
+                     ReleaseDate="2026-08-14" />
             <Updater Version="1.5.5.2"
                      Source="https://update.ra3battle.net/app/contents/manifests/manifest-1.5.5.2.xml"
                      Hash="7B5141B20964EB9858625A7D66FB0C56"
                      Size="137807"
-                     ReleaseDate="2026-10-01" />
+                     ReleaseDate="2026-08-14" />
         </UpdateKind>
 
     </Application>
