@@ -25,9 +25,9 @@ internal sealed class CacheLayout
 
     public string CurrentPointerPath => Path.Combine(Root, "current.xml");
 
-    public string PendingPointerPath => Path.Combine(Root, "current.xml.pending");
+    public string PendingPointerPath => GenerationFile.PendingPath(CurrentPointerPath);
 
-    public string PreviousPointerPath => Path.Combine(Root, "current.xml.previous");
+    public string PreviousPointerPath => GenerationFile.PreviousPath(CurrentPointerPath);
 
     /// <summary>来源绑定文件。一个缓存根只服务一个入口来源。</summary>
     public string OriginPath => Path.Combine(Root, "origin.xml");

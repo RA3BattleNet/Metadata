@@ -45,7 +45,7 @@ internal static class CachePointerFile
     public static CachePointer? ReadHighest(CacheLayout layout)
     {
         CachePointer? best = null;
-        foreach (var path in new[] { layout.CurrentPointerPath, layout.PreviousPointerPath, layout.PendingPointerPath })
+        foreach (var path in GenerationFile.Candidates(layout.CurrentPointerPath))
         {
             var candidate = Read(layout, path, best?.Generation ?? 0);
             if (candidate is null) continue;
@@ -61,14 +61,10 @@ internal static class CachePointerFile
     public static void Publish(CacheLayout layout, CachePointer pointer)
     {
         layout.EnsureDirectories();
-        CacheFile.WriteAtomic(layout.PendingPointerPath, Serialize(pointer));
-
-        if (Read(layout, layout.PendingPointerPath, 0) is null)
-            throw new InvalidDataException("指针写入后回读验证失败，拒绝切换活动代次");
-
-        if (File.Exists(layout.CurrentPointerPath))
-            File.Move(layout.CurrentPointerPath, layout.PreviousPointerPath, overwrite: true);
-        File.Move(layout.PendingPointerPath, layout.CurrentPointerPath, overwrite: true);
+        GenerationFile.Publish(
+            layout.CurrentPointerPath,
+            Serialize(pointer),
+            path => Read(layout, path, 0) is not null);
     }
 
     /// <summary>指针自洽性的规范化输入（不含 Digest 字段本身）。</summary>

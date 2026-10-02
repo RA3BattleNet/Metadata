@@ -61,6 +61,27 @@ public static class CacheErrorCodes
 
     /// <summary>指针指向的快照文件缺失或已损坏。</summary>
     public const string SnapshotMissing = "snapshot_missing";
+
+    /// <summary>拿别的缓存根（或别的实例）的快照来解析资源。</summary>
+    public const string ForeignSnapshot = "foreign_snapshot";
+
+    /// <summary>登记节点没有可用的 Source，或 Source 里有非法字符。</summary>
+    public const string InvalidSource = "invalid_source";
+
+    /// <summary>来源协议不受支持（例如远端文档指向本机文件、或 data/ftp 之类）。</summary>
+    public const string UnsupportedScheme = "unsupported_scheme";
+
+    /// <summary>来源解析后跑出了入口目录，或用了绝对路径。</summary>
+    public const string PathEscape = "path_escape";
+
+    /// <summary>登记节点声明的摘要算法本库不认识。硬失败，不退化成"不校验"。</summary>
+    public const string UnsupportedHashAlgorithm = "unsupported_hash_algorithm";
+
+    /// <summary>资源不存在（404 之类）或远端明确拒绝提供。</summary>
+    public const string ResourceUnavailable = "resource_unavailable";
+
+    /// <summary>本地状态文件的格式版本本库不认识：保留原文件，不覆盖为新空文件。</summary>
+    public const string UnsupportedFormat = "unsupported_format";
 }
 
 /// <summary>结构化错误。消息里不得出现带凭据的完整请求地址。</summary>
