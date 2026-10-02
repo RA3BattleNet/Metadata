@@ -10,52 +10,26 @@
     </Includes>
 
     <Application ID="RA3BattleNet">
-        <Version>1.5.5.2</Version>
+        <Version>1.9.9.11</Version>
         <Packages>
-            <Package Version="1.5.2.0">
-                <ReleaseDate>2025-03-29</ReleaseDate>
+            <Package Version="1.9.9.11">
+                <ReleaseDate>2026-10-02</ReleaseDate>
                 <Changelogs>
-                    <Changelog Language="zh-CN">changelog-zh-1.5.2.0</Changelog>
-                    <Changelog Language="en-US">changelog-en-1.5.2.0</Changelog>
+                    <Changelog Language="zh-CN">changelog-zh-1.9.9.11</Changelog>
+                    <Changelog Language="en-US">changelog-en-1.9.9.11</Changelog>
                 </Changelogs>
-                <Manifest>manifest-1.5.2.0</Manifest>
-            </Package>
-            <Package Version="1.5.1.0">
-                <ReleaseDate>2025-01-28</ReleaseDate>
-                <Changelogs>
-                    <Changelog Language="zh-CN">changelog-zh-1.5.1.0</Changelog>
-                    <Changelog Language="en-US">changelog-en-1.5.1.0</Changelog>
-                </Changelogs>
-                <Manifest>manifest-1.5.1.0</Manifest>
-            </Package>
-            <Package Version="1.5.5.2">
-                <ReleaseDate>2026-09-26</ReleaseDate>
-                <Changelogs>
-                    <Changelog Language="zh-CN">changelog-zh-1.5.5.2</Changelog>
-                    <Changelog Language="en-US">changelog-en-1.5.5.2</Changelog>
-                </Changelogs>
-                <Manifest>manifest-1.5.5.2</Manifest>
+                <Manifest>manifest-1.9.9.11</Manifest>
             </Package>
         </Packages>
         <Posts>
-            <Post DateTime="2025-03-19T00:00:00+08:00">
+            <Post DateTime="2026-10-02T00:00:00+08:00">
                 <Titles>
-                    <Title Language="zh-CN">版本更新 1.5.2.0</Title>
-                    <Title Language="en-US">Update 1.5.2.0</Title>
+                    <Title Language="zh-CN">版本更新 1.9.9.11</Title>
+                    <Title Language="en-US">Update 1.9.9.11</Title>
                 </Titles>
                 <Contents>
-                    <Content Language="zh-CN">news-zh-1.5.2.0</Content>
-                    <Content Language="en-US">news-en-1.5.2.0</Content>
-                </Contents>
-            </Post>
-            <Post DateTime="2026-09-26T00:00:00+08:00">
-                <Titles>
-                    <Title Language="zh-CN">版本更新 1.5.5.2</Title>
-                    <Title Language="en-US">Update 1.5.5.2</Title>
-                </Titles>
-                <Contents>
-                    <Content Language="zh-CN">news-zh-1.5.5.2</Content>
-                    <Content Language="en-US">news-en-1.5.5.2</Content>
+                    <Content Language="zh-CN">news-zh-1.9.9.11</Content>
+                    <Content Language="en-US">news-en-1.9.9.11</Content>
                 </Contents>
             </Post>
         </Posts>

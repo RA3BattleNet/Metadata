@@ -83,8 +83,8 @@ public class QueryApiTests
         {
             var app = root.Catalog().Application("RA3BattleNet")!;
 
-            app.ChangelogSource("zh-CN").Should().NotBeNull().And.EndWith("changelogs/zh-1.5.5.2.md");
-            app.ChangelogSource("en-US").Should().NotBeNull().And.EndWith("changelogs/en-1.5.5.2.md");
+            app.ChangelogSource("zh-CN").Should().NotBeNull().And.EndWith("changelogs/zh-1.9.9.11.md");
+            app.ChangelogSource("en-US").Should().NotBeNull().And.EndWith("changelogs/en-1.9.9.11.md");
             app.ChangelogSource("ja-JP").Should().BeNull("没配这门语言就没有更新日志");
         }
         finally

@@ -49,26 +49,26 @@ public class StageATests
             var registries = loaded.GetAllElements("Manifest")
                 .Where(m => !string.IsNullOrEmpty(m.Get("ID"))).ToList();
             var manifest = registries
-                .First(m => MetadataFlattener.LocalId(m.Get("ID")) == "manifest-1.5.2.0");
+                .First(m => MetadataFlattener.LocalId(m.Get("ID")) == "manifest-1.9.9.11");
             manifest.Get("ID")!.Should().Contain(":");
-            manifest.Get("ID")!.Should().EndWith(":manifest-1.5.2.0");
+            manifest.Get("ID")!.Should().EndWith(":manifest-1.9.9.11");
             var source = manifest.Get("Source");
             source.Should().NotBeNullOrWhiteSpace();
-            source!.Replace('\\', '/').Should().EndWith("manifests/1.5.2.0.xml");
+            source!.Replace('\\', '/').Should().EndWith("manifests/1.9.9.11.xml");
             source.Should().NotContain("apps.xml");
             var manifestPath = Path.Combine(dst, source.Replace('/', Path.DirectorySeparatorChar));
             File.Exists(manifestPath).Should().BeTrue();
-            File.ReadAllText(manifestPath).Should().Contain("<File").And.Contain("NativeDll.dll");
+            File.ReadAllText(manifestPath).Should().Contain("<File").And.Contain("Ra3BattleNet_Setup_1.9.9.11.exe");
 
             var coronaManifest = loaded.GetAllElements("Manifest")
                 .First(m => MetadataFlattener.LocalId(m.Get("ID")!) == "manifest-3258");
             coronaManifest.Get("Source")!.Replace('\\', '/').Should().EndWith("manifests/3.258.xml");
 
             var md = loaded.GetAllElements("Markdown")
-                .First(m => MetadataFlattener.LocalId(m.Get("ID")!) == "changelog-zh-1.5.2.0");
+                .First(m => MetadataFlattener.LocalId(m.Get("ID")!) == "changelog-zh-1.9.9.11");
             md.Get("ID")!.Should().Contain("changelogs");
             var mdSource = md.Get("Source");
-            mdSource!.Replace('\\', '/').Should().EndWith("changelogs/zh-1.5.2.0.md");
+            mdSource!.Replace('\\', '/').Should().EndWith("changelogs/zh-1.9.9.11.md");
             File.Exists(Path.Combine(dst, mdSource.Replace('/', Path.DirectorySeparatorChar))).Should().BeTrue();
 
             // 引用已改写为限定 ID
