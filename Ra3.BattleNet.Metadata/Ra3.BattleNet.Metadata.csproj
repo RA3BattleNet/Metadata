@@ -13,4 +13,8 @@
     <Authors>RA3BattleNet</Authors>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ra3.BattleNet.Metadata.Tests" />
+  </ItemGroup>
+
 </Project>
