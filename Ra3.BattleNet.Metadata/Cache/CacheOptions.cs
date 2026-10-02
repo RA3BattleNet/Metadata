@@ -30,6 +30,9 @@ public sealed class CacheOptions
     /// <summary>资源并发上限。</summary>
     public int ResourceConcurrency { get; init; } = 4;
 
+    /// <summary>跨进程文件租约的等待上限；超时说明另一个进程正占着这个缓存根。</summary>
+    public TimeSpan FileLockTimeout { get; init; } = TimeSpan.FromSeconds(30);
+
     /// <summary>根 XML 体积上限。</summary>
     public long RootMaxBytes { get; init; } = 8L * 1024 * 1024;
 

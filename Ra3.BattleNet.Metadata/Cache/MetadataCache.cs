@@ -126,6 +126,29 @@ public sealed class MetadataCache : IDisposable
     }
 
     /// <summary>
+    /// 按策略回收缓存：保留 current/previous（以及被租约使用的）快照，只回收没有任何保留快照引用、
+    /// 也没有活动租约引用的对象。
+    ///
+    /// 拿不到跨进程租约说明别人正在刷新或清理，本轮直接返回失败而不是硬闯。
+    /// </summary>
+    public CacheCleanupReport Cleanup(CacheCleanupOptions? options = null)
+    {
+        var effective = options ?? new CacheCleanupOptions();
+        using var fileLock = CacheFileLock.TryAcquire(_layout.LockPath, _options.FileLockTimeout);
+        if (fileLock is null)
+        {
+            return new CacheCleanupReport
+            {
+                Error = new CacheError(CacheErrorCodes.Busy, "另一个进程正在操作这个缓存根，本轮不回收"),
+            };
+        }
+
+        SnapshotLease[] leases;
+        lock (_leaseGate) leases = _leases.ToArray();
+        return CacheCleaner.Run(_layout, effective, leases, _options.Log);
+    }
+
+    /// <summary>
     /// 解析一个登记资源，按需把对象落到 <c>objects/&lt;sha256&gt;/payload</c>。
     ///
     /// 两类资源的规则不同，这不是优化而是语义：
@@ -379,6 +402,18 @@ public sealed class MetadataCache : IDisposable
     {
         var bound = CacheOrigin.EnsureBound(_layout, _options.EntryUri);
         if (bound is not null) return new CatalogRefreshResult { Outcome = CatalogRefreshOutcome.Unavailable, Error = bound };
+
+        // 跨进程独占：拿到锁之后再读指针，第二个进程才有机会看到前一个刚发布的快照并走 304
+        using var fileLock = await CacheFileLock
+            .TryAcquireAsync(_layout.LockPath, _options.FileLockTimeout, token)
+            .ConfigureAwait(false);
+
+        if (fileLock is null)
+        {
+            var stale = CachePointerFile.ReadHighest(_layout);
+            return Degrade(stale is null ? null : TryLoadSnapshot(stale, out _),
+                CacheErrorCodes.Busy, "另一个进程正在刷新这个缓存根，本轮跳过刷新");
+        }
 
         var pointer = CachePointerFile.ReadHighest(_layout);
         var current = pointer is null ? null : TryLoadSnapshot(pointer, out _);

@@ -82,6 +82,12 @@ public static class CacheErrorCodes
 
     /// <summary>本地状态文件的格式版本本库不认识：保留原文件，不覆盖为新空文件。</summary>
     public const string UnsupportedFormat = "unsupported_format";
+
+    /// <summary>另一个进程正占着这个缓存根（跨进程文件租约没拿到）。</summary>
+    public const string Busy = "cache_busy";
+
+    /// <summary>按容量策略回收之后仍超出上限：保留有效快照并报错，不先破坏唯一可用缓存。</summary>
+    public const string CacheFull = "cache_full";
 }
 
 /// <summary>结构化错误。消息里不得出现带凭据的完整请求地址。</summary>

@@ -45,13 +45,25 @@ internal static class CachePointerFile
     public static CachePointer? ReadHighest(CacheLayout layout)
     {
         CachePointer? best = null;
-        foreach (var path in GenerationFile.Candidates(layout.CurrentPointerPath))
+        foreach (var candidate in ReadAll(layout))
         {
-            var candidate = Read(layout, path, best?.Generation ?? 0);
-            if (candidate is null) continue;
             if (best is null || candidate.Generation > best.Generation) best = candidate;
         }
         return best;
+    }
+
+    /// <summary>读取所有有效代次（current/previous/pending 里通过校验的那些）。</summary>
+    public static IReadOnlyList<CachePointer> ReadAll(CacheLayout layout)
+    {
+        var pointers = new List<CachePointer>();
+        foreach (var path in GenerationFile.Candidates(layout.CurrentPointerPath))
+        {
+            var candidate = Read(layout, path, 0);
+            if (candidate is null) continue;
+            if (pointers.Any(p => p.Generation == candidate.Generation)) continue;
+            pointers.Add(candidate);
+        }
+        return pointers;
     }
 
     /// <summary>下一次写入应使用的代次。</summary>

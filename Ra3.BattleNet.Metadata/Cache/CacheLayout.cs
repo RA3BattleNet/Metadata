@@ -32,6 +32,9 @@ internal sealed class CacheLayout
     /// <summary>来源绑定文件。一个缓存根只服务一个入口来源。</summary>
     public string OriginPath => Path.Combine(Root, "origin.xml");
 
+    /// <summary>跨进程独占租约：刷新与清理都拿它，避免两个进程同时改指针。</summary>
+    public string LockPath => Path.Combine(Root, "cache.lock");
+
     public string SnapshotsRoot => Path.Combine(Root, "snapshots");
 
     public string SnapshotRoot(string snapshotId) => Path.Combine(SnapshotsRoot, RequireDigest(snapshotId, nameof(snapshotId)));
