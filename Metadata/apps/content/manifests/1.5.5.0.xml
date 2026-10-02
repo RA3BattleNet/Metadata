@@ -9,7 +9,6 @@
             <RelativePath>/</RelativePath>
             <KindOf>APPLICATION</KindOf>
             <Sources>
-                <Source Type="HTTP" Url="https://file.cor-games.com/srv/ra3battlenet/content/LiveContent_1.5.5.0.zip.zst" />
                 <Source Type="BT" Url="https://file.cor-games.com/srv/ra3battlenet/content/LiveContent_1.5.5.0.zip.zst.torrent" />
             </Sources>
         </File>
