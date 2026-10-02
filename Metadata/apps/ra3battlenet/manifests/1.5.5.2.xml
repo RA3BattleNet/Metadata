@@ -3,6 +3,18 @@
     <Tags>
         <Commit>${TIMESTAMP}</Commit>
     </Tags>
-    <Manifest ID="manifest-1.5.5.2">
+    <!-- 客户端整包（NSIS 安装器）。与 content 的写法一致：单文件 + HTTP/BT 两个来源。
+         @Hash 是安装器本身（FileName）的 CRC32C Full，@Size 是它的字节数；
+         不写 DownloadName / Compression —— 服务端就是原样直发这个 exe。 -->
+    <Manifest ID="manifest-1.5.5.2" HashAlgorithm="CRC32C">
+        <File Hash="B9FF16D1" Size="310006258">
+            <FileName>RA3BattleNet_Setup_1.5.5.2.exe</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>APPLICATION</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://file.cor-games.com/srv/ra3battlenet/launcher/RA3BattleNet_Setup_1.5.5.2.exe" />
+                <Source Type="BT" Url="https://file.cor-games.com/srv/ra3battlenet/launcher/RA3BattleNet_Setup_1.5.5.2.exe.torrent" />
+            </Sources>
+        </File>
     </Manifest>
 </Metadata>
