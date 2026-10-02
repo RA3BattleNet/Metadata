@@ -27,10 +27,10 @@ public sealed class CacheCleanupReport
     private readonly List<string> _removedStaging = [];
     private readonly List<string> _preserved = [];
 
-    /// <summary>回收前的缓存占用字节数。</summary>
+    /// <summary>回收前**对象库**占用的字节数（容量策略统计的就是它）。</summary>
     public long BytesBefore { get; internal set; }
 
-    /// <summary>回收后的缓存占用字节数（<see cref="CacheCleanupOptions.DryRun"/> 时为预计值）。</summary>
+    /// <summary>回收后对象库的字节数（<see cref="CacheCleanupOptions.DryRun"/> 时为预计值）。</summary>
     public long BytesAfter { get; internal set; }
 
     /// <summary>被回收的快照 ID。</summary>
@@ -64,6 +64,10 @@ public sealed class CacheCleanupReport
 /// 一是**没有有效指针就什么都不删**（否则会先破坏唯一可用缓存）；
 /// 二是只回收没有任何保留快照引用、也没有活动租约的对象；
 /// 三是容量清不干净就报 <see cref="CacheErrorCodes.CacheFull"/>，而不是继续动被引用的东西。
+///
+/// 【已知边界】跨进程只保护"谁在写指针"（<see cref="CacheFileLock"/>）。别的**读**进程不持有那把锁，
+/// 所以它正在读的对象理论上可能被本进程回收 —— 需要跨进程读取保护时，宿主得先自己互斥，
+/// 或者等这条路径加上读取租约文件。单实例宿主（Desktop）不受影响。
 /// </summary>
 internal static class CacheCleaner
 {
