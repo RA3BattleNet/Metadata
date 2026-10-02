@@ -119,7 +119,11 @@ staging/<attempt-id>/...
 2. 实现根 current/pending/previous 恢复及有界条件刷新。
 3. 实现保留 origin 的资源解析和内容对象缓存。
 4. 实现资源摘要校验、快照租约、预取优先级。
-5. Desktop 统一 AppMetadataReader、ModCatalogSource、Update endpoint 读取；不保留多套进程内“各自根”。
+5. Desktop 统一 AppMetadataReader、ModCatalogSource 读取；不保留多套进程内"各自根"。
+   【实施现状】这两条已接到缓存（`MetadataRuntime`，缓存根 `RA3BattleNetData/Metadata/Remote`）：
+   Open 本地快照后后台刷新，叶子清单每次向服务端核对。
+   **Update endpoint 暂不接管** —— 它服务的是增量更新那条线，本轮明确不动，
+   因此"一个进程只有一份根"目前只在 App/Mod 两条线上成立。
 6. 发布侧逐步增加叶子强摘要和不可覆盖资源契约；兼容客户端先发，再发布新 schema。
 
 ## Alternatives considered
