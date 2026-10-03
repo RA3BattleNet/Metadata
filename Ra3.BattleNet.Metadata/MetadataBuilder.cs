@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -191,9 +193,45 @@ public static class MetadataBuilder
         return Metadata.LoadFromFile(pathOrUrl);
     }
 
+    /// <summary>单个 IP 的连接预算：这么久还没连上就换下一个，不在一棵树上吊死。</summary>
+    private static readonly TimeSpan AddressConnectTimeout = TimeSpan.FromSeconds(8);
+
+    /// <summary>一次尝试的总预算（含握手与正文）。</summary>
+    private static readonly TimeSpan LoadUrlTimeout = TimeSpan.FromSeconds(60);
+
+    /// <summary>URL 入口的总尝试次数（含第一次）。</summary>
+    private const int LoadUrlAttempts = 8;
+
+    /// <summary>两次尝试之间歇多久。握手失败几十毫秒就报出来，用不着指数退避。</summary>
+    private static readonly TimeSpan LoadUrlRetryWait = TimeSpan.FromMilliseconds(600);
+
+    /// <summary>连接地址的轮换计数，跨尝试累加，用来错开每次尝试的起点。</summary>
+    private static int _addressCursor;
+
+    /// <summary>
+    /// 从 URL 加载已展平的 metadata.xml。CDN 边缘节点经常握手失败或压根不可达，
+    /// 所以最多试 <see cref="LoadUrlAttempts"/> 次，每次换一个边缘 IP 的起点；
+    /// 全部失败才把最后一次的异常抛出去。
+    /// </summary>
     private static Metadata LoadFromUrl(Uri uri)
     {
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return FetchFromUrl(uri);
+            }
+            catch (Exception ex) when (IsRetryableLoadFailure(ex) && attempt < LoadUrlAttempts)
+            {
+                Thread.Sleep(LoadUrlRetryWait);
+            }
+        }
+    }
+
+    private static Metadata FetchFromUrl(Uri uri)
+    {
+        using var handler = CreateLoadHandler();
+        using var client = new HttpClient(handler) { Timeout = LoadUrlTimeout };
         using var stream = client.GetStreamAsync(uri).GetAwaiter().GetResult();
         var temp = Path.Combine(Path.GetTempPath(), $"metadata-url-{Guid.NewGuid():N}.xml");
         try
@@ -206,6 +244,86 @@ public static class MetadataBuilder
         {
             try { File.Delete(temp); } catch { /* ignore */ }
         }
+    }
+
+    /// <summary>
+    /// 什么才算"值得再试一次"：网络层的失败和超时都算。除了 <see cref="HttpRequestException"/> 和
+    /// <see cref="TimeoutException"/>，还有两种得拆开看的 —— HttpClient 的超时是
+    /// <see cref="TaskCanceledException"/>（里头裹着一个 <see cref="TimeoutException"/>）；
+    /// 响应体读到一半被重置则是 <see cref="HttpIOException"/>（"响应提前结束"），它也是
+    /// <see cref="IOException"/>，一块算上。本地落盘失败同样是 IOException，重试它没有意义，
+    /// 但最多白烧几次几毫秒的失败，比漏掉一次真网络抖动划算。取消和 XML 解析错误一律不重试 ——
+    /// 那不是网络在抖。
+    /// </summary>
+    private static bool IsRetryableLoadFailure(Exception ex) =>
+        ex is HttpRequestException or IOException or TimeoutException
+        or TaskCanceledException { InnerException: TimeoutException };
+
+    /// <summary>
+    /// 自己接管连接过程的 handler。
+    ///
+    /// 为什么不直接用 <see cref="HttpClient"/> 默认那套：它只在 TCP 连不上时才换地址，握手阶段被
+    /// RST/EOF 会直接把异常抛出来，不会改连同域名的其它 IP。而 CDN 一个域名背后是一组边缘 IP，
+    /// 可达性并不一致（实测同一个域名的两个 IP，一个通、一个 12 秒超时），不自己接管的话
+    /// 每次重试都撞上同一个坏 IP，重试再多也白试。顺手把 IPv4 排到 IPv6 前面：国内不少网络
+    /// 有 IPv6 地址但没有 IPv6 路由，先试 IPv6 等于白等一轮超时。
+    /// </summary>
+    private static SocketsHttpHandler CreateLoadHandler() => new()
+    {
+        ConnectCallback = async (context, cancellationToken) =>
+        {
+            var addresses = await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, cancellationToken);
+            return await ConnectAsync(OrderAddresses(addresses), context.DnsEndPoint.Port, cancellationToken);
+        },
+    };
+
+    /// <summary>
+    /// IPv4 一律排在 IPv6 前面；轮换只在 IPv4 这一组内做。
+    /// 国内不少网络有 IPv6 地址却没有 IPv6 路由，先试 IPv6 等于白等一轮超时，所以 IPv6 只能垫底。
+    /// 而 IPv4 这一组内部要换着起点来，否则每次尝试都先撞同一个边缘 IP，重试再多也白试。
+    /// </summary>
+    private static IReadOnlyList<IPAddress> OrderAddresses(IPAddress[] addresses)
+    {
+        var ipv4 = addresses.Where(a => a.AddressFamily == AddressFamily.InterNetwork).ToArray();
+        var others = addresses.Where(a => a.AddressFamily != AddressFamily.InterNetwork).ToArray();
+
+        if (ipv4.Length == 0)
+        {
+            return others;
+        }
+
+        var offset = Interlocked.Increment(ref _addressCursor) % ipv4.Length;
+        return ipv4.Skip(offset).Concat(ipv4.Take(offset)).Concat(others).ToArray();
+    }
+
+    /// <summary>按顺序连各个地址，单个地址连这么久还没动静就换下一个；全都不通抛最后一个异常。</summary>
+    private static async Task<Stream> ConnectAsync(IReadOnlyList<IPAddress> addresses, int port, CancellationToken cancellationToken)
+    {
+        if (addresses.Count == 0)
+        {
+            throw new HttpRequestException("DNS 没有返回任何地址");
+        }
+
+        Exception? failure = null;
+
+        foreach (var address in addresses)
+        {
+            var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            try
+            {
+                using var budget = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                budget.CancelAfter(AddressConnectTimeout);
+                await socket.ConnectAsync(address, port, budget.Token);
+                return new NetworkStream(socket, ownsSocket: true);
+            }
+            catch (Exception ex)
+            {
+                socket.Dispose();
+                failure = ex;
+            }
+        }
+
+        throw failure!;
     }
 
     private static List<string> FindLeftoverVariables(IEnumerable<string> xmlPaths)
