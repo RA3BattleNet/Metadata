@@ -1,21 +1,22 @@
-# Templates 脚手架
+# Templates 模板脚手架
 
-本目录**不**被 `metadata.xml` Include，仅供复制新建。
+这个目录下的文件**不会**被主入口 `metadata.xml` 直接引入，纯粹是为了方便大家新建 Mod 或应用时复制当模板用的。
 
-## 新建 Mod
+## 如何新建一个 Mod
 
-1. 复制 `Mod.xml` 到 `mods/<name>/<name>.xml`
-2. 改 `Mod/@ID`、资源路径与版本
-3. 在 `mods/mods.xml` 增加 `<Include Source="<name>/<name>.xml" Type="public" />`
-4. 准备 `images/`、`manifests/` 等实际文件
+1. 复制本目录下的 `Mod.xml` 到 `mods/<你的Mod英文名>/<你的Mod英文名>.xml`；
+2. 修改文件里的 `Mod/@ID`、资源文件相对路径以及版本号；
+3. 打开 `mods/mods.xml`，在里面加上一行：`<Include Source="<你的Mod英文名>/<你的Mod英文名>.xml" />`；
+4. 把实际要用到的图片放到 `images/`、安装清单放到 `manifests/` 目录下。
 
-## 新建 Application
+## 如何新建一个 Application
 
-1. 复制 `Application.xml` 到 `apps/<name>/<name>.xml`
-2. 改 `Application/@ID` 与 Packages
-3. 在 `apps/apps.xml` 增加 Include
+1. 复制本目录下的 `Application.xml` 到 `apps/<你的应用英文名>/<你的应用英文名>.xml`；
+2. 修改文件里的 `Application/@ID` 以及包含的 `Packages` 版本包列表；
+3. 打开 `apps/apps.xml`，在里面加上对应的 `<Include Source="..." />` 引入行。
 
-## 使用 Base 继承（可选）
+## 公共样式继承（可选的高级功能）
 
-见仓库 README「源树继承（Base / InheritFrom）」。  
-公共样式可放在独立 XML 的 `<Base ID="..." Kind="Mod">`，Mod 写 `InheritFrom` 只填差异。
+如果多个 Mod 想共用同一套界面按钮样式或背景，可以使用继承机制：
+把公共样式写在单独 XML 文件的 `<Base ID="..." Kind="Mod">` 标签里，具体 Mod 的 XML 里直接写 `InheritFrom="<公共Base的ID>"`，里面只写自己的个性化差异部分即可。
+详细介绍可以查阅仓库根目录下的 [README.md](../../README.md) 和 [AGENTS.md](../../AGENTS.md)。
