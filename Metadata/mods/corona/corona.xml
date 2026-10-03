@@ -7,20 +7,19 @@
         <Include Source="manifests/manifests.xml" />
     </Includes>
 
-    <Image ID="corona-icon-64px" Source="images/icon-64px.png" />
-    <Image ID="corona-logo-colored" Source="images/logo-colored.png" />
-    <Image ID="corona-logo-example" Url="https://cor-games.com/images/corona-mainpage-logo.png" />
-    <Image ID="background-1" Source="images/background-1.png" />
-    <Image ID="background-2" Source="images/background-2.png" />
-    <Image ID="background-3" Source="images/background-3.png" />
-    <Image ID="background-4" Source="images/background-4.png" />
-    <Image ID="background-5" Source="images/background-5.png" />
+    <Image ID="corona-icon-128px" Source="images/icon-128px.png" />
+    <Image ID="corona-banner" Source="images/banner.png" />
+    <Image ID="background-1" Source="images/background-1.webp" />
+    <Image ID="background-2" Source="images/background-2.webp" />
+    <Image ID="background-3" Source="images/background-3.webp" />
+    <Image ID="background-4" Source="images/background-4.webp" />
+    <Image ID="background-5" Source="images/background-5.webp" />
 
     <Mod ID="Corona">
         <CurrentVersion>3.258</CurrentVersion>
-        <Icon>corona-icon-64px</Icon>
+        <Icon>corona-icon-128px</Icon>
         <Style>
-            <Logo Width="400" Height="80">corona-logo-colored</Logo>
+            <Logo Width="400" Height="80">corona-banner</Logo>
             <Controls>
                 <LaunchButton>
                     <BorderBrush>#FF000000</BorderBrush>
