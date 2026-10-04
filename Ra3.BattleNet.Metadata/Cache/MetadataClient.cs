@@ -159,7 +159,7 @@ public sealed class MetadataClient : IDisposable
 
     private async Task<LeafDoc> ReadOrFetchLeafAsync(Uri leaf, CancellationToken ct)
     {
-        var disk = _disk.TryReadLeaf(leaf.AbsoluteUri);
+        var disk = _disk.TryReadLeaf(leaf);
         if (disk is not null)
         {
             var loaded = StoreParsedLeaf(leaf, disk.Bytes, disk.Digest, MetadataFreshness.Stale, error: null);
@@ -192,6 +192,7 @@ public sealed class MetadataClient : IDisposable
     private Task<RootSnapshotResult> OpenCore(Uri origin, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
+        _disk.BindPrimary(origin);
         var disk = _disk.TryReadRoot(origin);
         if (disk is null)
             return Task.FromResult(RootUnavailable(origin, "本地没有可用的根清单缓存"));
@@ -204,6 +205,7 @@ public sealed class MetadataClient : IDisposable
 
     private async Task<RootSnapshotResult> RefreshRootCore(Uri origin, CancellationToken ct)
     {
+        _disk.BindPrimary(origin);
         try
         {
             var disk = _disk.TryReadRoot(origin);
@@ -245,11 +247,11 @@ public sealed class MetadataClient : IDisposable
         var key = leaf.AbsoluteUri;
         try
         {
-            var disk = _disk.TryReadLeaf(key);
+            var disk = _disk.TryReadLeaf(leaf);
             var transfer = await TransferAsync(leaf, disk is { Verified: true } ? disk.Stamp : null, ct).ConfigureAwait(false);
             if (transfer.NotModified)
             {
-                var again = _disk.TryReadLeaf(key);
+                var again = _disk.TryReadLeaf(leaf);
                 var reused = again is { Verified: true }
                     ? FindLeaf(key, again.Digest) ?? StoreParsedLeaf(leaf, again.Bytes, again.Digest, MetadataFreshness.Fresh, null)
                     : null;
@@ -305,7 +307,7 @@ public sealed class MetadataClient : IDisposable
         var bodyPath = _disk.RootBodyPath(origin);
         try
         {
-            await _disk.StageAsync(bodyPath, bytes, ct).ConfigureAwait(false);
+            await _disk.StageAsync(bodyPath, origin.AbsoluteUri, bytes, ct).ConfigureAwait(false);
             _disk.Commit(bodyPath, new CacheStamp
             {
                 Uri = origin.AbsoluteUri,
@@ -339,10 +341,10 @@ public sealed class MetadataClient : IDisposable
             return LeafDocFallback(leaf, reject ?? "叶子清单无效");
 
         var digest = MetadataDiskCache.Sha256Hex(bytes);
-        var bodyPath = _disk.LeafBodyPath(leaf.AbsoluteUri);
+        var bodyPath = _disk.LeafBodyPath(leaf);
         try
         {
-            await _disk.StageAsync(bodyPath, bytes, ct).ConfigureAwait(false);
+            await _disk.StageAsync(bodyPath, leaf.AbsoluteUri, bytes, ct).ConfigureAwait(false);
             _disk.Commit(bodyPath, new CacheStamp
             {
                 Uri = leaf.AbsoluteUri,
@@ -432,7 +434,7 @@ public sealed class MetadataClient : IDisposable
 
     private LeafDoc LeafDocFallback(Uri leaf, string error)
     {
-        var disk = _disk.TryReadLeaf(leaf.AbsoluteUri);
+        var disk = _disk.TryReadLeaf(leaf);
         if (disk is not null)
         {
             var loaded = StoreParsedLeaf(leaf, disk.Bytes, disk.Digest, MetadataFreshness.Stale, error);

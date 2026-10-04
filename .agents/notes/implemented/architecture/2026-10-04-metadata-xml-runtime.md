@@ -23,11 +23,15 @@ Status: implemented
 ### 缓存发布和 HTTP
 
 ```text
-<cacheDir>/roots/<完整 SHA256(规范化入口 URI)>/metadata.xml
-<cacheDir>/leaves/<完整 SHA256(规范化 Source URI)>/leaf.xml
+<cacheDir>/origin.json                              一次性绑定主发布基
+<cacheDir>/metadata.xml                             根清单
+<cacheDir>/apps/...、<cacheDir>/mods/...             主发布基下按 Source 原样保存的叶子
+<cacheDir>/.sources/<scheme>/<host_port>/<path>     其他发布基的可读隔离目录
 ```
 
-每份正文旁保存 `.etag`，记录 URI、正文 SHA256、ETag 与 Last-Modified。候选 XML 先解析和校验，再写 `.tmp` 并原子替换正文，最后原子发布校验器。入口分别存放，不能因为切换或刷新另一个入口而丢失已有缓存。
+主发布基按第一次打开或刷新入口的发布目录绑定，不能被后续入口改写。写入 XML 前校验路径安全性和 `.uri` 来源归属；查询串、跳转段、编码斜杠、Windows 歧义名和 `.etag`/`.tmp`/`.uri` 保留后缀直接拒绝。原始 XML 先解析和校验，再写临时文件、原子替换正文，最后发布 `.etag`。正文摘要只用于校验 ETag 与正文是否匹配，不参与目录命名。
+
+只有 `.etag` 与实际正文摘要一致才能发条件请求；缺失或不一致则无条件 GET。有效 XML 缓存仍可离线读取；同一 Source 的文档和按 Manifest ID 的投影在进程内共享。304 只在有效正文存在时成功，正文损坏或无法解析则无条件重取。
 
 - 未完成的临时文件不是缓存。正文替换前中断，旧正文保留；正文替换后校验器未完成，已解析合法的正文仍可离线使用。
 - 只有校验器与实际正文摘要一致才能发条件请求；缺失或不一致则无条件 GET。
@@ -47,7 +51,7 @@ HTTP 失败和单个叶子解析失败返回状态，不阻止其他叶子完成
 ## Alternatives considered
 
 - **每个 Desktop 消费者自己缓存**：改动局部、便于独立上线，但相同 XML 仍重复下载和解析，离线与来源解析规则也会分叉，因此由 Metadata 提供加载器。
-- **根缓存只占一个固定槽并另写 origin.json**：布局简单，但正文与来源绑定分两次发布，写入中断或两个入口并发会丢失关联。根也按完整 URI 哈希分目录，去掉单独的绑定文件。
+- **根缓存只占一个固定槽并另写来源绑定**：布局简单，但正文与来源绑定分两次发布，写入中断或两个入口并发会丢失关联。当前用一次性 `origin.json` 绑定主发布基，并把其他发布基放在可读的 `.sources` 子树。
 - **多版本对象库、租约、图片与 Markdown 缓存**：适合跨进程回收和大量媒体。本轮只缓存 XML，保留最后有效正文即可；不实现租约与回收框架。原提案见[运行期本地缓存的旧方案](../../rejected/architecture/2026-10-02-runtime-metadata-cache.md)。
 - **合并 Updater 清单解析**：可以减少解析器数量，且不必然引入联网。但现有 Updater 没有外部模型注入接口，两仓库改动只需共享产品数据及端点，保持独立 CLI 和纯本地 Applier。
 
@@ -60,7 +64,8 @@ HTTP 失败和单个叶子解析失败返回状态，不阻止其他叶子完成
 
 ## Verification
 
-- `dotnet test Ra3.BattleNet.Metadata.Tests/Ra3.BattleNet.Metadata.Tests.csproj -c Release`：177 通过，0 失败。
-- 项目外真实 HTTP 冒烟：12 个消费者并发刷新只产生一次根 GET；刷新两个历史包 XML 与一个失败叶子，图片、Markdown、Updater 请求均为零；重复叶子查询共享文档和类型投影；304 复用文档。
-- 冷进程读取磁盘根与历史叶子返回 Stale；网络刷新失败返回 Stale 与新 RefreshId，不复用上一轮 Fresh。
-- 关联 Desktop 集成决定见 [Metadata XML 统一预加载与解析](https://github.com/RA3BattleNet/Desktop/blob/feat/metadata-preload/.agents/notes/implemented/architecture/2026-10-04-metadata-preload.md)。
+- `dotnet test Ra3.BattleNet.Metadata.Tests/Ra3.BattleNet.Metadata.Tests.csproj -c Release`：186 通过，0 失败。
+- 项目外真实 HTTP 冒烟：根和叶子按发布树保存为 `metadata.xml` 与 `apps/...`，无 `roots/`、`leaves/` 或 URL 哈希目录；304 复用文档，冷进程可读取根和叶子。
+- `dotnet build Ra3.BattleNet.Desktop/Ra3.BattleNet.Desktop.csproj -c Debug /p:MetadataProjectPath=<Metadata worktree csproj>`：0 警告，0 错误。
+- `dotnet test Ra3.BattleNet.Desktop.Tests/Ra3.BattleNet.Desktop.Tests.csproj -c Debug /p:MetadataProjectPath=<Metadata worktree csproj>`：139 通过，0 失败。
+- Desktop 服务和独立 Applier 冒烟仍覆盖离线固定版本、更新 Fresh 门禁和本地暂存应用。

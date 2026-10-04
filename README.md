@@ -84,14 +84,20 @@ var plan = ManifestMountPlanner.Build(
 
 ### 运行时最后有效缓存
 
-`MetadataClient` 接收调用方传入的绝对缓存目录。根清单按**规范化入口 URI** 分目录，叶子按**规范化 Source URI** 分目录。这样发布一个入口不会拆掉另一个入口的最后有效正文，相对 Source 也只按入口地址解析，不会把缓存目录当成基准。
+`MetadataClient` 接收调用方传入的绝对缓存目录。**第一次打开或刷新的入口绑定为「主发布基」**，写到 `<cacheDir>/origin.json`，之后刷新、打开其他入口都不会改写它；绑定跨进程稳定，因此路径映射是纯函数。
+
+主发布基的正文按**发布文件树**直接落在缓存目录里：根是 `metadata.xml`，各登记 `Source` 按相对发布基的路径同名落盘。其他发布基放在可读的 `.sources` 子树。相对 Source 仍以原始入口地址为基准解析，缓存目录只是落盘位置，不是地址基准。
 
 ```text
-<cacheDir>/roots/<sha256(规范化入口 URI)>/metadata.xml
-<cacheDir>/leaves/<sha256(规范化 Source URI)>/leaf.xml
+<cacheDir>/origin.json                              一次性绑定主发布基，刷新不改写
+<cacheDir>/metadata.xml                             主发布基的根清单
+<cacheDir>/apps/<应用名>/...、<cacheDir>/mods/<模组名>/...   主发布基的叶子，与发布物同名
+<cacheDir>/.sources/<scheme>/<host_port>/<path>     其他发布基的正文（小写 host；非默认端口写成 host_port）
 ```
 
-同目录还有 `.etag`（ETag、Last-Modified、规范化 URI、正文 SHA256）和写入过程中的 `.tmp`。`.tmp` 不当缓存读。校验器缺失或与正文摘要不一致时，正文仍可离线使用，下一次读取是无条件 GET。`SchemaVersion` 与 `MetadataSchema.IsCompatible` 不一致时不覆盖已有正文。
+同目录还有 `.etag`（ETag、Last-Modified、规范化 URI、正文 SHA256）、`.uri`（该磁盘路径一次成型的归属地址）和写入过程中的 `.tmp`。`.tmp` 不当缓存读。校验器缺失或与正文摘要不一致时，正文仍可离线使用，下一次读取是无条件 GET；但同一磁盘路径一旦被另一个地址占用（`Apps/x.xml` 与 `apps/x.xml` 在 Windows 上就是这种情况），正文既不会被误读，也不会被覆盖——即使 `.etag` 被删掉，`.uri` 仍保留归属。`SchemaVersion` 与 `MetadataSchema.IsCompatible` 不一致时不覆盖已有正文。
+
+只接受静态发布文件树：带查询串、含跳转段或空段、含编码的斜杠/反斜杠、Windows 保留设备名、结尾空格或点、正文文件名带 `.etag`/`.tmp`/`.uri` 后缀、带用户信息或非 DNS/IPv4 主机的地址，以及会占用保留名（`origin.json`、`.sources`）的主发布基相对路径，都在写入前直接抛出 `ArgumentException`。本地路径与 `file://` 开发入口和线上地址走同一套映射；主发布基绑定写不进磁盘时直接失败，不会在没有绑定文件的情况下继续写正文。
 
 叶子调用必须带上当时捕获的根快照。身份只在这份快照里按版本和 Source 解析，不会去翻客户端里更早或更晚的根。相同 Source 的正文只拉一次；每个调用再从这份正文投影自己的 Manifest ID。
 

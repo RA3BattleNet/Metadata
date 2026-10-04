@@ -8,7 +8,8 @@ using Ra3.BattleNet.Metadata.Cache;
 namespace Ra3.BattleNet.Metadata.Tests;
 
 /// <summary>
-/// 共享加载与最后有效缓存的对外契约。不覆盖内部文件布局细节。
+/// 共享加载与最后有效缓存的对外契约。发布文件树布局（主发布基直接落在缓存目录、其他来源进
+/// <c>.sources</c>）是对外可见的契约，因此也在此断言。
 /// </summary>
 [TestClass]
 public class MetadataClientTests
@@ -514,6 +515,282 @@ public class MetadataClientTests
 
         await act.Should().ThrowAsync<OperationCanceledException>();
         fixture.Calls.Should().BeEmpty();
+    }
+
+    [TestMethod]
+    public async Task RefreshRoot_MapsPublishedTreeDirectlyUnderCache()
+    {
+        var cache = NewCache();
+        using var fixture = Fixture.Create(cache);
+        fixture.Handler.Next = (request, _) =>
+        {
+            var uri = request.RequestUri!.AbsoluteUri;
+            if (uri == RootUrl)
+                return Task.FromResult(Xml(RootXml(), "\"v1\""));
+            var id = uri switch
+            {
+                "https://metadata.example/apps/leaf.xml" => "app-leaf",
+                "https://metadata.example/apps/old.xml" => "app-old",
+                "https://metadata.example/mods/current.xml" => "mod-current",
+                "https://metadata.example/mods/old.xml" => "mod-old",
+                _ => "",
+            };
+            id.Should().NotBeNullOrEmpty($"不应预取 {uri}");
+            return Task.FromResult(Xml(LeafXml(id), "\"v1\""));
+        };
+
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+        await fixture.Client.PreloadLeavesAsync(root);
+
+        // 主发布基的正文就是发布文件树的相对文件名，不再是 URI 哈希目录。
+        File.Exists(Path.Combine(cache, "metadata.xml")).Should().BeTrue();
+        File.Exists(Path.Combine(cache, "apps", "leaf.xml")).Should().BeTrue();
+        File.Exists(Path.Combine(cache, "apps", "old.xml")).Should().BeTrue();
+        File.Exists(Path.Combine(cache, "mods", "current.xml")).Should().BeTrue();
+        File.Exists(Path.Combine(cache, "mods", "old.xml")).Should().BeTrue();
+        Directory.Exists(Path.Combine(cache, "roots")).Should().BeFalse();
+        Directory.Exists(Path.Combine(cache, "leaves")).Should().BeFalse();
+        Directory.EnumerateDirectories(cache).Should().NotContain(dir => Path.GetFileName(dir).Length == 64);
+        File.ReadAllText(Path.Combine(cache, "origin.json")).Should().Contain("https://metadata.example/");
+    }
+
+    [TestMethod]
+    public async Task RefreshRoot_SubPathBase_MapsSourcesRelativeToPublishingBase()
+    {
+        const string rootUrl = "https://metadata.example/ra3/metadata.xml";
+        var cache = NewCache();
+        using var fixture = Fixture.Create(cache);
+        fixture.Handler.Next = (request, _) => Task.FromResult(Xml(
+            request.RequestUri!.AbsoluteUri == rootUrl ? RootXml() : LeafXml("app-leaf"), "\"v1\""));
+
+        var root = await fixture.Client.RefreshRootAsync(rootUrl);
+        var leaf = await fixture.Client.GetLeafAsync(root, "1.0.0", MetadataResourceUri.Resolve(rootUrl, "apps/leaf.xml"));
+
+        leaf.Status.Should().Be(MetadataFreshness.Fresh);
+        File.Exists(Path.Combine(cache, "metadata.xml")).Should().BeTrue();
+        File.Exists(Path.Combine(cache, "apps", "leaf.xml")).Should().BeTrue();
+        Directory.Exists(Path.Combine(cache, "ra3")).Should().BeFalse();
+        File.ReadAllText(Path.Combine(cache, "origin.json")).Should().Contain("https://metadata.example/ra3/");
+    }
+
+    [TestMethod]
+    public async Task ColdCache_Leaf_ReusesPublishedBodyOn304()
+    {
+        var cache = NewCache();
+        var handler = new ScriptedHandler((request, _) =>
+        {
+            if (request.RequestUri!.AbsoluteUri == RootUrl)
+                return Task.FromResult(Xml(RootXml(), "\"v1\""));
+            return Task.FromResult(request.Headers.IfNoneMatch.Any()
+                ? NotModified()
+                : Xml(LeafXml("app-leaf"), "\"v1\""));
+        });
+        using var http = new HttpClient(handler);
+        var leafUri = MetadataResourceUri.Resolve(RootUrl, "apps/leaf.xml");
+        var published = Path.Combine(cache, "apps", "leaf.xml");
+        try
+        {
+            using (var first = Client(cache, http))
+            {
+                var root = await first.RefreshRootAsync(RootUrl);
+                (await first.RefreshLeafAsync(root, "1.0.0", leafUri)).Status.Should().Be(MetadataFreshness.Fresh);
+            }
+
+            File.Exists(published).Should().BeTrue();
+            handler.Calls.Clear();
+
+            using var second = Client(cache, http);
+            var opened = await second.OpenSnapshotAsync(RootUrl);
+            opened.Status.Should().Be(MetadataFreshness.Stale);
+
+            var reused = await second.RefreshLeafAsync(opened, "1.0.0", leafUri);
+
+            reused.Status.Should().Be(MetadataFreshness.Fresh);
+            reused.Entry!.Id.Should().Be("app-leaf");
+            handler.Calls.Should().ContainSingle();
+            handler.Calls[0].Conditional.Should().BeTrue();
+            File.Exists(published).Should().BeTrue();
+        }
+        finally
+        {
+            TryDelete(cache);
+        }
+    }
+
+    [TestMethod]
+    public async Task DifferentOrigins_UseSeparateReadableTrees_AndNeverShareBody()
+    {
+        const string otherUrl = "https://other.example/metadata.xml";
+        var cache = NewCache();
+        using var fixture = Fixture.Create(cache);
+        fixture.Handler.Next = (request, _) => Task.FromResult(Xml(
+            request.RequestUri!.Host == "other.example" ? OtherRootXml() : RootXml(), "\"v1\""));
+
+        (await fixture.Client.RefreshRootAsync(RootUrl)).Status.Should().Be(MetadataFreshness.Fresh);
+        (await fixture.Client.RefreshRootAsync(otherUrl)).Status.Should().Be(MetadataFreshness.Fresh);
+
+        var primaryBody = Path.Combine(cache, "metadata.xml");
+        var otherBody = Path.Combine(cache, ".sources", "https", "other.example", "metadata.xml");
+        File.Exists(primaryBody).Should().BeTrue();
+        File.Exists(otherBody).Should().BeTrue();
+        File.ReadAllText(primaryBody).Should().Contain("RA3BattleNet").And.NotContain("Other");
+        File.ReadAllText(otherBody).Should().Contain("Other");
+        Directory.Exists(Path.Combine(cache, ".sources", "https", "metadata.example")).Should().BeFalse();
+        File.ReadAllText(Path.Combine(cache, "origin.json")).Should().Contain("https://metadata.example/");
+
+        using var later = Client(cache, fixture.Http);
+        var otherOpen = await later.OpenSnapshotAsync(otherUrl);
+        otherOpen.Status.Should().Be(MetadataFreshness.Stale);
+        otherOpen.Document!.Catalog().Application("Other").Should().NotBeNull();
+        otherOpen.Document!.Catalog().Application("RA3BattleNet").Should().BeNull();
+
+        var primaryOpen = await later.OpenSnapshotAsync(RootUrl);
+        primaryOpen.Document!.Catalog().Application("RA3BattleNet").Should().NotBeNull();
+        primaryOpen.Document!.Catalog().Application("Other").Should().BeNull();
+        later.Dispose();
+    }
+
+    [TestMethod]
+    public async Task ForeignStampAtSamePath_IsNeitherReadNorOverwritten()
+    {
+        var cache = NewCache();
+        using var fixture = Fixture.Create(cache);
+        fixture.Handler.Next = (_, _) => Task.FromResult(Xml(RootXml(), "\"v1\""));
+        (await fixture.Client.RefreshRootAsync(RootUrl)).Status.Should().Be(MetadataFreshness.Fresh);
+
+        var bodyPath = Path.Combine(cache, "metadata.xml");
+        var original = File.ReadAllBytes(bodyPath);
+        SetStampUri(bodyPath, "https://evil.example/metadata.xml");
+
+        using var later = Client(cache, fixture.Http);
+        var opened = await later.OpenSnapshotAsync(RootUrl);
+        opened.Status.Should().Be(MetadataFreshness.Unavailable);
+        opened.Document.Should().BeNull();
+
+        fixture.Handler.Next = (_, _) => Task.FromResult(Xml(RootXml(), "\"v2\""));
+        var refused = await later.RefreshRootAsync(RootUrl);
+        refused.Status.Should().Be(MetadataFreshness.Unavailable);
+        refused.Document.Should().BeNull();
+        refused.Error.Should().NotBeNullOrWhiteSpace();
+        File.ReadAllBytes(bodyPath).Should().Equal(original);
+        later.Dispose();
+    }
+
+    [TestMethod]
+    public async Task UnsafeSourcePaths_AreRejectedBeforeAnyWrite()
+    {
+        var cache = NewCache();
+        using var fixture = Fixture.Create(cache);
+        fixture.Handler.Next = (_, _) => Task.FromResult(Xml(RootXml(), "\"v1\""));
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+        fixture.Calls.Clear();
+
+        var escapedSlash = MetadataResourceUri.Resolve(RootUrl, "apps/escape%2F..%2F..%2Fevil.xml");
+        var escapedBackslash = MetadataResourceUri.Resolve(RootUrl, @"apps\escape%5C..%5Cevil.xml");
+        var reserved = MetadataResourceUri.Resolve(RootUrl, "apps/CON.xml");
+
+        await FluentActions.Awaiting(async () => await fixture.Client.GetLeafAsync(root, "1.0.0", escapedSlash))
+            .Should().ThrowAsync<ArgumentException>();
+        await FluentActions.Awaiting(async () => await fixture.Client.GetLeafAsync(root, "1.0.0", escapedBackslash))
+            .Should().ThrowAsync<ArgumentException>();
+        await FluentActions.Awaiting(async () => await fixture.Client.GetLeafAsync(root, "1.0.0", reserved))
+            .Should().ThrowAsync<ArgumentException>();
+        await FluentActions.Awaiting(async () => await fixture.Client.RefreshRootAsync("https://metadata.example/metadata.xml?rev=1"))
+            .Should().ThrowAsync<ArgumentException>();
+
+        fixture.Calls.Should().BeEmpty();
+        Directory.EnumerateFiles(cache, "*.xml", SearchOption.AllDirectories)
+            .Should().ContainSingle().Which.Should().Be(Path.Combine(cache, "metadata.xml"));
+        File.Exists(Path.Combine(cache, "evil.xml")).Should().BeFalse();
+        var parent = Path.GetDirectoryName(cache);
+        if (parent is not null)
+            File.Exists(Path.Combine(parent, "evil.xml")).Should().BeFalse();
+    }
+
+    [TestMethod]
+    public async Task MissingEtag_ForeignPathOwner_BlocksReadAndWrite()
+    {
+        var cache = NewCache();
+        using var fixture = Fixture.Create(cache);
+        fixture.Handler.Next = (_, _) => Task.FromResult(Xml(RootXml(), "\"v1\""));
+        (await fixture.Client.RefreshRootAsync(RootUrl)).Status.Should().Be(MetadataFreshness.Fresh);
+
+        var bodyPath = Path.Combine(cache, "metadata.xml");
+        var original = File.ReadAllBytes(bodyPath);
+        File.Delete(bodyPath + ".etag");
+        File.WriteAllText(bodyPath + ".uri", "https://evil.example/metadata.xml");
+
+        using var later = Client(cache, fixture.Http);
+        var opened = await later.OpenSnapshotAsync(RootUrl);
+        opened.Status.Should().Be(MetadataFreshness.Unavailable);
+        opened.Document.Should().BeNull();
+
+        fixture.Handler.Next = (_, _) => Task.FromResult(Xml(RootXml(), "\"v2\""));
+        var refused = await later.RefreshRootAsync(RootUrl);
+        refused.Status.Should().Be(MetadataFreshness.Unavailable);
+        refused.Document.Should().BeNull();
+        refused.Error.Should().NotBeNullOrWhiteSpace();
+        File.ReadAllBytes(bodyPath).Should().Equal(original);
+        later.Dispose();
+    }
+
+    [TestMethod]
+    public async Task CaseVariantRootEntry_DoesNotAliasPrimaryBody()
+    {
+        const string variantUrl = "https://metadata.example/Metadata.xml";
+        var cache = NewCache();
+        using var fixture = Fixture.Create(cache);
+        fixture.Handler.Next = (_, _) => Task.FromResult(Xml(RootXml(), "\"v1\""));
+        (await fixture.Client.RefreshRootAsync(RootUrl)).Status.Should().Be(MetadataFreshness.Fresh);
+
+        // 校验器丢掉后，Windows 上大小写不同的入口会落到同一份正文；归属地址仍要挡住误读。
+        File.Delete(Path.Combine(cache, "metadata.xml.etag"));
+
+        using var later = Client(cache, fixture.Http);
+        var variant = await later.OpenSnapshotAsync(variantUrl);
+        variant.Status.Should().Be(MetadataFreshness.Unavailable);
+        variant.Document.Should().BeNull();
+
+        var primary = await later.OpenSnapshotAsync(RootUrl);
+        primary.Status.Should().Be(MetadataFreshness.Stale);
+        primary.Document.Should().NotBeNull();
+        later.Dispose();
+    }
+
+    [TestMethod]
+    public async Task SidecarSuffixSource_IsRejectedWithoutWrite()
+    {
+        var cache = NewCache();
+        using var fixture = Fixture.Create(cache);
+        fixture.Handler.Next = (request, _) => Task.FromResult(Xml(
+            request.RequestUri!.AbsoluteUri == RootUrl ? RootXml("apps/leaf.xml.etag", "app-leaf") : LeafXml("app-leaf"), "\"v1\""));
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+        fixture.Calls.Clear();
+
+        var sidecar = MetadataResourceUri.Resolve(RootUrl, "apps/leaf.xml.etag");
+        await FluentActions.Awaiting(async () => await fixture.Client.GetLeafAsync(root, "1.0.0", sidecar))
+            .Should().ThrowAsync<ArgumentException>();
+
+        fixture.Calls.Should().BeEmpty();
+        File.Exists(Path.Combine(cache, "apps", "leaf.xml.etag")).Should().BeFalse();
+        Directory.EnumerateFiles(cache, "*.xml", SearchOption.AllDirectories)
+            .Should().ContainSingle().Which.Should().Be(Path.Combine(cache, "metadata.xml"));
+        File.Exists(Path.Combine(cache, "metadata.xml.etag")).Should().BeTrue();
+    }
+
+    private static string OtherRootXml() => """
+        <?xml version="1.0" encoding="utf-8"?>
+        <Metadata SchemaVersion="1.0" ContentRevision="other">
+          <Application ID="Other"><Version>9.0</Version></Application>
+        </Metadata>
+        """;
+
+    private static void SetStampUri(string bodyPath, string uri)
+    {
+        var stampPath = bodyPath + ".etag";
+        var stamp = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(stampPath))!.AsObject();
+        stamp["Uri"] = uri;
+        File.WriteAllText(stampPath, stamp.ToJsonString());
     }
 
     private static string SharedSourceRoot() => """
