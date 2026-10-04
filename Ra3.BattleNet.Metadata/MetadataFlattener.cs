@@ -282,7 +282,6 @@ public static class MetadataFlattener
             {
                 case "Icon":
                 case "Manifest" when el.Attribute("ID") == null && !el.HasElements:
-                case "Changelog":
                 case "Content":
                     RewriteTextRef(el, scope);
                     break;

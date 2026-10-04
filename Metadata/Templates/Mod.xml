@@ -57,6 +57,37 @@
         <Manifest>manifest-100</Manifest>
       </Package>
     </Packages>
+    <!-- 新闻与版本独立，简介可省略；取消注释前在顶部登记两份 Markdown ID，并填写实际日期与正文。
+    <Posts>
+      <Post DateTime="2026-10-02T00:00:00+08:00">
+        <Titles>
+          <Title Language="zh-CN">版本更新 1.9.9.11</Title>
+          <Title Language="en-US">Update 1.9.9.11</Title>
+        </Titles>
+        <Descriptions>
+          <Description Language="zh-CN">初版测试。</Description>
+          <Description Language="en-US">Initial test.</Description>
+        </Descriptions>
+        <Contents>
+          <Content Language="zh-CN">news-zh-1.9.9.11</Content>
+          <Content Language="en-US">news-en-1.9.9.11</Content>
+        </Contents>
+      </Post>
+    </Posts>
+    -->
+    <!-- 取消注释前替换成真实网址；Languages 省略时所有语言可见，名称缺少精确翻译时取第一条。
+    <Links>
+      <Link Url="https://example.com/" Languages="zh en">
+        <Icon>mod-icon-64px</Icon>
+        <DisplayName Language="zh-CN">官方网站</DisplayName>
+        <DisplayName Language="en-US">Official website</DisplayName>
+      </Link>
+      <Link Url="https://example.com/wiki">
+        <DisplayName Language="zh-CN">资料站</DisplayName>
+        <DisplayName Language="en-US">Wiki</DisplayName>
+      </Link>
+    </Links>
+    -->
   </Mod>
 
   <Manifest ID="manifest-100">

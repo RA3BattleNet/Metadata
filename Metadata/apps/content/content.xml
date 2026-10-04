@@ -31,6 +31,7 @@
                 <Manifest>manifest-1.5.5.2</Manifest>
             </Package>
         </Packages>
+        <Posts/>
         <UpdateKind ID="content" DisplayName="游戏资源" Current="1.5.5.2"
                     BaseUrl="https://update.ra3battle.net/app/contents/"
                     FallbackBaseUrl="">

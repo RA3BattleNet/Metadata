@@ -4,7 +4,6 @@
         <Commit>${TIMESTAMP}</Commit>
     </Tags>
     <Includes>
-        <Include Source="changelogs/changelogs.xml" />
         <Include Source="manifests/manifests.xml" />
         <Include Source="posts/posts.xml" />
     </Includes>
@@ -14,10 +13,6 @@
         <Packages>
             <Package Version="1.9.9.11">
                 <ReleaseDate>2026-10-02</ReleaseDate>
-                <Changelogs>
-                    <Changelog Language="zh-CN">changelog-zh-1.9.9.11</Changelog>
-                    <Changelog Language="en-US">changelog-en-1.9.9.11</Changelog>
-                </Changelogs>
                 <Manifest>manifest-1.9.9.11</Manifest>
             </Package>
         </Packages>
@@ -27,6 +22,10 @@
                     <Title Language="zh-CN">版本更新 1.9.9.11</Title>
                     <Title Language="en-US">Update 1.9.9.11</Title>
                 </Titles>
+                <Descriptions>
+                    <Description Language="zh-CN">初版测试。</Description>
+                    <Description Language="en-US">Initial test.</Description>
+                </Descriptions>
                 <Contents>
                     <Content Language="zh-CN">news-zh-1.9.9.11</Content>
                     <Content Language="en-US">news-en-1.9.9.11</Content>

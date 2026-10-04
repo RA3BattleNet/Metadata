@@ -17,7 +17,7 @@
 1. 配置 `BaseUrl` 地址（生产环境填 CDN 网页链接；开发调试时直接填本地生成的缓存目录路径）；
 2. 调用 `MetadataBuilder.Load(url|path)` 读取数据 → 获取各个实体对象，直接支持 C# LINQ 链式查询（详见下表 API）；
 3. 检查数据协议兼容性：如果 `SchemaVersion` 不兼容，提示用户升级客户端（调用 `MetadataSchema.IsCompatible`）；如果 `ContentRevision` 变了，说明服务器数据有更新，重新拉取整棵树；
-4. 查找资源引用：版本清单 Package.Manifest、图标 Icon、更新日志 Changelog、公告内容 Post.Content 等，在展平后全都是**带前缀的完整 ID**（格式形如 `路径前缀:localId`），直接通过这个完整 ID 去大总表里查找对应的登记节点即可 —— 千万别自己写循环去傻傻遍历 XML 节点树，直接调库里封装好的导航方法；
+4. 查找资源引用：版本清单 Package.Manifest、图标 Icon、公告正文 Post.Content、友情链接图标 Link.Icon 等，在展平后全都是**带前缀的完整 ID**（格式形如 `路径前缀:localId`），直接通过这个完整 ID 去大总表里查找对应的登记节点即可 —— 千万别自己写循环去傻傻遍历 XML 节点树，直接调库里封装好的导航方法；版本包不再携带更新日志；
 5. 拼接资源的真实下载地址：真实地址 = `BaseUrl` + 登记节点的 `Source` 相对路径（调用 `MetadataResourceUri.Resolve` 方法即可安全拼装）；图片的最终文件后缀名以 `Source` 为准（经过正式发布后可能被转成了 `.webp` 格式）；
 6. 读取各版本的独立清单：各个具体版本的详细文件表（File 列表）并没有塞进大总表 `metadata.xml` 里，而是需要根据清单的 `Source` 地址再去拉取一次独立的叶子清单文件并解析；至于游戏启动前怎么挂载文件，交给 `ManifestMountPlanner` 去规划即可。
 
@@ -39,8 +39,21 @@ var corona = doc.Catalog().Mod("Corona")!;
 var leafUrl = MetadataResourceUri.Resolve("https://metadata.ra3battle.net/metadata.xml", corona.ManifestSource());
 var manifest = MetadataBuilder.Load(leafUrl.AbsoluteUri).Find("Manifest")!.ToManifestEntry();
 
-// 查找应用更新日志对应的相对路径文件（找不到对应语言返回 null）
-var changelog = app!.ChangelogSource("zh-CN");
+// 新闻属于当前实体，与版本包无关。库不再提供 ChangelogSource；没有 Posts 或空容器都表示没有新闻。
+var posts = app!.Raw.Find("Posts");
+var firstPost = posts?.Children.FirstOrDefault(c => c.Name == "Post");
+var zhTitle = firstPost?.Find("Titles")?.Children
+    .FirstOrDefault(c => c.Name == "Title" && string.Equals(c.Get("Language"), "zh-CN", StringComparison.OrdinalIgnoreCase))
+    ?.Value;
+var zhDescription = firstPost?.Find("Descriptions")?.Children
+    .FirstOrDefault(c => c.Name == "Description" && string.Equals(c.Get("Language"), "zh-CN", StringComparison.OrdinalIgnoreCase))
+    ?.Value;
+var zhContentId = firstPost?.Find("Contents")?.Children
+    .FirstOrDefault(c => c.Name == "Content" && string.Equals(c.Get("Language"), "zh-CN", StringComparison.OrdinalIgnoreCase))
+    ?.Value;
+
+// 友情链接只在该 Mod 自己的节点上，顺序与 XML 书写顺序一致。Base 与 Application 都没有 Links。
+var links = corona.Raw.Find("Links");
 
 // 生成启动挂载计划：如果清单里写了 Skudef 就按声明顺序和条件来，没写就按老旧的 File@Mount 角色来
 var plan = ManifestMountPlanner.Build(
@@ -60,7 +73,8 @@ var plan = ManifestMountPlanner.Build(
 | `root.GetAllElements(name)` | 按 XML 标签名遍历整棵展平树（延迟枚举） |
 | `root.ManifestRegistration(id)` | 根据完整 ID 查找 Manifest 清单登记节点；找不到返回 null |
 | `ModEntry.Package(version)` / `ManifestSource(version)` | 获取指定版本的包定义（不传参数默认取当前最新版）/ 获取独立清单的相对 Source 路径；如果版本缺失、清单缺失或路径缺失都会抛出带明确原因的异常 |
-| `ApplicationEntry.Package(version)` / `ChangelogSource(language)` | 获取指定版本的应用包 / 获取指定语言更新日志的相对 Source 路径；没配该语言时返回 null |
+| `ApplicationEntry.Package(version)` | 获取指定版本的应用包；版本或包缺失时返回 null |
+| `entry.Raw.Find("Posts")` / `mod.Raw.Find("Links")` | 读取该实体自己的新闻，或该 Mod 自己的友情链接。库不提供 Posts／Links 强类型查询；已删除的 `ChangelogSource` 不再存在，调用方改读所属实体的 `Posts` |
 | `node.ToManifestEntry()` | 把 XML 节点解析转换成强类型的 `ManifestEntry` 对象（包含 Files 文件表、Dependencies 依赖、Skudef 挂载声明） |
 | `MetadataSchema.Current` / `IsCompatible(version)` | 当前数据协议版本（`1.0`），以及判断数据版本是否与当前契约一致；加载不会自动调用此检查 |
 | `MetadataResourceUri.Resolve(baseUrl, source)` | 将相对 Source 路径安全拼装为完整的绝对网络地址或本地绝对路径 |
@@ -121,10 +135,11 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: MetadataSchema.Curren
 | 模型元素 | 所在 XML 位置 | 属性与功能说明 |
 |---|---|---|
 | `SchemaVersion` / `ContentRevision` | 根节点属性 | 数据协议大版本号 / 构建注入的 Git 提交修订号 |
-| `Application` | 根的子元素 | 应用程序实体：包含 `@ID`、当前版本 `Version`、版本包列表 `Packages`、更新公告 `Posts` |
-| `Mod` | 根的子元素 | 模组实体：包含 `@ID`、当前推荐版本 `CurrentVersion`、图标 `Icon`（引用图片 ID）、多语言显示名 `DisplayName`、外观样式 `Style`、版本列表 `Packages`、公告 `Posts` |
-| `Package` | 实体子元素 | 具体版本包：包含版本号 `@Version`、发布日期 `ReleaseDate`、更新日志 `Changelogs`、对应的独立清单 `Manifest` |
-| `Post` | 实体子元素 | 公告新闻：包含发布时间 `@DateTime`、多语言标题 `Titles` 与正文内容 `Contents` |
+| `Application` | 根的子元素 | 应用程序实体：包含 `@ID`、当前版本 `Version`、版本包列表 `Packages`、自己的新闻 `Posts`。新闻不从 Base 继承，也不使用顶层公共列表 |
+| `Mod` | 根的子元素 | 模组实体：包含 `@ID`、当前推荐版本 `CurrentVersion`、图标 `Icon`（引用图片 ID）、多语言显示名 `DisplayName`、外观样式 `Style`、版本列表 `Packages`、自己的公告 `Posts`、可选友情链接 `Links`。Base 不定义 Posts 或 Links |
+| `Package` | 实体子元素 | 纯安装数据：必填版本号 `@Version`、可选发布日期 `ReleaseDate`、可选独立清单 `Manifest`。不再包含更新日志；可以没有任何新闻 |
+| `Post` | Mod 或 Application 的直接子元素 | 独立新闻：发布时间 `@DateTime`、多语言标题 `Titles`、可选多语言介绍 `Descriptions`、正文 Markdown 引用 `Contents`。不关联版本包，不加外跳链接；介绍省略时不从 Markdown 截取 |
+| `Link` | 仅 Mod 的直接子元素 | 友情链接：必填 `@Url`（仅 HTTP／HTTPS）、可选 `@Languages`、可选图标短 ID `Icon`、至少一条 `DisplayName`。顺序即展示顺序 |
 | `Image` / `Markdown` / `Manifest` | 资源登记节点 | 包含资源完整 ID `@ID`（带前缀）、相对路径 `@Source`；图片支持 `@Url` 外部链接；清单在主表里表现为占位 stub |
 
 ### Mod 页面样式
@@ -149,6 +164,8 @@ var cssColor = color is null ? null : MetadataColor.ToCss(color.Value!, color.Ge
 XML 使用 PascalCase，Vue 对象使用 camelCase，CSS 属性使用 kebab-case。Vue `:style` 中尺寸需转成 `px` 字符串，字重没有单位；`Hover` / `Active` 通过 CSS 变量和伪类实现，不能把嵌套状态对象直接作为 `:style`。本仓库提供元数据，不包含 Vue 页面实现。
 
 **发布契约版本保持 `1.0`。** 本次仅调整 Style，不提高整个元数据的版本号，避免已有客户端因版本检查拒绝模组、应用包和更新信息。旧 `LaunchButton` / `Label` 及 Brush 字段已迁移，不保留别名；旧版八位颜色需标注 ARGB 或显式转换成 CSS。使用新样式仍需客户端读取对应字段，版本检查通过不代表已经支持新样式。
+
+**协议版本仍是 `1.0`，但旧更新日志入口已删除。** `Package.Changelogs` 与 `ApplicationEntry.ChangelogSource` 不再受支持，不保留别名或空实现。各 Mod／Application 只读取自己的 `Posts`；外部链接由作者写进 Markdown。`Link@Languages` 缺省表示所有语言可见，比较不区分大小写：`zh`／`en` 匹配该语言族（如 `zh-CN`），`zh-CN` 只精确匹配 `zh-CN`，不会把 `en` 匹配到 `english`。名称优先取与当前语言精确匹配的 `DisplayName`，没有精确匹配时取 XML 中第一条，不按语言族自动回退。图标省略时由客户端使用通用外链图标。库只原样输出这些节点，不实现语言筛选。
 
 完整属性列表、XML 示例与决定说明见 [Mod 页面自定义样式](.agents/notes/implemented/feature/2026-10-04-mod-style.md)。
 

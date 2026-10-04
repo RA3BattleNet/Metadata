@@ -404,10 +404,6 @@ public static class MetadataBuilder
                 foreach (var package in packages.Children.Where(c => c.Name == "Package"))
                 {
                     ValidateIdRef(package.Find("Manifest")?.Value, "Manifest", idIndex, errors);
-                    var changelogs = package.Find("Changelogs");
-                    if (changelogs == null) continue;
-                    foreach (var cl in changelogs.Children.Where(c => c.Name == "Changelog"))
-                        ValidateIdRef(cl.Value, "Changelog", idIndex, errors);
                 }
             }
 
