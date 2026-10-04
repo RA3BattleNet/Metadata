@@ -174,3 +174,18 @@ public sealed record ManifestSkudefEntry(string GameVersion, IReadOnlyList<Manif
 /// <param name="Dependencies">依赖 DLL 列表。</param>
 /// <param name="Skudef">清单声明的 skudef；没写时为 null（客户端按旧算法生成）。</param>
 public sealed record ManifestEntry(string Id, string HashAlgorithm, IReadOnlyList<ManifestFileEntry> Files, IReadOnlyList<ManifestDllEntry> Dependencies, ManifestSkudefEntry? Skudef = null);
+
+/// <summary>
+/// Application 更新线投影。ManifestUrl 已按入口地址解析为绝对地址。
+/// </summary>
+/// <param name="Version">UpdateKind@Current，与 Updater@Version 等值匹配。</param>
+/// <param name="ManifestUrl">该版本 Updater@Source 的绝对地址。</param>
+/// <param name="BaseUrl">UpdateKind@BaseUrl；空白为 null。</param>
+/// <param name="FallbackBaseUrl">UpdateKind@FallbackBaseUrl；空白为 null。</param>
+/// <param name="DisplayName">UpdateKind@DisplayName；空白为 null。</param>
+public sealed record UpdaterEndpoint(
+    string Version,
+    string ManifestUrl,
+    string? BaseUrl,
+    string? FallbackBaseUrl,
+    string? DisplayName);

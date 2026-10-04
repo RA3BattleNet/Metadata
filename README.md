@@ -81,6 +81,32 @@ var plan = ManifestMountPlanner.Build(
 | `MetadataColor.ToCss(value, format)` | 将颜色节点转换成 CSS 颜色；Format 缺省为 CSS，ARGB 的 Alpha 从前端移至末尾，非法值抛出 `FormatException` |
 | `ManifestMountPlanner.Build(...)` | 根据 `Skudef` 声明或老旧的 `File@Mount` 属性，计算出有条不紊的挂载指令集 `ManifestMountCommand`（包括挂载 `Big` 包或生成用户 `Config` 挂载） |
 
+
+### 运行时最后有效缓存
+
+`MetadataClient` 接收调用方传入的绝对缓存目录。根清单按**规范化入口 URI** 分目录，叶子按**规范化 Source URI** 分目录。这样发布一个入口不会拆掉另一个入口的最后有效正文，相对 Source 也只按入口地址解析，不会把缓存目录当成基准。
+
+```text
+<cacheDir>/roots/<sha256(规范化入口 URI)>/metadata.xml
+<cacheDir>/leaves/<sha256(规范化 Source URI)>/leaf.xml
+```
+
+同目录还有 `.etag`（ETag、Last-Modified、规范化 URI、正文 SHA256）和写入过程中的 `.tmp`。`.tmp` 不当缓存读。校验器缺失或与正文摘要不一致时，正文仍可离线使用，下一次读取是无条件 GET。`SchemaVersion` 与 `MetadataSchema.IsCompatible` 不一致时不覆盖已有正文。
+
+叶子调用必须带上当时捕获的根快照。身份只在这份快照里按版本和 Source 解析，不会去翻客户端里更早或更晚的根。相同 Source 的正文只拉一次；每个调用再从这份正文投影自己的 Manifest ID。
+
+```csharp
+var client = new MetadataClient(cacheDirectory, TimeSpan.FromSeconds(30));
+var root = await client.RefreshRootAsync(metadataUrl, cancellationToken);
+var leafUri = MetadataResourceUri.Resolve(root.OriginUri!.AbsoluteUri, relativeSource);
+var leaf = await client.GetLeafAsync(root, version, leafUri, cancellationToken);
+var retried = await client.RefreshLeafAsync(root, version, leafUri, cancellationToken);
+await client.PreloadLeavesAsync(root, cancellationToken);
+var offline = await client.OpenSnapshotAsync(metadataUrl, cancellationToken);
+```
+
+`OpenSnapshotAsync` 只读磁盘，状态是 `Stale` 或 `Unavailable`，不会是 `Fresh`。`RefreshRootAsync` 对 http(s) 做条件 GET，对 file:// 和本地路径读取源文件，成功才是 `Fresh`。`ApplicationEntry.ResolveUpdaterEndpoint(originUri)` 取第一个直接子级 `UpdateKind`，再在它的直接子级里等值匹配 `Current`。
+
 核心编译打包命令（供贡献者、CI 机器人或桌面端本地调试调用）：
 
 ```csharp
