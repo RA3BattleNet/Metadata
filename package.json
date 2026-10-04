@@ -12,6 +12,6 @@
     "test": "dotnet test Metadata.sln --nologo"
   },
   "devDependencies": {
-    "wrangler": "^4.68.0"
+    "wrangler": "^4.147.0"
   }
 }
