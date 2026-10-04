@@ -289,4 +289,46 @@ public static class MetadataQueryExtensions
                 Url: source.Get("Url") ?? string.Empty))
             .ToList();
     }
+
+    /// <summary>
+    /// 取 Application 第一个直接子级 UpdateKind，再在它的直接子级里等值匹配 Current。
+    /// 相对 Source 按 <paramref name="originUri"/> 解析，不使用缓存目录。
+    /// </summary>
+    /// <param name="app">Application 实体，更新线读其 <see cref="ApplicationEntry.Raw"/>。</param>
+    /// <param name="originUri">非空的 metadata.xml 绝对地址。</param>
+    /// <returns>没有更新线、Current 为空或没有等值 Updater 时返回 null。</returns>
+    public static UpdaterEndpoint? ResolveUpdaterEndpoint(this ApplicationEntry app, Uri originUri)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+        ArgumentNullException.ThrowIfNull(originUri);
+        if (!originUri.IsAbsoluteUri)
+            throw new ArgumentException("OriginUri 必须是绝对地址", nameof(originUri));
+
+        var kind = app.Raw.Children.FirstOrDefault(child => child.Name == "UpdateKind");
+        if (kind is null)
+            return null;
+
+        var current = kind.Get("Current");
+        if (string.IsNullOrWhiteSpace(current))
+            return null;
+
+        var entry = kind.Children
+            .Where(child => child.Name == "Updater")
+            .FirstOrDefault(updater => string.Equals(updater.Get("Version"), current, StringComparison.Ordinal));
+        if (entry is null)
+            return null;
+
+        var source = entry.Get("Source");
+        if (string.IsNullOrWhiteSpace(source))
+            return null;
+
+        return new UpdaterEndpoint(
+            current,
+            MetadataResourceUri.Resolve(originUri.AbsoluteUri, source).AbsoluteUri,
+            Blank(kind.Get("BaseUrl")),
+            Blank(kind.Get("FallbackBaseUrl")),
+            Blank(kind.Get("DisplayName")));
+    }
+
+    private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
