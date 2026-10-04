@@ -46,7 +46,7 @@ public class StyleTests
         {
             var xml = Path.Combine(temp, "metadata.xml");
             File.WriteAllText(xml, """
-                <Metadata SchemaVersion="2.0" ContentRevision="optional">
+                <Metadata SchemaVersion="1.0" ContentRevision="optional">
                   <Mod ID="Absent" />
                   <Mod ID="Empty"><Style /></Mod>
                   <Mod ID="Bags">
@@ -123,7 +123,7 @@ public class StyleTests
         var xml = Path.Combine(Path.GetTempPath(), $"style-invalid-{Guid.NewGuid():N}.xml");
         try
         {
-            File.WriteAllText(xml, $"<Metadata SchemaVersion=\"2.0\" ContentRevision=\"invalid\"><Mod ID=\"Invalid\"><Style>{style}</Style></Mod></Metadata>");
+            File.WriteAllText(xml, $"<Metadata SchemaVersion=\"1.0\" ContentRevision=\"invalid\"><Mod ID=\"Invalid\"><Style>{style}</Style></Mod></Metadata>");
             foreach (var name in new[] { SchemaValidator.SourceSchemaFileName, SchemaValidator.PublishSchemaFileName })
                 SchemaValidator.ValidateFile(xml, Path.Combine(RepoMetadataDir, name)).Should().NotBeEmpty();
         }

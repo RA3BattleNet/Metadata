@@ -62,7 +62,7 @@ var plan = ManifestMountPlanner.Build(
 | `ModEntry.Package(version)` / `ManifestSource(version)` | 获取指定版本的包定义（不传参数默认取当前最新版）/ 获取独立清单的相对 Source 路径；如果版本缺失、清单缺失或路径缺失都会抛出带明确原因的异常 |
 | `ApplicationEntry.Package(version)` / `ChangelogSource(language)` | 获取指定版本的应用包 / 获取指定语言更新日志的相对 Source 路径；没配该语言时返回 null |
 | `node.ToManifestEntry()` | 把 XML 节点解析转换成强类型的 `ManifestEntry` 对象（包含 Files 文件表、Dependencies 依赖、Skudef 挂载声明） |
-| `MetadataSchema.Current` / `IsCompatible(version)` | 当前数据协议版本（`2.0`），以及判断数据版本是否与当前契约一致；加载不会自动调用此检查 |
+| `MetadataSchema.Current` / `IsCompatible(version)` | 当前数据协议版本（`1.0`），以及判断数据版本是否与当前契约一致；加载不会自动调用此检查 |
 | `MetadataResourceUri.Resolve(baseUrl, source)` | 将相对 Source 路径安全拼装为完整的绝对网络地址或本地绝对路径 |
 | `MetadataColor.ToCss(value, format)` | 将颜色节点转换成 CSS 颜色；Format 缺省为 CSS，ARGB 的 Alpha 从前端移至末尾，非法值抛出 `FormatException` |
 | `ManifestMountPlanner.Build(...)` | 根据 `Skudef` 声明或老旧的 `File@Mount` 属性，计算出有条不紊的挂载指令集 `ManifestMountCommand`（包括挂载 `Big` 包或生成用户 `Config` 挂载） |
@@ -148,7 +148,7 @@ var cssColor = color is null ? null : MetadataColor.ToCss(color.Value!, color.Ge
 
 XML 使用 PascalCase，Vue 对象使用 camelCase，CSS 属性使用 kebab-case。Vue `:style` 中尺寸需转成 `px` 字符串，字重没有单位；`Hover` / `Active` 通过 CSS 变量和伪类实现，不能把嵌套状态对象直接作为 `:style`。本仓库提供元数据，不包含 Vue 页面实现。
 
-**契约变更：发布版本为 `2.0`。** 旧 `LaunchButton` / `Label` 及 Brush 字段已迁移，不保留别名。通用加载器不会自动校验版本，客户端必须调用 `MetadataSchema.IsCompatible(root.Get("SchemaVersion"))`；旧版八位颜色需标注 ARGB 或显式转换成 CSS。
+**发布契约版本保持 `1.0`。** 本次仅调整 Style，不提高整个元数据的版本号，避免已有客户端因版本检查拒绝模组、应用包和更新信息。旧 `LaunchButton` / `Label` 及 Brush 字段已迁移，不保留别名；旧版八位颜色需标注 ARGB 或显式转换成 CSS。使用新样式仍需客户端读取对应字段，版本检查通过不代表已经支持新样式。
 
 完整属性列表、XML 示例与决定说明见 [Mod 页面自定义样式](.agents/notes/implemented/feature/2026-10-04-mod-style.md)。
 

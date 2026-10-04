@@ -10,7 +10,7 @@ namespace Ra3.BattleNet.Metadata;
 /// </summary>
 public static class MetadataBuilder
 {
-    public const string DefaultSchemaVersion = "2.0";
+    public const string DefaultSchemaVersion = "1.0";
 
     private static readonly Regex LeftoverVariablePattern = new(@"\$\{[^}]+\}", RegexOptions.Compiled);
     private static readonly Regex MountTokenPattern = new(@"^[A-Za-z0-9_-]+$", RegexOptions.Compiled);

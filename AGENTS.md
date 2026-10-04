@@ -117,7 +117,7 @@ Metadata/
 - `Style` 和所有样式字段都可省略，未配置时由客户端主题决定。标签分 `PrimaryLabel` / `SecondaryLabel`，按钮分 `PrimaryButton` / `SecondaryButton`；按钮的 `Hover` 与 `Active` 分别表示悬停和按下，状态字段缺省时使用最终合并后的普通按钮字段，不从 Hover 回退到 Active。
 - 颜色字段使用 `Color` / `BackgroundColor` / `BorderColor` / `SecondaryColor`，每个颜色节点可写 `Format="CSS"` 或 `Format="ARGB"`。省略时按 CSS 的 `#RRGGBB` / `#RRGGBBAA` 解析；ARGB 必须是 `#AARRGGBB`。颜色值和 Format 在继承时一起替换。客户端可调用 `MetadataColor.ToCss(value, format)` 转成 CSS。
 - 字号用 `FontSize`（正数），字重用 `FontWeight`（100～900 的整数），边框宽度用 `BorderWidth`（非负数）。Logo 尺寸、字号、边框与偏移单位为逻辑像素。详细属性与 Vue 映射见 [Mod 样式文档](.agents/notes/implemented/feature/2026-10-04-mod-style.md)。
-- 本次样式契约版本是 `2.0`。加载不会自动拒绝旧版；客户端需要调用 `MetadataSchema.IsCompatible(root.Get("SchemaVersion"))` 检查。旧控件名称不再受 XSD 支持。
+- 元数据契约版本保持 `1.0`，Style 调整不提高整个元数据的版本号。客户端可调用 `MetadataSchema.IsCompatible(root.Get("SchemaVersion"))` 检查；通过版本检查不代表已实现新样式展示。旧控件名称不再受 XSD 支持。
 
 ## 安装清单（Manifest）的两种写法（两种都合法，文件表都不会塞进大总表里）
 

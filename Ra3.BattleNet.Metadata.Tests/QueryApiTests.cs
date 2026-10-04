@@ -97,7 +97,8 @@ public class QueryApiTests
     public void MetadataSchema_IsCompatible_AcceptsCurrentContractOnly()
     {
         MetadataSchema.IsCompatible(MetadataSchema.Current).Should().BeTrue();
-        MetadataSchema.IsCompatible("1.0").Should().BeFalse();
+        MetadataSchema.IsCompatible("1.0").Should().BeTrue();
+        MetadataSchema.IsCompatible("2.0").Should().BeFalse();
         MetadataSchema.IsCompatible("3.0").Should().BeFalse();
         MetadataSchema.IsCompatible(null).Should().BeFalse();
     }
