@@ -19,35 +19,31 @@
         <CurrentVersion>3.258</CurrentVersion>
         <Icon>corona-icon-128px</Icon>
         <Style>
-            <Logo Width="400" Height="80" Position="BottomLeft" OffsetX="24" OffsetY="-24">corona-banner</Logo>
+            <Logo Width="400" Position="Center" OffsetX="0" OffsetY="0">corona-banner</Logo>
             <Controls>
                 <PrimaryLabel>
                     <Color Format="ARGB">#FFFFFFFF</Color>
-                    <FontSize>18</FontSize>
-                    <FontWeight>700</FontWeight>
                 </PrimaryLabel>
-                <SecondaryLabel>
-                    <Color>#AAAAAA</Color>
-                    <FontSize>14</FontSize>
-                </SecondaryLabel>
                 <PrimaryButton>
-                    <BorderColor Format="ARGB">#FF000000</BorderColor>
+                    <BackgroundColor Format="ARGB">#5F000000</BackgroundColor>
+                    <BorderColor Format="ARGB">#FFDFC78D</BorderColor>
                     <BorderWidth>1</BorderWidth>
-                    <BackgroundColor>#EEEEEE</BackgroundColor>
-                    <Color>#151515</Color>
+                    <Color>#ffffff</Color>
                     <FontSize>16</FontSize>
                     <FontWeight>700</FontWeight>
                     <Hover>
-                        <BackgroundColor>#FFFFFF</BackgroundColor>
+                        <BackgroundColor Format="ARGB">#FFDFC78D</BackgroundColor>
+                        <Color>#000000</Color>
                     </Hover>
                     <Active>
                         <BackgroundColor>#CCCCCC</BackgroundColor>
+                        <Color>#000000</Color>
                     </Active>
                 </PrimaryButton>
                 <SecondaryButton>
-                    <BorderColor>#333333</BorderColor>
+                    <BorderColor Format="ARGB">#FF707070</BorderColor>
                     <BorderWidth>1</BorderWidth>
-                    <BackgroundColor>#18181880</BackgroundColor>
+                    <BackgroundColor Format="ARGB">#5F000000</BackgroundColor>
                     <Color>#CCCCCC</Color>
                     <Hover>
                         <BorderColor>#777777</BorderColor>
