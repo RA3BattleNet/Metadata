@@ -10,7 +10,7 @@ namespace Ra3.BattleNet.Metadata;
 /// </summary>
 public static class MetadataBuilder
 {
-    public const string DefaultSchemaVersion = "1.0";
+    public const string DefaultSchemaVersion = "2.0";
 
     private static readonly Regex LeftoverVariablePattern = new(@"\$\{[^}]+\}", RegexOptions.Compiled);
     private static readonly Regex MountTokenPattern = new(@"^[A-Za-z0-9_-]+$", RegexOptions.Compiled);
@@ -339,14 +339,18 @@ public static class MetadataBuilder
         var metadata = Metadata.LoadFromFile(flatPath);
         var errors = new List<string>();
 
-        // 仅「登记节点」（带 ID 属性）进入索引；Style 内 <Image>id</Image> 引用不算登记
+        // 仅「登记节点」（带 ID 属性）进入索引；Style 内 <Image>id</Image> 引用不算登记。
+        // Logo / Background Image 只认图片登记，不认 Markdown / Manifest 等同名 ID。
         var idIndex = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var registryImages = metadata.GetAllElements("Image").Where(n => !string.IsNullOrWhiteSpace(n.Get("ID"))).ToList();
         var registryMarkdowns = metadata.GetAllElements("Markdown").Where(n => !string.IsNullOrWhiteSpace(n.Get("ID"))).ToList();
         var registryManifests = metadata.GetAllElements("Manifest").Where(n => !string.IsNullOrWhiteSpace(n.Get("ID"))).ToList();
+        var imageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var node in registryImages.Concat(registryMarkdowns).Concat(registryManifests))
             idIndex.Add(node.Get("ID")!);
+        foreach (var image in registryImages)
+            imageIds.Add(image.Get("ID")!);
 
         foreach (var md in registryMarkdowns)
         {
@@ -395,37 +399,39 @@ public static class MetadataBuilder
         {
             ValidateIdRef(app.Find("Icon")?.Value, "Icon", idIndex, errors);
             var packages = app.Find("Packages");
-            if (packages == null) continue;
-            foreach (var package in packages.Children.Where(c => c.Name == "Package"))
+            if (packages != null)
             {
-                ValidateIdRef(package.Find("Manifest")?.Value, "Manifest", idIndex, errors);
-                var changelogs = package.Find("Changelogs");
-                if (changelogs == null) continue;
-                foreach (var cl in changelogs.Children.Where(c => c.Name == "Changelog"))
-                    ValidateIdRef(cl.Value, "Changelog", idIndex, errors);
+                foreach (var package in packages.Children.Where(c => c.Name == "Package"))
+                {
+                    ValidateIdRef(package.Find("Manifest")?.Value, "Manifest", idIndex, errors);
+                    var changelogs = package.Find("Changelogs");
+                    if (changelogs == null) continue;
+                    foreach (var cl in changelogs.Children.Where(c => c.Name == "Changelog"))
+                        ValidateIdRef(cl.Value, "Changelog", idIndex, errors);
+                }
             }
 
             var posts = app.Find("Posts");
-            if (posts == null) continue;
-            foreach (var post in posts.Children.Where(c => c.Name == "Post"))
+            if (posts != null)
             {
-                var contents = post.Find("Contents");
-                if (contents == null) continue;
-                foreach (var content in contents.Children.Where(c => c.Name == "Content"))
-                    ValidateIdRef(content.Value, "Post Content", idIndex, errors);
+                foreach (var post in posts.Children.Where(c => c.Name == "Post"))
+                {
+                    var contents = post.Find("Contents");
+                    if (contents == null) continue;
+                    foreach (var content in contents.Children.Where(c => c.Name == "Content"))
+                        ValidateIdRef(content.Value, "Post Content", idIndex, errors);
+                }
             }
 
             var style = app.Find("Style");
             if (style == null) continue;
             var logo = style.Find("Logo");
             if (logo?.Value != null)
-                ValidateIdRef(logo.Value.Trim(), "Logo", idIndex, errors);
+                ValidateIdRef(logo.Value.Trim(), "Logo", imageIds, errors);
             var background = style.Find("Background");
-            if (background != null)
-            {
-                foreach (var img in background.Children.Where(c => c.Name == "Image"))
-                    ValidateIdRef(img.Value?.Trim(), "Background Image", idIndex, errors);
-            }
+            if (background == null) continue;
+            foreach (var img in background.Children.Where(c => c.Name == "Image"))
+                ValidateIdRef(img.Value?.Trim(), "Background Image", imageIds, errors);
         }
 
         if (string.IsNullOrWhiteSpace(metadata.Get("SchemaVersion"))

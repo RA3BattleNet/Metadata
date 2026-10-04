@@ -7,18 +7,48 @@
     <CurrentVersion>1.0.0</CurrentVersion>
     <Icon>mod-icon-64px</Icon>
     <Style>
-      <Logo Width="400" Height="80">mod-icon-64px</Logo>
+      <Logo Width="400" Position="BottomLeft" OffsetX="24" OffsetY="-24">mod-icon-64px</Logo>
       <Controls>
-        <LaunchButton>
-          <BorderBrush>#FF000000</BorderBrush>
-        </LaunchButton>
-        <Label>
+        <PrimaryLabel>
+          <Color>#FFFFFF</Color>
+          <FontSize>18</FontSize>
+          <FontWeight>700</FontWeight>
+        </PrimaryLabel>
+        <SecondaryLabel>
+          <Color>#AAAAAA</Color>
           <FontSize>14</FontSize>
-          <ForegroundBrush>#FFFFFFFF</ForegroundBrush>
-        </Label>
+        </SecondaryLabel>
+        <PrimaryButton>
+          <BorderColor Format="ARGB">#FF000000</BorderColor>
+          <BorderWidth>1</BorderWidth>
+          <BackgroundColor>#EEEEEE</BackgroundColor>
+          <Color>#151515</Color>
+          <FontSize>16</FontSize>
+          <FontWeight>700</FontWeight>
+          <Hover>
+            <BackgroundColor>#FFFFFF</BackgroundColor>
+          </Hover>
+          <Active>
+            <BackgroundColor>#CCCCCC</BackgroundColor>
+          </Active>
+        </PrimaryButton>
+        <SecondaryButton>
+          <BorderColor>#333333</BorderColor>
+          <BorderWidth>1</BorderWidth>
+          <BackgroundColor>#18181880</BackgroundColor>
+          <Color>#CCCCCC</Color>
+          <Hover>
+            <Color>#FFFFFF</Color>
+          </Hover>
+          <Active>
+            <BackgroundColor>#303030CC</BackgroundColor>
+          </Active>
+        </SecondaryButton>
       </Controls>
       <Background Random="false">
         <Image>mod-icon-64px</Image>
+        <Color>#000000CC</Color>
+        <SecondaryColor>#191919E6</SecondaryColor>
       </Background>
     </Style>
     <Packages>

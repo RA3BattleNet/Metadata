@@ -212,7 +212,10 @@ public static class MetadataInheritance
         return result;
     }
 
-    /// <summary>同名控件：按子元素名覆盖（如 FontSize），子缺省保留 Base。</summary>
+    /// <summary>
+    /// 同名控件：普通子元素整节点覆盖（颜色值与 Format 一起替换，不继承 Format）；
+    /// Hover/Active 按各自字段合并。空状态包不覆盖父级，也不从按钮基础字段补齐。
+    /// </summary>
     internal static XElement MergeNamedBag(XElement baseControl, XElement childControl)
     {
         var result = new XElement(baseControl.Name);
@@ -224,8 +227,29 @@ public static class MetadataInheritance
         var fields = new Dictionary<string, XElement>(StringComparer.Ordinal);
         foreach (var field in baseControl.Elements())
             fields[field.Name.LocalName] = new XElement(field);
+
         foreach (var field in childControl.Elements())
-            fields[field.Name.LocalName] = new XElement(field);
+        {
+            var name = field.Name.LocalName;
+            if (IsStateBag(name))
+            {
+                // 空 Hover/Active 是 no-op：保留父状态，也不物化缺省状态。
+                if (!field.HasElements)
+                    continue;
+
+                if (!fields.TryGetValue(name, out var existing))
+                {
+                    fields[name] = new XElement(field);
+                    continue;
+                }
+
+                fields[name] = MergeStateBag(existing, field);
+                continue;
+            }
+
+            // 颜色等字段整节点替换，Format 不从父节点继承。
+            fields[name] = new XElement(field);
+        }
 
         foreach (var field in fields.Values)
             result.Add(field);
@@ -241,4 +265,27 @@ public static class MetadataInheritance
 
         return result;
     }
+
+    /// <summary>Hover/Active：只合并本状态的原始字段；颜色节点整节点替换。</summary>
+    private static XElement MergeStateBag(XElement baseState, XElement childState)
+    {
+        var result = new XElement(baseState.Name);
+        foreach (var attr in baseState.Attributes())
+            result.SetAttributeValue(attr.Name, attr.Value);
+        foreach (var attr in childState.Attributes())
+            result.SetAttributeValue(attr.Name, attr.Value);
+
+        var fields = new Dictionary<string, XElement>(StringComparer.Ordinal);
+        foreach (var field in baseState.Elements())
+            fields[field.Name.LocalName] = new XElement(field);
+        foreach (var field in childState.Elements())
+            fields[field.Name.LocalName] = new XElement(field);
+
+        foreach (var field in fields.Values)
+            result.Add(field);
+
+        return result;
+    }
+
+    private static bool IsStateBag(string name) => name is "Hover" or "Active";
 }

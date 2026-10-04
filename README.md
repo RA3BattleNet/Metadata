@@ -62,14 +62,15 @@ var plan = ManifestMountPlanner.Build(
 | `ModEntry.Package(version)` / `ManifestSource(version)` | 获取指定版本的包定义（不传参数默认取当前最新版）/ 获取独立清单的相对 Source 路径；如果版本缺失、清单缺失或路径缺失都会抛出带明确原因的异常 |
 | `ApplicationEntry.Package(version)` / `ChangelogSource(language)` | 获取指定版本的应用包 / 获取指定语言更新日志的相对 Source 路径；没配该语言时返回 null |
 | `node.ToManifestEntry()` | 把 XML 节点解析转换成强类型的 `ManifestEntry` 对象（包含 Files 文件表、Dependencies 依赖、Skudef 挂载声明） |
-| `MetadataSchema.Current` / `IsCompatible(version)` | 当前数据协议版本常量，以及判断某个版本是否向下兼容的方法 |
+| `MetadataSchema.Current` / `IsCompatible(version)` | 当前数据协议版本（`2.0`），以及判断数据版本是否与当前契约一致；加载不会自动调用此检查 |
 | `MetadataResourceUri.Resolve(baseUrl, source)` | 将相对 Source 路径安全拼装为完整的绝对网络地址或本地绝对路径 |
+| `MetadataColor.ToCss(value, format)` | 将颜色节点转换成 CSS 颜色；Format 缺省为 CSS，ARGB 的 Alpha 从前端移至末尾，非法值抛出 `FormatException` |
 | `ManifestMountPlanner.Build(...)` | 根据 `Skudef` 声明或老旧的 `File@Mount` 属性，计算出有条不紊的挂载指令集 `ManifestMountCommand`（包括挂载 `Big` 包或生成用户 `Config` 挂载） |
 
 核心编译打包命令（供贡献者、CI 机器人或桌面端本地调试调用）：
 
 ```csharp
-MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: "1.0", contentRevision: gitSha);
+MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: MetadataSchema.Current, contentRevision: gitSha);
 ```
 
 核心解析库本身是纯粹的托管代码，**完全不引入 SkiaSharp 这种重型图像库**；图片向 WebP 格式的转换压缩，只在正式发版流水线上的独立工具 `Ra3.BattleNet.Metadata.Imaging` 里执行。
@@ -126,7 +127,31 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: "1.0", contentRevisio
 | `Post` | 实体子元素 | 公告新闻：包含发布时间 `@DateTime`、多语言标题 `Titles` 与正文内容 `Contents` |
 | `Image` / `Markdown` / `Manifest` | 资源登记节点 | 包含资源完整 ID `@ID`（带前缀）、相对路径 `@Source`；图片支持 `@Url` 外部链接；清单在主表里表现为占位 stub |
 
-关于外观样式 `Style`（包括 Logo 尺寸、按钮颜色 Controls、背景图 Background）以及公共样式继承（`Base` / `InheritFrom`）的更多细节，可以直接查阅 `Metadata/MetadataSchema.xsd` 与 AGENTS.md。
+### Mod 页面样式
+
+`Mod/Style` 分为 `Logo`、`Controls`、`Background`。所有分类、字段和属性均可省略；不写 `Style` 或写空节点时，客户端使用主题默认值，XSD 不补默认字段。
+
+- `Logo` 文本是图片 ID；可选 `Width` / `Height`、九宫格 `Position`、有正负方向的 `OffsetX` / `OffsetY`。只写一边尺寸时，客户端保持图片比例。
+- `Controls` 分为 `PrimaryLabel` / `SecondaryLabel` 与 `PrimaryButton` / `SecondaryButton`。文字字段为 `Color`、`FontSize`、`FontWeight`；按钮还支持 `BorderColor`、`BorderWidth`、`BackgroundColor`。
+- 按钮可写 `Hover` / `Active` 子节点。状态只覆盖自己声明的字段，缺失字段使用最终合并后的普通样式，再使用客户端默认值。`Active` 仅指按下，不是选中；按下时不能意外保留 Hover 的颜色。
+- `Background` 保留 `Image` 列表和 `Random`；`Color` 是主体底色，`SecondaryColor` 是卡片底色。图片在底色下方，客户端主题通过 `backdrop-filter` 模糊下方背景；半透明底色显露背景，不给文字和按钮设置整页 `opacity`。
+- 每个颜色节点单独支持可选 `Format="CSS"` / `Format="ARGB"`。省略 Format 时接受 `#RRGGBB` / `#RRGGBBAA`；ARGB 只接受 `#AARRGGBB`。不能猜测八位格式，也不能在颜色覆盖时继承旧 Format。
+- 尺寸与字号为正数，边框宽度可为零，单位为逻辑像素；字重为 100～900 的整数。显式零值与缺失值不同。
+- Base 继承时，控件及 `Hover` / `Active` 按字段合并。`Logo` / `Background` 保留整分类替换规则：子 Mod 声明该分类就替换全部内容，省略该分类则继承 Base。
+
+颜色读取示例：
+
+```csharp
+var color = mod.Raw.Find("Style:Controls:PrimaryButton:BackgroundColor");
+var cssColor = color is null ? null : MetadataColor.ToCss(color.Value!, color.Get("Format"));
+```
+
+XML 使用 PascalCase，Vue 对象使用 camelCase，CSS 属性使用 kebab-case。Vue `:style` 中尺寸需转成 `px` 字符串，字重没有单位；`Hover` / `Active` 通过 CSS 变量和伪类实现，不能把嵌套状态对象直接作为 `:style`。本仓库提供元数据，不包含 Vue 页面实现。
+
+**契约变更：发布版本为 `2.0`。** 旧 `LaunchButton` / `Label` 及 Brush 字段已迁移，不保留别名。通用加载器不会自动校验版本，客户端必须调用 `MetadataSchema.IsCompatible(root.Get("SchemaVersion"))`；旧版八位颜色需标注 ARGB 或显式转换成 CSS。
+
+完整属性列表、XML 示例与决定说明见 [Mod 页面自定义样式](.agents/notes/implemented/feature/2026-10-04-mod-style.md)。
+
 在源数据中写短名字即可，展平时会自动补全为 `{路径前缀}:{localId}`；顶层实体 ID 全局唯一，一旦撞名打包直接报错拦截。
 
 ## 构建与发布命令

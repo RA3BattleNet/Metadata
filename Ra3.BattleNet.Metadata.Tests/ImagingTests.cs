@@ -18,7 +18,10 @@ public class ImagingTests
         Directory.CreateDirectory(dir);
         try
         {
-            var png = Path.Combine(RepoMetadataDir, "mods", "corona", "images", "icon-64px.png");
+            var source = XDocument.Load(Path.Combine(RepoMetadataDir, "mods", "corona", "corona.xml"));
+            var iconId = source.Descendants("Mod").Single().Element("Icon")!.Value;
+            var iconSource = source.Root!.Elements("Image").Single(e => e.Attribute("ID")!.Value == iconId).Attribute("Source")!.Value;
+            var png = Path.Combine(RepoMetadataDir, "mods", "corona", iconSource);
             var webp = Path.Combine(dir, "icon.webp");
             var hash = ImageConverter.ConvertToWebP(png, webp);
             hash.Should().HaveLength(32);
@@ -41,8 +44,8 @@ public class ImagingTests
             MetadataBuilder.Build(RepoMetadataDir, dst, contentRevision: "webp", convertImages: true);
             var flat = Path.Combine(dst, "metadata.xml");
             var doc = XDocument.Load(flat);
-            var icon = doc.Descendants("Image")
-                .First(e => e.Attribute("ID")?.Value?.EndsWith(":corona-icon-64px", StringComparison.Ordinal) == true);
+            var iconId = doc.Descendants("Mod").Single(e => e.Attribute("ID")!.Value == "Corona").Element("Icon")!.Value;
+            var icon = doc.Root!.Elements("Image").Single(e => e.Attribute("ID")!.Value == iconId);
             icon.Attribute("Source")!.Value.Replace('\\', '/').Should().EndWith(".webp");
             var hash = icon.Attribute("Hash")!.Value;
             hash.Should().HaveLength(32);
@@ -67,11 +70,15 @@ public class ImagingTests
         Directory.CreateDirectory(dir);
         try
         {
-            var png = Path.Combine(RepoMetadataDir, "mods", "corona", "images", "icon-64px.png");
+            var source = XDocument.Load(Path.Combine(RepoMetadataDir, "mods", "corona", "corona.xml"));
+            var iconId = source.Descendants("Mod").Single().Element("Icon")!.Value;
+            var iconSource = source.Root!.Elements("Image").Single(e => e.Attribute("ID")!.Value == iconId).Attribute("Source")!.Value;
+            var png = Path.Combine(RepoMetadataDir, "mods", "corona", iconSource);
             var webp = Path.Combine(dir, "out.webp");
             var hash = ImagingInvoker.ConvertToWebP(png, webp);
             hash.Should().HaveLength(32);
             File.Exists(webp).Should().BeTrue();
+            ImageConverter.ComputeMd5(webp).Should().Be(hash);
         }
         finally
         {

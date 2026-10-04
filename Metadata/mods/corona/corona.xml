@@ -19,15 +19,44 @@
         <CurrentVersion>3.258</CurrentVersion>
         <Icon>corona-icon-128px</Icon>
         <Style>
-            <Logo Width="400" Height="80">corona-banner</Logo>
+            <Logo Width="400" Height="80" Position="BottomLeft" OffsetX="24" OffsetY="-24">corona-banner</Logo>
             <Controls>
-                <LaunchButton>
-                    <BorderBrush>#FF000000</BorderBrush>
-                </LaunchButton>
-                <Label>
+                <PrimaryLabel>
+                    <Color Format="ARGB">#FFFFFFFF</Color>
+                    <FontSize>18</FontSize>
+                    <FontWeight>700</FontWeight>
+                </PrimaryLabel>
+                <SecondaryLabel>
+                    <Color>#AAAAAA</Color>
                     <FontSize>14</FontSize>
-                    <ForegroundBrush>#FFFFFFFF</ForegroundBrush>
-                </Label>
+                </SecondaryLabel>
+                <PrimaryButton>
+                    <BorderColor Format="ARGB">#FF000000</BorderColor>
+                    <BorderWidth>1</BorderWidth>
+                    <BackgroundColor>#EEEEEE</BackgroundColor>
+                    <Color>#151515</Color>
+                    <FontSize>16</FontSize>
+                    <FontWeight>700</FontWeight>
+                    <Hover>
+                        <BackgroundColor>#FFFFFF</BackgroundColor>
+                    </Hover>
+                    <Active>
+                        <BackgroundColor>#CCCCCC</BackgroundColor>
+                    </Active>
+                </PrimaryButton>
+                <SecondaryButton>
+                    <BorderColor>#333333</BorderColor>
+                    <BorderWidth>1</BorderWidth>
+                    <BackgroundColor>#18181880</BackgroundColor>
+                    <Color>#CCCCCC</Color>
+                    <Hover>
+                        <BorderColor>#777777</BorderColor>
+                        <Color>#FFFFFF</Color>
+                    </Hover>
+                    <Active>
+                        <BackgroundColor>#303030CC</BackgroundColor>
+                    </Active>
+                </SecondaryButton>
             </Controls>
             <Background Random="true">
                 <Image>background-1</Image>
@@ -35,6 +64,8 @@
                 <Image>background-3</Image>
                 <Image>background-4</Image>
                 <Image>background-5</Image>
+                <Color>#000000CC</Color>
+                <SecondaryColor>#191919E6</SecondaryColor>
             </Background>
         </Style>
         <Packages>

@@ -80,10 +80,14 @@ Metadata/
     <Style>
       <Logo Width="400" Height="80">icon-64px</Logo>
       <Controls>
-        <LaunchButton><BorderBrush>#FF000000</BorderBrush></LaunchButton>
+        <PrimaryButton>
+          <BorderColor Format="ARGB">#FF000000</BorderColor>
+          <Hover><BackgroundColor>#FFFFFF</BackgroundColor></Hover>
+          <Active><BackgroundColor>#CCCCCC</BackgroundColor></Active>
+        </PrimaryButton>
       </Controls>
       <Background Random="true">
-        <Image>background-1</Image>              <!-- 背景里的 Image 纯粹是引用短名，不需要写 ID -->
+        <Image>icon-64px</Image>                 <!-- 背景里的 Image 纯粹是引用短名，不需要写 ID -->
       </Background>
     </Style>
     <Packages>
@@ -110,6 +114,10 @@ Metadata/
 - **资源登记节点**：指的是带 `@ID` 属性的 `Image`、`Markdown`、`Manifest` 标签；而在后面引用它们时（比如 Icon、Logo、Background 里的 Image、更新日志 Changelog、公告内容 Content、版本包对应的 Package.Manifest），**统一直接写短名字**，构建打包程序会自动在“当前文件以及它所引入的文件”作用域内，帮你把短名字改写成带路径前缀的完整 ID。
 - `Include` 标签只需要写 `Source` 属性（填相对于当前文件的路径），不需要写额外的 `Type` 或 `Path` 属性；所有子文件根节点一律以 `<Metadata>` 开头。
 - 如果多个 Mod 想共享同一套公共样式，可以使用 `Base` 和 `InheritFrom` 继承机制（编译打包时会自动合并，最终发布出来的文件里不留痕迹）；平时如果用不到直接忽略即可。
+- `Style` 和所有样式字段都可省略，未配置时由客户端主题决定。标签分 `PrimaryLabel` / `SecondaryLabel`，按钮分 `PrimaryButton` / `SecondaryButton`；按钮的 `Hover` 与 `Active` 分别表示悬停和按下，状态字段缺省时使用最终合并后的普通按钮字段，不从 Hover 回退到 Active。
+- 颜色字段使用 `Color` / `BackgroundColor` / `BorderColor` / `SecondaryColor`，每个颜色节点可写 `Format="CSS"` 或 `Format="ARGB"`。省略时按 CSS 的 `#RRGGBB` / `#RRGGBBAA` 解析；ARGB 必须是 `#AARRGGBB`。颜色值和 Format 在继承时一起替换。客户端可调用 `MetadataColor.ToCss(value, format)` 转成 CSS。
+- 字号用 `FontSize`（正数），字重用 `FontWeight`（100～900 的整数），边框宽度用 `BorderWidth`（非负数）。Logo 尺寸、字号、边框与偏移单位为逻辑像素。详细属性与 Vue 映射见 [Mod 样式文档](.agents/notes/implemented/feature/2026-10-04-mod-style.md)。
+- 本次样式契约版本是 `2.0`。加载不会自动拒绝旧版；客户端需要调用 `MetadataSchema.IsCompatible(root.Get("SchemaVersion"))` 检查。旧控件名称不再受 XSD 支持。
 
 ## 安装清单（Manifest）的两种写法（两种都合法，文件表都不会塞进大总表里）
 

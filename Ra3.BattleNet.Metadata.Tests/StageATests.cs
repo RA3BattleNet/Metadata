@@ -75,8 +75,10 @@ public class StageATests
             var app = loaded.Applications().Single(a => a.Id == "RA3BattleNet");
             app.Packages[0].ManifestId.Should().Be(manifest.Get("ID"));
             var corona = loaded.Mods().Single(m => m.Id == "Corona");
-            corona.Icon.Should().EndWith(":corona-icon-64px");
-            corona.Icon.Should().Contain(":");
+            var icon = loaded.Images().Single(image => image.Id == corona.Icon);
+            var sourceDoc = XDocument.Load(Path.Combine(src, "mods", "corona", "corona.xml"));
+            var localIconId = sourceDoc.Descendants("Mod").Single().Element("Icon")!.Value;
+            icon.Id.Should().Be(MetadataFlattener.QualifyId("mods/corona/corona", localIconId));
         }
         finally
         {

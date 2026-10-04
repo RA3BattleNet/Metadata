@@ -112,21 +112,120 @@
     </xs:sequence>
   </xs:complexType>
 
-  <xs:complexType name="LogoType" mixed="true">
-    <xs:attribute name="Width" type="xs:integer"/>
-    <xs:attribute name="Height" type="xs:integer"/>
+  <xs:simpleType name="PositiveLengthType">
+    <xs:restriction base="xs:decimal">
+      <xs:minExclusive value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="NonNegativeLengthType">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="FontWeightType">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="100"/>
+      <xs:maxInclusive value="900"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="LogoPositionType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="TopLeft"/>
+      <xs:enumeration value="TopCenter"/>
+      <xs:enumeration value="TopRight"/>
+      <xs:enumeration value="CenterLeft"/>
+      <xs:enumeration value="Center"/>
+      <xs:enumeration value="CenterRight"/>
+      <xs:enumeration value="BottomLeft"/>
+      <xs:enumeration value="BottomCenter"/>
+      <xs:enumeration value="BottomRight"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="LogoType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Width" type="PositiveLengthType"/>
+        <xs:attribute name="Height" type="PositiveLengthType"/>
+        <xs:attribute name="Position" type="LogoPositionType"/>
+        <xs:attribute name="OffsetX" type="xs:decimal"/>
+        <xs:attribute name="OffsetY" type="xs:decimal"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:simpleType name="HexColorType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ColorFormatType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="CSS"/>
+      <xs:enumeration value="ARGB"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Format 缺省为 CSS；ARGB 的八位长度由 SchemaValidator 关联校验。 -->
+  <xs:complexType name="ColorType">
+    <xs:simpleContent>
+      <xs:extension base="HexColorType">
+        <xs:attribute name="Format" type="ColorFormatType"/>
+      </xs:extension>
+    </xs:simpleContent>
   </xs:complexType>
 
   <xs:complexType name="ControlsType">
-    <xs:sequence>
-      <xs:any minOccurs="0" maxOccurs="unbounded" processContents="lax"/>
-    </xs:sequence>
+    <xs:all>
+      <xs:element name="PrimaryLabel" type="LabelStyleType" minOccurs="0"/>
+      <xs:element name="SecondaryLabel" type="LabelStyleType" minOccurs="0"/>
+      <xs:element name="PrimaryButton" type="ButtonStyleType" minOccurs="0"/>
+      <xs:element name="SecondaryButton" type="ButtonStyleType" minOccurs="0"/>
+    </xs:all>
   </xs:complexType>
 
-  <!-- Background 内 Image 是 ID 文本引用，不是登记节点 -->
+  <xs:complexType name="LabelStyleType">
+    <xs:all>
+      <xs:element name="Color" type="ColorType" minOccurs="0"/>
+      <xs:element name="FontSize" type="PositiveLengthType" minOccurs="0"/>
+      <xs:element name="FontWeight" type="FontWeightType" minOccurs="0"/>
+    </xs:all>
+  </xs:complexType>
+
+  <xs:complexType name="ButtonStateType">
+    <xs:all>
+      <xs:element name="BorderColor" type="ColorType" minOccurs="0"/>
+      <xs:element name="BorderWidth" type="NonNegativeLengthType" minOccurs="0"/>
+      <xs:element name="BackgroundColor" type="ColorType" minOccurs="0"/>
+      <xs:element name="Color" type="ColorType" minOccurs="0"/>
+      <xs:element name="FontSize" type="PositiveLengthType" minOccurs="0"/>
+      <xs:element name="FontWeight" type="FontWeightType" minOccurs="0"/>
+    </xs:all>
+  </xs:complexType>
+
+  <xs:complexType name="ButtonStyleType">
+    <xs:all>
+      <xs:element name="BorderColor" type="ColorType" minOccurs="0"/>
+      <xs:element name="BorderWidth" type="NonNegativeLengthType" minOccurs="0"/>
+      <xs:element name="BackgroundColor" type="ColorType" minOccurs="0"/>
+      <xs:element name="Color" type="ColorType" minOccurs="0"/>
+      <xs:element name="FontSize" type="PositiveLengthType" minOccurs="0"/>
+      <xs:element name="FontWeight" type="FontWeightType" minOccurs="0"/>
+      <xs:element name="Hover" type="ButtonStateType" minOccurs="0"/>
+      <xs:element name="Active" type="ButtonStateType" minOccurs="0"/>
+    </xs:all>
+  </xs:complexType>
+
+  <!-- Image 是登记图片的 ID 文本引用，不是图片登记节点。 -->
   <xs:complexType name="BackgroundType">
     <xs:sequence>
       <xs:element name="Image" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Color" type="ColorType" minOccurs="0"/>
+      <xs:element name="SecondaryColor" type="ColorType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="Random" type="xs:boolean"/>
   </xs:complexType>

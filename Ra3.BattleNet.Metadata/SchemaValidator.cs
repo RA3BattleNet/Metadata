@@ -44,7 +44,26 @@ public static class SchemaValidator
             };
 
             using var reader = XmlReader.Create(xmlPath, settings);
-            while (reader.Read()) { }
+            while (reader.Read())
+            {
+                if (reader.NodeType != XmlNodeType.Element
+                    || reader.SchemaInfo?.SchemaType?.Name != "ColorType")
+                    continue;
+
+                var field = reader.LocalName;
+                var format = reader.GetAttribute("Format");
+                using var colorReader = reader.ReadSubtree();
+                colorReader.Read();
+                var value = colorReader.ReadElementContentAsString();
+                try
+                {
+                    MetadataColor.Validate(value, format);
+                }
+                catch (FormatException ex)
+                {
+                    errors.Add($"{Path.GetFileName(xmlPath)}: {field}: {ex.Message}");
+                }
+            }
         }
         catch (Exception ex)
         {
