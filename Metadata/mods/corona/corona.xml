@@ -14,6 +14,8 @@
     <Image ID="background-3" Source="images/background-3.webp" />
     <Image ID="background-4" Source="images/background-4.webp" />
     <Image ID="background-5" Source="images/background-5.webp" />
+    <Image ID="homepage-bilibili" Source="images/homepage-bilibili.webp" />
+    <Image ID="homepage-douyin" Source="images/homepage-douyin.webp" />
 
     <Mod ID="Corona">
         <CurrentVersion>3.258</CurrentVersion>
@@ -71,5 +73,15 @@
             </Package>
         </Packages>
         <Posts/>
+        <Links>
+            <Link Url="https://space.bilibili.com/400315239">
+                <Icon>homepage-bilibili</Icon>
+                <DisplayName Language="zh-CN">哔哩哔哩</DisplayName>
+            </Link>
+            <Link Url="https://v.douyin.com/iM121nWW/">
+                <Icon>homepage-douyin</Icon>
+                <DisplayName Language="zh-CN">抖音</DisplayName>
+            </Link>
+        </Links>
     </Mod>
 </Metadata>
