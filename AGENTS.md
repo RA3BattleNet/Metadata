@@ -57,10 +57,10 @@ Metadata/
   metadata.xml              整个项目的总入口：里面只负责用 Include 挂载其他文件
   apps/<应用名>/            每个独立应用程序放一个目录
     <应用名>.xml            定义应用本身以及登记所需的资源
-    changelogs/ manifests/ posts/ ...
+    manifests/ posts/ ...
   mods/<Mod名>/             每个 Mod 放一个目录
-    <Mod名>.xml             定义 Mod 本身、版本、外观样式以及登记所需资源
-    changelogs/ manifests/ posts/ images/ ...
+    <Mod名>.xml             定义 Mod 本身、版本、外观样式、新闻、友情链接以及登记所需资源
+    manifests/ posts/ images/ ...
   Templates/                脚手架模板（新建文件时直接复制，不参与正式打包）
 ```
 
@@ -71,6 +71,7 @@ Metadata/
   <!-- 登记你要用到的资源：写文件内部的短 ID 即可，Source 属性指向同目录下的实际文件 -->
   <Image ID="icon-64px" Source="images/icon-64px.png" />
   <Markdown ID="news-zh-3229" Source="news-zh-3229.md" Hash="${MD5::}" />
+  <Markdown ID="news-en-3229" Source="news-en-3229.md" Hash="${MD5::}" />
   <Image ID="logo-example" Url="https://example.com/logo.png" />  <!-- 外部图片直链，不会下载保存到本地 -->
 
   <Mod ID="Corona">                              <!-- 实体 ID：在整个仓库里必须是唯一的 -->
@@ -93,31 +94,50 @@ Metadata/
     <Packages>
       <Package Version="3.229">
         <ReleaseDate>2025-04-01</ReleaseDate>
-        <Changelogs>
-          <Changelog Language="zh-CN">changelog-zh-3229</Changelog>
-        </Changelogs>
         <Manifest>manifest-3229</Manifest>
       </Package>
     </Packages>
-    <Posts>
+    <Posts>                                    <!-- 新闻属于本 Mod，不挂在 Package 上，也不从 Base 继承 -->
       <Post DateTime="2025-04-01T00:00:00+08:00">
-        <Titles><Title Language="zh-CN">版本更新 3.229</Title></Titles>
-        <Contents><Content Language="zh-CN">news-zh-3229</Content></Contents>
+        <Titles>
+          <Title Language="zh-CN">版本更新 3.229</Title>
+          <Title Language="en-US">Update 3.229</Title>
+        </Titles>
+        <Descriptions>                         <!-- 可选；没有简介就省略整个 Descriptions，不要写空标签 -->
+          <Description Language="zh-CN">简短介绍。</Description>
+          <Description Language="en-US">Short summary.</Description>
+        </Descriptions>
+        <Contents>
+          <Content Language="zh-CN">news-zh-3229</Content>
+          <Content Language="en-US">news-en-3229</Content>
+        </Contents>
       </Post>
     </Posts>
+    <Links>                                    <!-- 只允许写在 Mod 下；取消注释或照抄前换成真实网址 -->
+      <Link Url="https://example.com/" Languages="zh en">
+        <Icon>icon-64px</Icon>                 <!-- 可选图片短 ID，不要写 URL 或路径前缀 -->
+        <DisplayName Language="zh-CN">官方网站</DisplayName>
+        <DisplayName Language="en-US">Official website</DisplayName>
+      </Link>
+    </Links>
   </Mod>
 </Metadata>
 ```
 
 核心要点说明：
 
-- **资源登记节点**：指的是带 `@ID` 属性的 `Image`、`Markdown`、`Manifest` 标签；而在后面引用它们时（比如 Icon、Logo、Background 里的 Image、更新日志 Changelog、公告内容 Content、版本包对应的 Package.Manifest），**统一直接写短名字**，构建打包程序会自动在“当前文件以及它所引入的文件”作用域内，帮你把短名字改写成带路径前缀的完整 ID。
+- **资源登记节点**：指的是带 `@ID` 属性的 `Image`、`Markdown`、`Manifest` 标签；而在后面引用它们时（比如 Icon、Logo、Background 里的 Image、公告正文 Post.Content、友情链接 Link.Icon、版本包对应的 Package.Manifest），**统一直接写短名字**，构建打包程序会自动在“当前文件以及它所引入的文件”作用域内，帮你把短名字改写成带路径前缀的完整 ID。
 - `Include` 标签只需要写 `Source` 属性（填相对于当前文件的路径），不需要写额外的 `Type` 或 `Path` 属性；所有子文件根节点一律以 `<Metadata>` 开头。
 - 如果多个 Mod 想共享同一套公共样式，可以使用 `Base` 和 `InheritFrom` 继承机制（编译打包时会自动合并，最终发布出来的文件里不留痕迹）；平时如果用不到直接忽略即可。
 - `Style` 和所有样式字段都可省略，未配置时由客户端主题决定。标签分 `PrimaryLabel` / `SecondaryLabel`，按钮分 `PrimaryButton` / `SecondaryButton`；按钮的 `Hover` 与 `Active` 分别表示悬停和按下，状态字段缺省时使用最终合并后的普通按钮字段，不从 Hover 回退到 Active。
 - 颜色字段使用 `Color` / `BackgroundColor` / `BorderColor` / `SecondaryColor`，每个颜色节点可写 `Format="CSS"` 或 `Format="ARGB"`。省略时按 CSS 的 `#RRGGBB` / `#RRGGBBAA` 解析；ARGB 必须是 `#AARRGGBB`。颜色值和 Format 在继承时一起替换。客户端可调用 `MetadataColor.ToCss(value, format)` 转成 CSS。
 - 字号用 `FontSize`（正数），字重用 `FontWeight`（100～900 的整数），边框宽度用 `BorderWidth`（非负数）。Logo 尺寸、字号、边框与偏移单位为逻辑像素。详细属性与 Vue 映射见 [Mod 样式文档](.agents/notes/implemented/feature/2026-10-04-mod-style.md)。
 - 元数据契约版本保持 `1.0`，Style 调整不提高整个元数据的版本号。客户端可调用 `MetadataSchema.IsCompatible(root.Get("SchemaVersion"))` 检查；通过版本检查不代表已实现新样式展示。旧控件名称不再受 XSD 支持。
+
+- 版本包只保留 `Version`、可选 `ReleaseDate` 和可选 `Manifest`。不要再写 `Changelogs`；更新说明全部放进该实体自己的 `Posts`。Application 同样只在自身节点写 `Posts`，不能写 `Links`。Base 不能定义 `Posts` 或 `Links`，新闻和友情链接都不继承。没有文章时写 `<Posts/>`，不要编造新闻，也不要做跨实体公共列表。
+- `Post` 顺序固定为 `Titles`、可选 `Descriptions`、`Contents`。正文继续引用已登记的 Markdown 短 ID，外跳链接写在 Markdown 里，不要给 Post 加 `Url` 或 `Version`。介绍可省略，构建器不会从正文截取。
+- `Link@Url` 只能是 HTTP／HTTPS，必须有非空主机且不能含空白。`Languages` 省略表示所有语言可见；写成空白分隔列表（如 `zh en-US`），不能是空字符串。比较不区分大小写：`zh`／`en` 匹配该语言族及所有地区变体，`zh-CN` 只精确匹配 `zh-CN`，`en` 不会匹配到 `english`。展示名优先取与客户端语言精确匹配的 `DisplayName`，否则取 XML 里的第一条，不按语言族回退名称。同一条链接内不要重复同一语言标签。省略 `Icon` 时客户端用通用外链图标。
+- 元数据协议版本保持 `1.0`。这不表示旧的 `Package.Changelogs` 或 `ChangelogSource` 仍可用：二者已从模式和解析库删除，没有兼容包装。客户端用实体的 `Raw.Find("Posts")` 读取新闻，用 Mod 的 `Raw.Find("Links")` 读取友情链接；库不提供这两类节点的强类型查询，也不负责执行语言筛选。
 
 ## 安装清单（Manifest）的两种写法（两种都合法，文件表都不会塞进大总表里）
 

@@ -173,25 +173,6 @@ public static class MetadataQueryExtensions
             ?? throw new InvalidOperationException($"清单 {manifestId} 没有 Source");
     }
 
-    /// <summary>
-    /// 取应用自身版本包在指定语言下的更新日志 Markdown 的 Source；没配该语言或找不到登记节点时返回 null。
-    /// </summary>
-    /// <param name="app">Application 实体。</param>
-    /// <param name="language">语言标记，如 <c>zh-CN</c>。</param>
-    public static string? ChangelogSource(this ApplicationEntry app, string language)
-    {
-        var entry = app.Package()?.Raw
-            .Find("Changelogs")?.Children
-            .FirstOrDefault(c => c.Name == "Changelog"
-                && string.Equals(c.Get("Language"), language, StringComparison.Ordinal));
-        var id = entry?.Value;
-        if (string.IsNullOrEmpty(id))
-            return null;
-
-        return app.Raw.Root.GetAllElements("Markdown")
-            .FirstOrDefault(m => string.Equals(m.Get("ID"), id, StringComparison.Ordinal))
-            ?.Get("Source");
-    }
 
     /// <summary>按登记 ID 找到 Manifest 登记节点（返回 null 表示不存在）。</summary>
     public static Metadata? ManifestRegistration(this Metadata root, string manifestId)

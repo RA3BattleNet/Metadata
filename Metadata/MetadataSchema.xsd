@@ -26,7 +26,6 @@
       <xs:element name="Icon" type="xs:string"/>
       <xs:element name="Style" type="StyleType"/>
       <xs:element name="Packages" type="PackagesType"/>
-      <xs:element name="Posts" type="PostsType"/>
     </xs:choice>
     <xs:attribute name="ID" type="xs:string" use="required"/>
     <xs:attribute name="Kind" use="required">
@@ -99,10 +98,49 @@
       <xs:element name="Style" type="StyleType" minOccurs="0"/>
       <xs:element name="Packages" type="PackagesType" minOccurs="0"/>
       <xs:element name="Posts" type="PostsType" minOccurs="0"/>
+      <xs:element name="Links" type="LinksType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="ID" type="xs:string" use="required"/>
     <xs:attribute name="InheritFrom" type="xs:string"/>
   </xs:complexType>
+  <xs:complexType name="LinksType">
+    <xs:sequence>
+      <xs:element name="Link" type="LinkType" minOccurs="0" maxOccurs="unbounded">
+        <xs:unique name="UniqueLinkDisplayNameLanguage">
+          <xs:selector xpath="DisplayName"/>
+          <xs:field xpath="@Language"/>
+        </xs:unique>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="LinkType">
+    <xs:sequence>
+      <xs:element name="Icon" type="xs:string" minOccurs="0"/>
+      <xs:element name="DisplayName" type="LocalizedTextType" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="Url" type="HttpUrlType" use="required"/>
+    <xs:attribute name="Languages" type="LanguageListType"/>
+  </xs:complexType>
+
+  <xs:simpleType name="HttpUrlType">
+    <xs:restriction base="xs:string">
+      <xs:whiteSpace value="preserve"/>
+      <xs:pattern value="[hH][tT][tT][pP][sS]?://[^\s/?#]+(/[^\s]*)?(\?[^\s]*)?(#[^\s]*)?"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="LanguageListType">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list itemType="xs:language"/>
+      </xs:simpleType>
+      <xs:minLength value="1"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Languages 缺省时所有语言可见；zh/en 匹配自身及 zh-*/en-*，地区标签仅精确匹配；比较不区分大小写，en 不匹配 english。名称精确匹配当前语言，缺少时取第一条。客户端负责筛选。 -->
+  <!-- Links 只允许 Mod 直接配置，文档顺序就是展示顺序；Icon 是已登记 Image 的短 ID，省略时显示通用外链图标。XSD 仅限制 URL 格式，不检查可访问性或跨 Include 的 Icon 类型／存在性。 -->
 
   <xs:complexType name="StyleType">
     <xs:sequence>
@@ -239,17 +277,10 @@
   <xs:complexType name="PackageType">
     <xs:sequence>
       <xs:element name="ReleaseDate" type="xs:string" minOccurs="0"/>
-      <xs:element name="Changelogs" type="ChangelogsType" minOccurs="0"/>
       <!-- 文本为 Manifest 登记 ID -->
       <xs:element name="Manifest" type="xs:string" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="Version" type="xs:string" use="required"/>
-  </xs:complexType>
-
-  <xs:complexType name="ChangelogsType">
-    <xs:sequence>
-      <xs:element name="Changelog" type="LocalizedTextType" minOccurs="0" maxOccurs="unbounded"/>
-    </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="LocalizedTextType" mixed="true">
@@ -265,9 +296,16 @@
   <xs:complexType name="PostType">
     <xs:sequence>
       <xs:element name="Titles" type="TitlesType"/>
+      <xs:element name="Descriptions" type="DescriptionsType" minOccurs="0"/>
       <xs:element name="Contents" type="ContentsType"/>
     </xs:sequence>
     <xs:attribute name="DateTime" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="DescriptionsType">
+    <xs:sequence>
+      <xs:element name="Description" type="LocalizedTextType" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="TitlesType">

@@ -68,7 +68,7 @@ public sealed record ApplicationEntry(string Id, string? Version, IReadOnlyList<
 public sealed record ModEntry(string Id, string? Version, string? Icon, IReadOnlyList<LocalizedTextEntry> DisplayNames, IReadOnlyList<PackageEntry> Packages, Metadata Raw);
 
 /// <summary>
-/// 分语言的文本（<c>DisplayName</c> / <c>Title</c> / <c>Changelog</c> 这类带 <c>@Language</c> 的节点）。
+/// 分语言的文本（<c>DisplayName</c> / <c>Title</c> / <c>Description</c> 这类带 <c>@Language</c> 的节点）。
 /// </summary>
 /// <param name="Language">语言标记，如 <c>zh-CN</c>。</param>
 /// <param name="Text">该语言下的文本。</param>

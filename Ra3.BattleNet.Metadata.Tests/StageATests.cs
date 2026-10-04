@@ -64,15 +64,55 @@ public class StageATests
                 .First(m => MetadataFlattener.LocalId(m.Get("ID")!) == "manifest-3258");
             coronaManifest.Get("Source")!.Replace('\\', '/').Should().EndWith("manifests/3.258.xml");
 
-            var md = loaded.GetAllElements("Markdown")
-                .First(m => MetadataFlattener.LocalId(m.Get("ID")!) == "changelog-zh-1.9.9.11");
-            md.Get("ID")!.Should().Contain("changelogs");
-            var mdSource = md.Get("Source");
-            mdSource!.Replace('\\', '/').Should().EndWith("changelogs/zh-1.9.9.11.md");
-            File.Exists(Path.Combine(dst, mdSource.Replace('/', Path.DirectorySeparatorChar))).Should().BeTrue();
-
             // 引用已改写为限定 ID
             var app = loaded.Applications().Single(a => a.Id == "RA3BattleNet");
+            var appXml = Path.Combine(src, "apps", "ra3battlenet", "ra3battlenet.xml");
+            var appDoc = XDocument.Load(appXml);
+            var localContentId = appDoc.Descendants("Application")
+                .Single(a => a.Attribute("ID")!.Value == "RA3BattleNet")
+                .Element("Posts")!
+                .Elements("Post").Elements("Contents").Elements("Content")
+                .Single(c => string.Equals((string?)c.Attribute("Language"), "zh-CN", StringComparison.OrdinalIgnoreCase))
+                .Value.Trim();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var pending = new Queue<string>();
+            pending.Enqueue(appXml);
+            XElement? registration = null;
+            string? registrationFile = null;
+            while (pending.Count > 0)
+            {
+                var file = Path.GetFullPath(pending.Dequeue());
+                if (!seen.Add(file))
+                    continue;
+                var doc = XDocument.Load(file);
+                var match = doc.Descendants("Markdown")
+                    .SingleOrDefault(m => string.Equals((string?)m.Attribute("ID"), localContentId, StringComparison.Ordinal));
+                if (match != null)
+                {
+                    registration.Should().BeNull("同一入口的 Include 闭包里这条 Content 只能对应一条 Markdown");
+                    registration = match;
+                    registrationFile = file;
+                }
+                foreach (var include in doc.Descendants("Include"))
+                {
+                    var relative = include.Attribute("Source")?.Value;
+                    if (!string.IsNullOrWhiteSpace(relative))
+                        pending.Enqueue(Path.Combine(Path.GetDirectoryName(file)!, relative));
+                }
+            }
+            registration.Should().NotBeNull();
+            var sourceBody = File.ReadAllText(Path.GetFullPath(Path.Combine(
+                Path.GetDirectoryName(registrationFile!)!,
+                registration!.Attribute("Source")!.Value)));
+            var publishedContentId = app.Raw.Find("Posts")!
+                .GetAllElements("Content")
+                .Single(c => string.Equals(c.Get("Language"), "zh-CN", StringComparison.OrdinalIgnoreCase))
+                .Value!;
+            MetadataFlattener.LocalId(publishedContentId).Should().Be(localContentId);
+            var markdown = loaded.Markdowns().Single(m => m.Id == publishedContentId);
+            File.ReadAllText(Path.Combine(dst, markdown.Source!.Replace('/', Path.DirectorySeparatorChar)))
+                .Should().Be(sourceBody);
+
             app.Packages[0].ManifestId.Should().Be(manifest.Get("ID"));
             var corona = loaded.Mods().Single(m => m.Id == "Corona");
             var icon = loaded.Images().Single(image => image.Id == corona.Icon);
