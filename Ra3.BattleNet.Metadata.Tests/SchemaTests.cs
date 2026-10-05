@@ -74,6 +74,67 @@ public class SchemaTests
     }
 
     [TestMethod]
+    public void Build_ApplicationTransferAd_OptionalBooleanAccepted_InvalidRejected()
+    {
+        static string WriteTree(string temp, string application)
+        {
+            var src = Path.Combine(temp, "src");
+            Directory.CreateDirectory(src);
+            File.Copy(
+                Path.Combine(RepoRoot, "Metadata", SchemaValidator.SourceSchemaFileName),
+                Path.Combine(src, SchemaValidator.SourceSchemaFileName));
+            File.Copy(
+                Path.Combine(RepoRoot, "Metadata", SchemaValidator.PublishSchemaFileName),
+                Path.Combine(src, SchemaValidator.PublishSchemaFileName));
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), $"""
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  {application}
+</Metadata>
+""");
+            return src;
+        }
+
+        // true / 1 与整体缺失都必须放行；非法布尔值被源 XSD 硬拦截
+        var cases = new (string Name, string App, bool Ok)[]
+        {
+            ("true", """<Application ID="A"><Version>1.0</Version><TransferAd>true</TransferAd></Application>""", true),
+            ("one", """<Application ID="A"><TransferAd>1</TransferAd></Application>""", true),
+            ("missing", """<Application ID="A"><Version>1.0</Version></Application>""", true),
+            ("invalid", """<Application ID="A"><TransferAd>yes</TransferAd></Application>""", false),
+        };
+
+        foreach (var (name, app, ok) in cases)
+        {
+            var temp = Path.Combine(Path.GetTempPath(), $"schema-transfer-{name}-{Guid.NewGuid():N}");
+            var src = WriteTree(temp, app);
+            var dst = Path.Combine(temp, "out");
+            try
+            {
+                if (ok)
+                {
+                    MetadataBuilder.Build(src, dst, contentRevision: "transfer-ad");
+                    SchemaValidator
+                        .ValidateFile(Path.Combine(dst, "metadata.xml"),
+                                      Path.Combine(src, SchemaValidator.PublishSchemaFileName))
+                        .Should().BeEmpty();
+                }
+                else
+                {
+                    var act = () => MetadataBuilder.Build(src, dst, contentRevision: "transfer-ad");
+                    act.Should().Throw<InvalidOperationException>().WithMessage("*XSD*");
+                    Directory.Exists(dst).Should().BeFalse();
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(temp))
+                    Directory.Delete(temp, recursive: true);
+            }
+        }
+    }
+
+    [TestMethod]
     public void PublishSchema_RejectsManifestWithoutSource()
     {
         var schema = Path.Combine(RepoRoot, "Metadata", SchemaValidator.PublishSchemaFileName);

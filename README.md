@@ -167,7 +167,7 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: MetadataSchema.Curren
 | 模型元素 | 所在 XML 位置 | 属性与功能说明 |
 |---|---|---|
 | `SchemaVersion` / `ContentRevision` | 根节点属性 | 数据协议大版本号 / 构建注入的 Git 提交修订号 |
-| `Application` | 根的子元素 | 应用程序实体：包含 `@ID`、当前版本 `Version`、版本包列表 `Packages`、自己的新闻 `Posts`。新闻不从 Base 继承，也不使用顶层公共列表 |
+| `Application` | 根的子元素 | 应用程序实体：包含 `@ID`、当前版本 `Version`、可选布尔开关 `TransferAd`（缺省视为关闭，客户端据此决定是否自动弹出迁移提示窗）、版本包列表 `Packages`、自己的新闻 `Posts`。新闻不从 Base 继承，也不使用顶层公共列表 |
 | `Mod` | 根的子元素 | 模组实体：包含 `@ID`、当前推荐版本 `CurrentVersion`、图标 `Icon`（引用图片 ID）、多语言显示名 `DisplayName`、外观样式 `Style`、版本列表 `Packages`、自己的公告 `Posts`、可选友情链接 `Links`。Base 不定义 Posts 或 Links |
 | `Package` | 实体子元素 | 纯安装数据：必填版本号 `@Version`、可选发布日期 `ReleaseDate`、可选独立清单 `Manifest`。不再包含更新日志；可以没有任何新闻 |
 | `Post` | Mod 或 Application 的直接子元素 | 独立新闻：发布时间 `@DateTime`、多语言标题 `Titles`、可选多语言介绍 `Descriptions`、正文 Markdown 引用 `Contents`。不关联版本包，不加外跳链接；介绍省略时不从 Markdown 截取 |

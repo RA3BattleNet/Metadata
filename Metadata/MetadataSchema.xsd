@@ -54,9 +54,11 @@
     <xs:attribute name="Source" type="xs:string" use="required"/>
   </xs:complexType>
 
+  <!-- TransferAd：可选布尔开关，缺省视为不启用；客户端据此决定是否自动弹出迁移提示窗口。 -->
   <xs:complexType name="ApplicationType">
     <xs:sequence>
       <xs:element name="Version" type="xs:string" minOccurs="0"/>
+      <xs:element name="TransferAd" type="xs:boolean" minOccurs="0"/>
       <xs:element name="Packages" type="PackagesType" minOccurs="0"/>
       <xs:element name="Posts" type="PostsType" minOccurs="0"/>
       <xs:element name="UpdateKind" type="UpdateKindType" minOccurs="0" maxOccurs="unbounded"/>
