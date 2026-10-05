@@ -353,6 +353,7 @@
       <xs:element name="AddConfig" type="AddConfigType"/>
     </xs:choice>
     <xs:attribute name="GameVersion" type="xs:string"/>
+    <xs:attribute name="FileName" type="xs:string"/>
   </xs:complexType>
 
   <!-- 挂载清单里的一个文件；Language/Package 是加载条件，不写就是总是挂；两者只能写一个 -->

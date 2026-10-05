@@ -259,7 +259,8 @@ public static class MetadataQueryExtensions
         var gameVersion = skudefNode.Get("GameVersion");
         return new ManifestSkudefEntry(
             string.IsNullOrWhiteSpace(gameVersion) ? ManifestSkudefEntry.DefaultGameVersion : gameVersion,
-            commands);
+            commands,
+            skudefNode.Get("FileName"));
     }
 
     /// <summary>读 AddConfig 的 Optional；取值按 XSD boolean 的写法（true/false/1/0），其他写法直接抛。</summary>
