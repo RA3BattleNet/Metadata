@@ -397,6 +397,7 @@ public static class MetadataBuilder
 
         foreach (var app in metadata.GetAllElements("Application").Concat(metadata.GetAllElements("Mod")))
         {
+            ValidateEntityDisplayNames(app, errors);
             ValidateIdRef(app.Find("Icon")?.Value, "Icon", idIndex, errors);
             var packages = app.Find("Packages");
             if (packages != null)
@@ -446,6 +447,39 @@ public static class MetadataBuilder
 
         if (errors.Count > 0)
             throw new InvalidOperationException("核心构建校验失败:\n- " + string.Join("\n- ", errors));
+    }
+
+    /// <summary>
+    /// 实体显示名硬校验：Mod 与 Application 都必须声明 <c>zh-CN</c> 与 <c>en-US</c> 两条显示名
+    /// （完整语言标签精确匹配，比较不区分大小写，大小写变体如 <c>Zh-Cn</c> 也算），
+    /// 完整语言标签不许重复（不区分大小写），语言与文本都不能为空白；允许再声明其它语言。
+    /// 显示名属于实体自身，不从 Base 继承——校验针对合并后的节点。
+    /// </summary>
+    private static void ValidateEntityDisplayNames(Metadata entity, List<string> errors)
+    {
+        var name = $"{entity.Name} '{entity.Get("ID")}'";
+        var languages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var displayName in entity.Children.Where(c => c.Name == "DisplayName"))
+        {
+            var language = displayName.Get("Language");
+            if (string.IsNullOrWhiteSpace(language))
+            {
+                errors.Add($"{name}: DisplayName 缺少 Language");
+            }
+            else if (!languages.Add(language))
+            {
+                errors.Add($"{name}: DisplayName Language 重复: {language}");
+            }
+
+            if (string.IsNullOrWhiteSpace(displayName.Value))
+                errors.Add($"{name}: DisplayName（{language ?? "?"}）文本不能为空");
+        }
+
+        if (!languages.Contains("zh-CN"))
+            errors.Add($"{name}: 缺少 zh-CN DisplayName");
+        if (!languages.Contains("en-US"))
+            errors.Add($"{name}: 缺少 en-US DisplayName");
     }
 
     private static void ValidateIdRef(string? id, string kind, HashSet<string> idIndex, List<string> errors)

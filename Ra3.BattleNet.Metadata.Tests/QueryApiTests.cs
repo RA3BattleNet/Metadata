@@ -111,11 +111,15 @@ public class QueryApiTests
   <Markdown ID="bare-en" Source="bare-en.md" Hash="${MD5::}"/>
   <Mod ID="PackageOnly">
     <CurrentVersion>9.0</CurrentVersion>
+    <DisplayName Language="zh-CN">仅版本包</DisplayName>
+    <DisplayName Language="en-US">Package Only</DisplayName>
     <Packages>
       <Package Version="9.0" />
     </Packages>
   </Mod>
   <Application ID="NewsOnly">
+    <DisplayName Language="zh-CN">仅新闻</DisplayName>
+    <DisplayName Language="en-US">News Only</DisplayName>
     <Posts>
       <Post DateTime="2026-10-02T00:00:00+08:00">
         <Titles>
@@ -135,6 +139,8 @@ public class QueryApiTests
   </Application>
   <Application ID="Mixed">
     <Version>9.0</Version>
+    <DisplayName Language="zh-CN">混合</DisplayName>
+    <DisplayName Language="en-US">Mixed</DisplayName>
     <Packages>
       <Package Version="9.0" />
     </Packages>

@@ -21,6 +21,8 @@
     <Mod ID="Corona">
         <CurrentVersion>3.258</CurrentVersion>
         <Icon>corona-icon-128px</Icon>
+        <DisplayName Language="zh-CN">日冕</DisplayName>
+        <DisplayName Language="en-US">Corona</DisplayName>
         <Style>
             <Logo Width="400" Position="Center" OffsetX="0" OffsetY="0">corona-banner</Logo>
             <Controls>
@@ -114,11 +116,11 @@
         <Links>
             <Link Url="https://space.bilibili.com/400315239">
                 <Icon>homepage-bilibili</Icon>
-                <DisplayName Language="zh-CN">哔哩哔哩</DisplayName>
+                <DisplayName Language="zh">哔哩哔哩</DisplayName>
             </Link>
             <Link Url="https://v.douyin.com/iM121nWW/">
                 <Icon>homepage-douyin</Icon>
-                <DisplayName Language="zh-CN">抖音</DisplayName>
+                <DisplayName Language="zh">抖音</DisplayName>
             </Link>
         </Links>
     </Mod>

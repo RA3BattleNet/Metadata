@@ -27,6 +27,7 @@
   <xs:complexType name="ApplicationType">
     <xs:sequence>
       <xs:element name="Version" type="xs:string" minOccurs="0"/>
+      <xs:element name="DisplayName" type="LocalizedTextType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="TransferAd" type="xs:boolean" minOccurs="0"/>
       <xs:element name="Packages" type="PackagesType" minOccurs="0"/>
       <xs:element name="Posts" type="PostsType" minOccurs="0"/>

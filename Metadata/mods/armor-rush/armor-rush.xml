@@ -10,7 +10,7 @@
     <Mod ID="ArmorRush">
         <CurrentVersion>3.370</CurrentVersion>
         <DisplayName Language="zh-CN">装甲冲击</DisplayName>
-        <DisplayName Language="en">Armor Rush</DisplayName>
+        <DisplayName Language="en-US">Armor Rush</DisplayName>
         <Packages>
             <Package Version="3.370">
                 <ReleaseDate>2026-02-18</ReleaseDate>

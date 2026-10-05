@@ -125,10 +125,10 @@ public class SchemaTests
         // true / 1 与整体缺失都必须放行；非法布尔值被源 XSD 硬拦截
         var cases = new (string Name, string App, bool Ok)[]
         {
-            ("true", """<Application ID="A"><Version>1.0</Version><TransferAd>true</TransferAd></Application>""", true),
-            ("one", """<Application ID="A"><TransferAd>1</TransferAd></Application>""", true),
-            ("missing", """<Application ID="A"><Version>1.0</Version></Application>""", true),
-            ("invalid", """<Application ID="A"><TransferAd>yes</TransferAd></Application>""", false),
+            ("true", """<Application ID="A"><Version>1.0</Version><DisplayName Language="zh-CN">甲</DisplayName><DisplayName Language="en-US">A</DisplayName><TransferAd>true</TransferAd></Application>""", true),
+            ("one", """<Application ID="A"><DisplayName Language="zh-CN">甲</DisplayName><DisplayName Language="en-US">A</DisplayName><TransferAd>1</TransferAd></Application>""", true),
+            ("missing", """<Application ID="A"><Version>1.0</Version><DisplayName Language="zh-CN">甲</DisplayName><DisplayName Language="en-US">A</DisplayName></Application>""", true),
+            ("invalid", """<Application ID="A"><DisplayName Language="zh-CN">甲</DisplayName><DisplayName Language="en-US">A</DisplayName><TransferAd>yes</TransferAd></Application>""", false),
         };
 
         foreach (var (name, app, ok) in cases)
@@ -151,6 +151,82 @@ public class SchemaTests
                     var act = () => MetadataBuilder.Build(src, dst, contentRevision: "transfer-ad");
                     act.Should().Throw<InvalidOperationException>().WithMessage("*XSD*");
                     Directory.Exists(dst).Should().BeFalse();
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(temp))
+                    Directory.Delete(temp, recursive: true);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void Build_EntityDisplayNames_RequiresExactZhCnEnUs_UniqueAndNonBlank()
+    {
+        var cases = new (string DisplayNames, string? Fragment, string[] Expected)[]
+        {
+            ("""
+<DisplayName Language="zh-CN">甲</DisplayName>
+""", "缺少 en-US", []),
+            ("""
+<DisplayName Language="zh-CN">甲</DisplayName>
+<DisplayName Language="en-US">A</DisplayName>
+<DisplayName Language="zh-CN">乙</DisplayName>
+""", "Language 重复", []),
+            ("""
+<DisplayName Language="zh-CN">甲</DisplayName>
+<DisplayName Language="en-US"> </DisplayName>
+""", "文本不能为空", []),
+            ("""
+<DisplayName Language="zh">甲</DisplayName>
+<DisplayName Language="en">A</DisplayName>
+""", "缺少 zh-CN", []),
+            ("""
+<DisplayName Language="zh-CN">甲</DisplayName>
+<DisplayName Language="en-US">A</DisplayName>
+""", null, ["zh-CN", "en-US"]),
+            // 完整语言标签比较不区分大小写
+            ("""
+<DisplayName Language="ZH-cn">甲</DisplayName>
+<DisplayName Language="EN-us">A</DisplayName>
+""", null, ["ZH-cn", "EN-us"]),
+        };
+
+        foreach (var (displayNames, fragment, expected) in cases)
+        {
+            var temp = Path.Combine(Path.GetTempPath(), $"schema-displayname-{Guid.NewGuid():N}");
+            var src = Path.Combine(temp, "src");
+            var dst = Path.Combine(temp, "out");
+            Directory.CreateDirectory(src);
+            try
+            {
+                foreach (var name in new[] { SchemaValidator.SourceSchemaFileName, SchemaValidator.PublishSchemaFileName })
+                {
+                    File.Copy(
+                        Path.Combine(RepoRoot, "Metadata", name),
+                        Path.Combine(src, name));
+                }
+
+                File.WriteAllText(Path.Combine(src, "metadata.xml"), $"""
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Mod ID="M">
+{displayNames}  </Mod>
+</Metadata>
+""");
+
+                if (fragment == null)
+                {
+                    MetadataBuilder.Build(src, dst, contentRevision: "display-name");
+                    MetadataBuilder.Load(Path.Combine(dst, "metadata.xml")).Mods().Single().DisplayNames
+                        .Select(d => d.Language).Should().Equal(expected);
+                }
+                else
+                {
+                    var act = () => MetadataBuilder.Build(src, dst, contentRevision: "display-name");
+                    act.Should().Throw<InvalidOperationException>().WithMessage($"*{fragment}*");
+                    Directory.Exists(dst).Should().BeFalse("半残输出应被清理");
                 }
             }
             finally

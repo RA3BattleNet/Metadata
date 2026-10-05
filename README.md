@@ -169,12 +169,20 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: MetadataSchema.Curren
 | 模型元素 | 所在 XML 位置 | 属性与功能说明 |
 |---|---|---|
 | `SchemaVersion` / `ContentRevision` | 根节点属性 | 数据协议大版本号 / 构建注入的 Git 提交修订号 |
-| `Application` | 根的子元素 | 应用程序实体：包含 `@ID`、当前版本 `Version`、可选布尔开关 `TransferAd`（缺省视为关闭，客户端据此决定是否自动弹出迁移提示窗）、版本包列表 `Packages`、自己的新闻 `Posts`。新闻不从 Base 继承，也不使用顶层公共列表 |
-| `Mod` | 根的子元素 | 模组实体：包含 `@ID`、当前推荐版本 `CurrentVersion`、图标 `Icon`（引用图片 ID）、多语言显示名 `DisplayName`、外观样式 `Style`、版本列表 `Packages`、自己的公告 `Posts`、可选友情链接 `Links`。Base 不定义 Posts 或 Links |
+| `Application` | 根的子元素 | 应用程序实体：包含 `@ID`、当前版本 `Version`、多语言显示名 `DisplayName`（必须同时写 `zh-CN` 与 `en-US` 两条）、可选布尔开关 `TransferAd`（缺省视为关闭，客户端据此决定是否自动弹出迁移提示窗）、版本包列表 `Packages`、自己的新闻 `Posts`。显示名与新闻都不从 Base 继承，也不使用顶层公共列表 |
+| `Mod` | 根的子元素 | 模组实体：包含 `@ID`、当前推荐版本 `CurrentVersion`、图标 `Icon`（引用图片 ID）、多语言显示名 `DisplayName`（必须同时写 `zh-CN` 与 `en-US` 两条）、外观样式 `Style`、版本列表 `Packages`、自己的公告 `Posts`、可选友情链接 `Links`。显示名与 Posts／Links 一样属于实体自身，不从 Base 继承 |
 | `Package` | 实体子元素 | 纯安装数据：必填版本号 `@Version`、可选发布日期 `ReleaseDate`、可选独立清单 `Manifest`。不再包含更新日志；可以没有任何新闻 |
 | `Post` | Mod 或 Application 的直接子元素 | 独立新闻：发布时间 `@DateTime`、多语言标题 `Titles`、可选多语言介绍 `Descriptions`、可选封面图 `HeadImage`（已登记图片 ID）、正文 Markdown 引用 `Contents`。不关联版本包，不加外跳链接；介绍省略时不从 Markdown 截取 |
 | `Link` | 仅 Mod 的直接子元素 | 友情链接：必填 `@Url`（仅 HTTP／HTTPS）、可选 `@Languages`、可选图标短 ID `Icon`、至少一条 `DisplayName`。顺序即展示顺序 |
 | `Image` / `Markdown` / `Manifest` | 资源登记节点 | 包含资源完整 ID `@ID`（带前缀）、相对路径 `@Source`；图片支持 `@Url` 外部链接；清单在主表里表现为占位 stub |
+
+### 显示名（Mod 与 Application 均必填）
+
+`Mod` 与 `Application` 都通过重复的 `<DisplayName Language="…">文本</DisplayName>` 声明显示名，`Language` 不能为空白，同一个实体内的完整语言标签不区分大小写且不能重复。构建期要求**必须各写一条 `zh-CN` 与 `en-US`**（完整语言标签精确匹配，比较不区分大小写），文本不能为空，可以再补充其它语言；缺失、空白或标签重复都会让核心构建直接失败。
+
+显示名是实体自身的字段，**不从 Base 继承**：子实体合并 Base 时只保留自己声明的全部 `DisplayName`，Base 里不可能、也不会提供显示名。这一点与 `UpdateKind@DisplayName` 不同——更新线的显示名契约与读写代码保持不变，仍由客户端自行覆盖展示。
+
+完整属性列表、XML 示例与决定说明见 [Mod 与 Application 的必填显示名](.agents/notes/implemented/feature/2026-10-05-required-displayname.md)。
 
 ### Mod 页面样式
 
@@ -198,6 +206,8 @@ var cssColor = color is null ? null : MetadataColor.ToCss(color.Value!, color.Ge
 XML 使用 PascalCase，Vue 对象使用 camelCase，CSS 属性使用 kebab-case。Vue `:style` 中尺寸需转成 `px` 字符串，字重没有单位；`Hover` / `Active` 通过 CSS 变量和伪类实现，不能把嵌套状态对象直接作为 `:style`。本仓库提供元数据，不包含 Vue 页面实现。
 
 **发布契约版本保持 `1.0`。** 本次仅调整 Style，不提高整个元数据的版本号，避免已有客户端因版本检查拒绝模组、应用包和更新信息。旧 `LaunchButton` / `Label` 及 Brush 字段已迁移，不保留别名；旧版八位颜色需标注 ARGB 或显式转换成 CSS。使用新样式仍需客户端读取对应字段，版本检查通过不代表已经支持新样式。
+
+**新增必填显示名后协议版本仍为 `1.0`。** Mod 与 Application 只是各自多了必填的 `DisplayName` 实体字段（`zh-CN` 与 `en-US` 各一条），`SchemaVersion` 不变；`UpdateKind@DisplayName` 的契约与读写代码保持不变，历史安装记录也照旧可读。
 
 **协议版本仍是 `1.0`，但旧更新日志入口已删除。** `Package.Changelogs` 与 `ApplicationEntry.ChangelogSource` 不再受支持，不保留别名或空实现。各 Mod／Application 只读取自己的 `Posts`；外部链接由作者写进 Markdown。`Link@Languages` 缺省表示所有语言可见，比较不区分大小写：`zh`／`en` 匹配该语言族（如 `zh-CN`），`zh-CN` 只精确匹配 `zh-CN`，不会把 `en` 匹配到 `english`。名称优先取与当前语言精确匹配的 `DisplayName`，没有精确匹配时取 XML 中第一条，不按语言族自动回退。图标省略时由客户端使用通用外链图标。库只原样输出这些节点，不实现语言筛选。
 

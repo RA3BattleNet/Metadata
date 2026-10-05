@@ -13,6 +13,8 @@
 
     <Mod ID="NeuroEva">
         <CurrentVersion>1.3</CurrentVersion>
+        <DisplayName Language="zh-CN">NeuroEva</DisplayName>
+        <DisplayName Language="en-US">NeuroEva</DisplayName>
         <Style>
             <Controls>
                 <PrimaryLabel>
@@ -74,11 +76,11 @@
         <Links>
             <Link Url="https://space.bilibili.com/400315239">
                 <Icon>homepage-bilibili</Icon>
-                <DisplayName Language="zh-CN">哔哩哔哩</DisplayName>
+                <DisplayName Language="zh">哔哩哔哩</DisplayName>
             </Link>
             <Link Url="https://v.douyin.com/iM121nWW/">
                 <Icon>homepage-douyin</Icon>
-                <DisplayName Language="zh-CN">抖音</DisplayName>
+                <DisplayName Language="zh">抖音</DisplayName>
             </Link>
         </Links>
     </Mod>
