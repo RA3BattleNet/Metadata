@@ -81,7 +81,7 @@
                 <Descriptions>
                     <Description Language="zh-CN">作为对3.255版本的补充更新，我们进行了多项BUG修复。</Description>
                 </Descriptions>
-                <HeadImage>headimg</HeadImage>
+                <HeadImage>headimg-325x</HeadImage>
                 <Contents>
                     <Content Language="zh-CN">news-zh-3.256</Content>
                 </Contents>
@@ -93,7 +93,7 @@
                 <Descriptions>
                     <Description Language="zh-CN">我们进行了多项拓展模式更新、BUG修复和平衡改动。</Description>
                 </Descriptions>
-                <HeadImage>headimg</HeadImage>
+                <HeadImage>headimg-325x</HeadImage>
                 <Contents>
                     <Content Language="zh-CN">news-zh-3.255</Content>
                 </Contents>
@@ -105,7 +105,7 @@
                 <Descriptions>
                     <Description Language="zh-CN">作为对3.252版本的补充更新，我们进行了多项BUG修复和平衡改动。</Description>
                 </Descriptions>
-                <HeadImage>headimg</HeadImage>
+                <HeadImage>headimg-325x</HeadImage>
                 <Contents>
                     <Content Language="zh-CN">news-zh-3.253</Content>
                 </Contents>
