@@ -64,9 +64,40 @@
             </Sources>
         </File>
         <Dependencies>
-            <Dll Name="Lyi.dll" KindOf="APPLICATION" Hash="A4A7924F" />
-            <Dll Name="RA3LuaBridge.dll" KindOf="APPLICATION" Hash="0D49B9A0" />
-            <Dll Name="EnhancerCorona.dll" KindOf="APPLICATION" Hash="01C6510C" />
+            <Dll ID="lyi" Name="Lyi.dll" KindOf="APPLICATION" Hash="A4A7924F" />
+            <Dll ID="enhancer" Name="EnhancerCorona.dll" KindOf="APPLICATION" Hash="01C6510C" />
+            <Dll ID="lua-bridge" Name="RA3LuaBridge.dll" KindOf="APPLICATION" Hash="0D49B9A0" Protocol="lyi-create-process" />
         </Dependencies>
+        <Injection>
+            <RequireDll Ref="lyi" />
+            <RequireDll Ref="enhancer" />
+            <InjectDll Ref="lua-bridge" />
+        </Injection>
+        <Settings>
+            <SettingRef Ref="disable-sky-and-patches">
+                <MountPackage Name="disable-sky-and-patches" />
+            </SettingRef>
+            <SettingRef Ref="hd-shadow">
+                <MountPackage Name="hd-shadow" />
+            </SettingRef>
+            <SettingRef Ref="mod-language">
+                <MountLanguage />
+            </SettingRef>
+            <SettingRef Ref="world-builder">
+                <MountPackage Name="world-builder" />
+            </SettingRef>
+            <SettingRef Ref="debug-overlay">
+                <ConfigureLuaBridge Ref="lua-bridge" Adapter="debug-overlay" />
+            </SettingRef>
+            <SettingRef Ref="audio-fix">
+                <ConfigureLuaBridge Ref="lua-bridge" Adapter="audio-fix" />
+            </SettingRef>
+            <SettingRef Ref="desync-debug">
+                <ConfigureLuaBridge Ref="lua-bridge" Adapter="desync-debug" />
+            </SettingRef>
+            <SettingRef Ref="enhancer-logger">
+                <ConfigureLuaBridge Ref="lua-bridge" Adapter="enhancer-logger" />
+            </SettingRef>
+        </Settings>
     </Manifest>
 </Metadata>
