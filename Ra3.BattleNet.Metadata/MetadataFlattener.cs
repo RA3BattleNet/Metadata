@@ -95,7 +95,7 @@ public static class MetadataFlattener
     /// </summary>
     private static bool IsTextReference(XElement el) => el.Name.LocalName switch
     {
-        "Icon" or "Logo" or "Content" => true,
+        "Icon" or "Logo" or "Content" or "HeadImage" => true,
         // Package.Manifest 引用：无 ID 且无子元素
         "Manifest" => el.Attribute("ID") == null && !el.HasElements,
         // Background 等处的 ID 文本引用；登记节点必有 ID

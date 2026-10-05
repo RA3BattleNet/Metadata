@@ -412,6 +412,9 @@ public static class MetadataBuilder
             {
                 foreach (var post in posts.Children.Where(c => c.Name == "Post"))
                 {
+                    // Post 封面只认图片登记：引用 Markdown / Manifest 或不存在都报错。
+                    ValidateIdRef(post.Find("HeadImage")?.Value?.Trim(), "Post HeadImage", imageIds, errors);
+
                     var contents = post.Find("Contents");
                     if (contents == null) continue;
                     foreach (var content in contents.Children.Where(c => c.Name == "Content"))

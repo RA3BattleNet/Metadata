@@ -107,6 +107,7 @@ Metadata/
           <Description Language="zh-CN">简短介绍。</Description>
           <Description Language="en-US">Short summary.</Description>
         </Descriptions>
+        <HeadImage>icon-64px</HeadImage>       <!-- 可选：已登记图片的短 ID，作为新闻封面；没有就省略整个 HeadImage -->
         <Contents>
           <Content Language="zh-CN">news-zh-3229</Content>
           <Content Language="en-US">news-en-3229</Content>
@@ -126,7 +127,7 @@ Metadata/
 
 核心要点说明：
 
-- **资源登记节点**：指的是带 `@ID` 属性的 `Image`、`Markdown`、`Manifest` 标签；而在后面引用它们时（比如 Icon、Logo、Background 里的 Image、公告正文 Post.Content、友情链接 Link.Icon、版本包对应的 Package.Manifest），**统一直接写短名字**，构建打包程序会自动在“当前文件以及它所引入的文件”作用域内，帮你把短名字改写成带路径前缀的完整 ID。
+- **资源登记节点**：指的是带 `@ID` 属性的 `Image`、`Markdown`、`Manifest` 标签；而在后面引用它们时（比如 Icon、Logo、Background 里的 Image、公告正文 Post.Content、公告封面 Post.HeadImage、友情链接 Link.Icon、版本包对应的 Package.Manifest），**统一直接写短名字**，构建打包程序会自动在“当前文件以及它所引入的文件”作用域内，帮你把短名字改写成带路径前缀的完整 ID。
 - `Include` 标签只需要写 `Source` 属性（填相对于当前文件的路径），不需要写额外的 `Type` 或 `Path` 属性；所有子文件根节点一律以 `<Metadata>` 开头。
 - 如果多个 Mod 想共享同一套公共样式，可以使用 `Base` 和 `InheritFrom` 继承机制（编译打包时会自动合并，最终发布出来的文件里不留痕迹）；平时如果用不到直接忽略即可。
 - `Style` 和所有样式字段都可省略，未配置时由客户端主题决定。标签分 `PrimaryLabel` / `SecondaryLabel`，按钮分 `PrimaryButton` / `SecondaryButton`；按钮的 `Hover` 与 `Active` 分别表示悬停和按下，状态字段缺省时使用最终合并后的普通按钮字段，不从 Hover 回退到 Active。
@@ -135,7 +136,7 @@ Metadata/
 - 元数据契约版本保持 `1.0`，Style 调整不提高整个元数据的版本号。客户端可调用 `MetadataSchema.IsCompatible(root.Get("SchemaVersion"))` 检查；通过版本检查不代表已实现新样式展示。旧控件名称不再受 XSD 支持。
 
 - 版本包只保留 `Version`、可选 `ReleaseDate` 和可选 `Manifest`。不要再写 `Changelogs`；更新说明全部放进该实体自己的 `Posts`。Application 同样只在自身节点写 `Posts`，不能写 `Links`。Base 不能定义 `Posts` 或 `Links`，新闻和友情链接都不继承。没有文章时写 `<Posts/>`，不要编造新闻，也不要做跨实体公共列表。
-- `Post` 顺序固定为 `Titles`、可选 `Descriptions`、`Contents`。正文继续引用已登记的 Markdown 短 ID，外跳链接写在 Markdown 里，不要给 Post 加 `Url` 或 `Version`。介绍可省略，构建器不会从正文截取。
+- `Post` 顺序固定为 `Titles`、可选 `Descriptions`、可选 `HeadImage`、`Contents`。正文继续引用已登记的 Markdown 短 ID，外跳链接写在 Markdown 里，不要给 Post 加 `Url` 或 `Version`。介绍可省略，构建器不会从正文截取。`HeadImage` 是新闻可选封面，填已登记图片短 ID（引用 Markdown／Manifest 或写不存在的 ID 都会被构建器硬失败拦截），省略即无封面。
 - `Link@Url` 只能是 HTTP／HTTPS，必须有非空主机且不能含空白。`Languages` 省略表示所有语言可见；写成空白分隔列表（如 `zh en-US`），不能是空字符串。比较不区分大小写：`zh`／`en` 匹配该语言族及所有地区变体，`zh-CN` 只精确匹配 `zh-CN`，`en` 不会匹配到 `english`。展示名优先取与客户端语言精确匹配的 `DisplayName`，否则取 XML 里的第一条，不按语言族回退名称。同一条链接内不要重复同一语言标签。省略 `Icon` 时客户端用通用外链图标。
 - 元数据协议版本保持 `1.0`。这不表示旧的 `Package.Changelogs` 或 `ChangelogSource` 仍可用：二者已从模式和解析库删除，没有兼容包装。客户端用实体的 `Raw.Find("Posts")` 读取新闻，用 Mod 的 `Raw.Find("Links")` 读取友情链接；库不提供这两类节点的强类型查询，也不负责执行语言筛选。
 
