@@ -14,7 +14,7 @@
             <RelativePath>/</RelativePath>
             <KindOf>MISC;</KindOf>
             <Sources>
-                <Source Type="HTTP" Url="https://web.file.cor-games.com/srv/test/NeuroEva_1.3.big" />
+                <Source Type="BT" Url="https://web.file.cor-games.com/srv/test/NeuroEva_1.3.big.torrent" />
             </Sources>
         </File>
     </Manifest>
