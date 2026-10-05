@@ -160,8 +160,8 @@ public class InheritanceTests
               </Base>
               <Mod ID="Child" InheritFrom="StandardMod">
                 <CurrentVersion>1</CurrentVersion>
-                <DisplayName Language="zh">子名</DisplayName>
-                <DisplayName Language="en">Child Name</DisplayName>
+                <DisplayName Language="zh-CN">子名</DisplayName>
+                <DisplayName Language="en-US">Child Name</DisplayName>
               </Mod>
             </Metadata>
             """);
@@ -172,7 +172,7 @@ public class InheritanceTests
         // 显示名属于实体自身：保留子实体的全部节点（顺序不变），绝不从 Base 继承
         mod.Elements("DisplayName")
             .Select(e => (Lang: e.Attribute("Language")!.Value, Text: e.Value))
-            .Should().Equal(("zh", "子名"), ("en", "Child Name"));
+            .Should().Equal(("zh-CN", "子名"), ("en-US", "Child Name"));
         mod.Elements().Select(e => e.Name.LocalName)
             .Should().Equal("CurrentVersion", "DisplayName", "DisplayName", "Style");
         mod.Element("Style").Should().NotBeNull("样式仍从 Base 继承");
@@ -312,8 +312,8 @@ public class InheritanceTests
   <Mod ID="Demo" InheritFrom="StandardMod">
     <CurrentVersion>3.0</CurrentVersion>
     <Icon>icon-a</Icon>
-    <DisplayName Language="zh">演示</DisplayName>
-    <DisplayName Language="en">Demo</DisplayName>
+    <DisplayName Language="zh-CN">演示</DisplayName>
+    <DisplayName Language="en-US">Demo</DisplayName>
     <Packages>
       <Package Version="3.0">
         <ReleaseDate>2026-01-01</ReleaseDate>

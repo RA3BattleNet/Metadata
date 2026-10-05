@@ -22,7 +22,7 @@ Mod 与 Application 是客户端产品列表、应用包下载与增量更新任
 
 合并、展平之后对每个 `Mod` 与 `Application` 执行实体显示名校验：
 
-- 必须覆盖 `zh` 与 `en` 两个语言族（各写一条即可；语言族匹配不区分大小写，`zh` 命中 `zh` / `zh-*`，`en` 命中 `en` / `en-*`，`en` 不命中 `english`）；
+- 必须各写一条 `zh-CN` 与 `en-US`（完整语言标签精确匹配，比较不区分大小写）；
 - 完整语言标签不能为空白、同一实体内不能重复（不区分大小写）；
 - 文本不能为空白；
 - 允许再声明其它语言。
@@ -48,13 +48,13 @@ Mod 与 Application 是客户端产品列表、应用包下载与增量更新任
 
 ## Alternatives considered
 
-- **把 `DisplayName` 直接写成 XSD 必填（`minOccurs=1`）**：XSD 无法表达“必须同时覆盖 zh 与 en 两个语言族、且按语言族匹配、不区分大小写、完整标签不重复”，只能校验“至少一条”，错误信息也不如构建期清晰；采用构建期校验。
+- **把 `DisplayName` 直接写成 XSD 必填（`minOccurs=1`）**：XSD 无法表达“必须各写一条 `zh-CN` 与 `en-US`、且完整标签不区分大小写、不能重复”，只能校验“至少一条”，错误信息也不如构建期清晰；采用构建期校验。
 - **让 `Base` 提供默认显示名**：与“显示名属于实体自身”的语义冲突，且会掩盖缺失，用户明确要求不从 Base 继承。
 - **复用 `UpdateKind@DisplayName`**：更新线显示名描述的是更新器/渠道，不是产品实体本身，两者契约不同，用户明确要求 `UpdateKind` 保持不变。
 
 ## Consequences
 
-- 正式元数据（Corona、ArmorRush、NeuroEva、content、RA3BattleNet）统一使用 `zh` 与 `en` 两条语言族显示名（含友情链接示例一并规范化）。
+- 正式元数据（Corona、ArmorRush、NeuroEva、content、RA3BattleNet）统一使用 `zh-CN` 与 `en-US` 两条实体显示名。
 - 模板、README、`AGENTS.md` 与 Templates 指南同步说明必填规则与“不从 Base 继承”。
 - 任何遗漏显示名的实体都会在构建期被拦截；历史发布物仍按 `1.0` 读取。
 - 客户端可以在产品列表、包下载与增量更新任务中统一使用实体显示名，固定应用外壳/通知品牌文案仍由客户端本地 i18n 负责。
@@ -62,6 +62,6 @@ Mod 与 Application 是客户端产品列表、应用包下载与增量更新任
 ## Verification
 
 本分支仅完成代码、数据与文档改动，未运行构建/测试/格式化；由父任务在工作树汇合后统一执行 `dotnet test Metadata.sln` 与 CLI 构建验证，并核对：
-- 缺失或重复显示名的实体被构建期拦截，且 `zh-CN` / `en-US` 等语言族变体可被接受；
+- 缺失或重复显示名的实体被构建期拦截，且只有完整的 `zh-CN` / `en-US`（大小写不敏感）被接受；
 - 子实体继承 `Base` 时，实体自身的 `DisplayName` 全部保留且不从 Base 继承；
 - 发布产物 `SchemaVersion` 仍为 `1.0`，`UpdateKind@DisplayName` 行为不变。

@@ -20,8 +20,8 @@
     <Mod ID="Corona">
         <CurrentVersion>3.258</CurrentVersion>
         <Icon>corona-icon-128px</Icon>
-        <DisplayName Language="zh">日冕</DisplayName>
-        <DisplayName Language="en">Corona</DisplayName>
+        <DisplayName Language="zh-CN">日冕</DisplayName>
+        <DisplayName Language="en-US">Corona</DisplayName>
         <Style>
             <Logo Width="400" Position="Center" OffsetX="0" OffsetY="0">corona-banner</Logo>
             <Controls>

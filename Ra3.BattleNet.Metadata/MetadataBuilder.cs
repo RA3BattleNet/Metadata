@@ -447,8 +447,8 @@ public static class MetadataBuilder
     }
 
     /// <summary>
-    /// 实体显示名硬校验：Mod 与 Application 都必须声明 zh 与 en 两个语言族（各取一条即可，
-    /// 语言族匹配不区分大小写：zh 匹配 zh / zh-*，en 匹配 en / en-*，en 不匹配 english），
+    /// 实体显示名硬校验：Mod 与 Application 都必须声明 <c>zh-CN</c> 与 <c>en-US</c> 两条显示名
+    /// （完整语言标签精确匹配，比较不区分大小写，大小写变体如 <c>Zh-Cn</c> 也算），
     /// 完整语言标签不许重复（不区分大小写），语言与文本都不能为空白；允许再声明其它语言。
     /// 显示名属于实体自身，不从 Base 继承——校验针对合并后的节点。
     /// </summary>
@@ -473,17 +473,10 @@ public static class MetadataBuilder
                 errors.Add($"{name}: DisplayName（{language ?? "?"}）文本不能为空");
         }
 
-        if (!languages.Any(language => MatchesLanguageFamily(language, "zh")))
-            errors.Add($"{name}: 缺少 zh DisplayName");
-        if (!languages.Any(language => MatchesLanguageFamily(language, "en")))
-            errors.Add($"{name}: 缺少 en DisplayName");
-    }
-
-    /// <summary>语言族匹配：zh 命中 zh 与 zh-*，en 命中 en 与 en-*；不区分大小写，en 不命中 english。</summary>
-    private static bool MatchesLanguageFamily(string language, string family)
-    {
-        return string.Equals(language, family, StringComparison.OrdinalIgnoreCase)
-            || language.StartsWith(family + "-", StringComparison.OrdinalIgnoreCase);
+        if (!languages.Contains("zh-CN"))
+            errors.Add($"{name}: 缺少 zh-CN DisplayName");
+        if (!languages.Contains("en-US"))
+            errors.Add($"{name}: 缺少 en-US DisplayName");
     }
 
     private static void ValidateIdRef(string? id, string kind, HashSet<string> idIndex, List<string> errors)
