@@ -299,6 +299,8 @@
     <xs:sequence>
       <xs:element name="Titles" type="TitlesType"/>
       <xs:element name="Descriptions" type="DescriptionsType" minOccurs="0"/>
+      <!-- HeadImage 是新闻可选封面：已登记 Image 的 ID 文本引用，省略即无封面。 -->
+      <xs:element name="HeadImage" type="xs:string" minOccurs="0"/>
       <xs:element name="Contents" type="ContentsType"/>
     </xs:sequence>
     <xs:attribute name="DateTime" type="xs:string" use="required"/>

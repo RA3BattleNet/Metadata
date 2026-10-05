@@ -48,6 +48,7 @@ var zhTitle = firstPost?.Find("Titles")?.Children
 var zhDescription = firstPost?.Find("Descriptions")?.Children
     .FirstOrDefault(c => c.Name == "Description" && string.Equals(c.Get("Language"), "zh-CN", StringComparison.OrdinalIgnoreCase))
     ?.Value;
+var headImageId = firstPost?.Find("HeadImage")?.Value;   // 可选封面，指向已登记 Image 的完整 ID
 var zhContentId = firstPost?.Find("Contents")?.Children
     .FirstOrDefault(c => c.Name == "Content" && string.Equals(c.Get("Language"), "zh-CN", StringComparison.OrdinalIgnoreCase))
     ?.Value;
@@ -171,7 +172,7 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: MetadataSchema.Curren
 | `Application` | 根的子元素 | 应用程序实体：包含 `@ID`、当前版本 `Version`、可选布尔开关 `TransferAd`（缺省视为关闭，客户端据此决定是否自动弹出迁移提示窗）、版本包列表 `Packages`、自己的新闻 `Posts`。新闻不从 Base 继承，也不使用顶层公共列表 |
 | `Mod` | 根的子元素 | 模组实体：包含 `@ID`、当前推荐版本 `CurrentVersion`、图标 `Icon`（引用图片 ID）、多语言显示名 `DisplayName`、外观样式 `Style`、版本列表 `Packages`、自己的公告 `Posts`、可选友情链接 `Links`。Base 不定义 Posts 或 Links |
 | `Package` | 实体子元素 | 纯安装数据：必填版本号 `@Version`、可选发布日期 `ReleaseDate`、可选独立清单 `Manifest`。不再包含更新日志；可以没有任何新闻 |
-| `Post` | Mod 或 Application 的直接子元素 | 独立新闻：发布时间 `@DateTime`、多语言标题 `Titles`、可选多语言介绍 `Descriptions`、正文 Markdown 引用 `Contents`。不关联版本包，不加外跳链接；介绍省略时不从 Markdown 截取 |
+| `Post` | Mod 或 Application 的直接子元素 | 独立新闻：发布时间 `@DateTime`、多语言标题 `Titles`、可选多语言介绍 `Descriptions`、可选封面图 `HeadImage`（已登记图片 ID）、正文 Markdown 引用 `Contents`。不关联版本包，不加外跳链接；介绍省略时不从 Markdown 截取 |
 | `Link` | 仅 Mod 的直接子元素 | 友情链接：必填 `@Url`（仅 HTTP／HTTPS）、可选 `@Languages`、可选图标短 ID `Icon`、至少一条 `DisplayName`。顺序即展示顺序 |
 | `Image` / `Markdown` / `Manifest` | 资源登记节点 | 包含资源完整 ID `@ID`（带前缀）、相对路径 `@Source`；图片支持 `@Url` 外部链接；清单在主表里表现为占位 stub |
 
