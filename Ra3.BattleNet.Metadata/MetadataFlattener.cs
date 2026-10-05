@@ -13,16 +13,13 @@ public static class MetadataFlattener
     /// </summary>
     public static XDocument Flatten(string entryPath, string sourceRoot, string schemaVersion, string contentRevision)
     {
-        var fullEntry = Path.GetFullPath(entryPath);
-        var rootFull = Path.GetFullPath(sourceRoot);
-        var processing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var entitySources = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        var root = LoadAndExpand(fullEntry, rootFull, processing, entitySources);
+        var session = new FlattenSession(Path.GetFullPath(sourceRoot));
+        var root = LoadAndExpand(Path.GetFullPath(entryPath), session);
 
         // Include 展开后、写出版本前：合并 Base/InheritFrom，发布物无继承痕迹
         MetadataInheritance.Resolve(root);
 
-        ValidateEntityIds(entitySources);
+        ValidateEntityIds(session.EntitySources);
 
         root.SetAttributeValue("SchemaVersion", schemaVersion);
         root.SetAttributeValue("ContentRevision", contentRevision);
@@ -84,10 +81,32 @@ public static class MetadataFlattener
         return i < 0 ? id : id[(i + 1)..];
     }
 
-    private static XElement LoadAndExpand(string filePath, string sourceRoot, HashSet<string> processing, Dictionary<string, List<string>> entitySources)
+    /// <summary>节点分类：Image/Markdown/Manifest 资源登记节点（是否带 @ID 由调用处再判断）。</summary>
+    private static bool IsRegistrationNode(XElement el) =>
+        el.Name.LocalName is "Image" or "Markdown" or "Manifest";
+
+    /// <summary>节点分类：Mod/Application 实体节点。</summary>
+    private static bool IsEntity(XElement el) =>
+        el.Name.LocalName is "Mod" or "Application";
+
+    /// <summary>
+    /// 节点分类：文本内容是资源 ID 短名的引用节点。
+    /// 新增引用类型（如新样式字段、新 Post 字段）只需在此处登记。
+    /// </summary>
+    private static bool IsTextReference(XElement el) => el.Name.LocalName switch
+    {
+        "Icon" or "Logo" or "Content" => true,
+        // Package.Manifest 引用：无 ID 且无子元素
+        "Manifest" => el.Attribute("ID") == null && !el.HasElements,
+        // Background 等处的 ID 文本引用；登记节点必有 ID
+        "Image" => el.Attribute("ID") == null,
+        _ => false
+    };
+
+    private static XElement LoadAndExpand(string filePath, FlattenSession session)
     {
         var full = Path.GetFullPath(filePath);
-        if (!processing.Add(full))
+        if (!session.Processing.Add(full))
             throw new InvalidOperationException($"检测到循环引用: {full}");
 
         if (!File.Exists(full))
@@ -100,36 +119,46 @@ public static class MetadataFlattener
 
         var baseDir = Path.GetDirectoryName(full)
             ?? throw new InvalidOperationException($"无法确定目录: {full}");
-        var prefix = PathPrefix(full, sourceRoot);
+        var prefix = PathPrefix(full, session.SourceRootFull);
 
-        // 展开前先校验本文件声明：登记/实体 ID 禁止手写 ':' 前缀（前缀由构建器生成）
-        ValidateOwnIds(root);
-        // 记录本文件声明的实体 ID（展开会把 include 的实体并进来，不能算本文件的）
-        RecordEntityIds(root, full, sourceRoot, entitySources);
-        ExpandElement(root, baseDir, sourceRoot, processing, entitySources);
-        RewriteSources(root, baseDir, sourceRoot);
-        QualifyRegistrationIds(root, prefix);
-        var scope = BuildScopeMap(root);
+        // 展开前单趟：校验本文件手写 ID（登记/实体禁止 ':' 前缀）并记录顶层实体来源
+        ValidateAndRecordOwnIds(root, full, session);
+        ExpandElement(root, baseDir, session);
+        // 展开后单趟：改写 Source、限定登记 ID，并同步建立引用作用域映射
+        var scope = ProcessRegistrations(root, baseDir, prefix, session);
+        // 最后一趟独立改写引用：前向引用要求作用域映射已完整
         RewriteIdReferences(root, scope);
 
-        processing.Remove(full);
+        session.Processing.Remove(full);
         return root;
     }
 
-    /// <summary>拒绝本文件声明中的手工前缀 ID（Image/Markdown/Manifest/Mod/Application）。</summary>
-    private static void ValidateOwnIds(XElement root)
+    /// <summary>
+    /// 展开前单趟处理本文件声明：拒绝手工前缀 ID（Image/Markdown/Manifest/Mod/Application），
+    /// 并记录顶层实体 ID → 来源（展开会把 include 的实体并进来，不能算本文件的）。
+    /// </summary>
+    private static void ValidateAndRecordOwnIds(XElement root, string fullPath, FlattenSession session)
     {
+        var rel = ToRootRelative(fullPath, session.SourceRootFull);
         foreach (var el in root.DescendantsAndSelf())
         {
             var id = el.Attribute("ID")?.Value;
+
+            if (el.Parent == root && IsEntity(el) && !string.IsNullOrWhiteSpace(id))
+            {
+                if (!session.EntitySources.TryGetValue(id, out var list))
+                    session.EntitySources[id] = list = new List<string>();
+                list.Add($"{rel} ({el.Name.LocalName})");
+            }
+
             if (string.IsNullOrWhiteSpace(id) || !id.Contains(':', StringComparison.Ordinal))
                 continue;
-            if (el.Name.LocalName is "Image" or "Markdown" or "Manifest")
+            if (IsRegistrationNode(el))
             {
                 throw new InvalidOperationException(
                     $"登记 ID \"{id}\" 含 ':'——前缀由构建器自动生成，请写短名");
             }
-            if (el.Name.LocalName is "Mod" or "Application")
+            if (IsEntity(el))
             {
                 throw new InvalidOperationException(
                     $"实体 ID \"{id}\" 含 ':'——实体 ID 不加前缀，请写短名");
@@ -137,21 +166,7 @@ public static class MetadataFlattener
         }
     }
 
-    /// <summary>记录本文件定义的实体 ID → 来源（供全局唯一校验与报错定位）。</summary>
-    private static void RecordEntityIds(XElement root, string filePath, string sourceRoot, Dictionary<string, List<string>> entitySources)
-    {
-        var rel = ToRootRelative(Path.GetFullPath(filePath), Path.GetFullPath(sourceRoot));
-        foreach (var entity in root.Elements().Where(e => e.Name.LocalName is "Mod" or "Application"))
-        {
-            var id = entity.Attribute("ID")?.Value;
-            if (string.IsNullOrWhiteSpace(id)) continue;
-            if (!entitySources.TryGetValue(id, out var list))
-                entitySources[id] = list = new List<string>();
-            list.Add($"{rel} ({entity.Name.LocalName})");
-        }
-    }
-
-    private static void ExpandElement(XElement element, string baseDir, string sourceRoot, HashSet<string> processing, Dictionary<string, List<string>> entitySources)
+    private static void ExpandElement(XElement element, string baseDir, FlattenSession session)
     {
         var includeHosts = element.Elements()
             .Where(e => e.Name.LocalName is "Includes" or "Include")
@@ -161,14 +176,14 @@ public static class MetadataFlattener
         {
             if (host.Name.LocalName == "Include")
             {
-                InsertInclude(host, baseDir, sourceRoot, processing, entitySources);
+                InsertInclude(host, baseDir, session);
                 host.Remove();
             }
             else
             {
                 foreach (var inc in host.Elements().Where(e => e.Name.LocalName == "Include").ToList())
                 {
-                    InsertInclude(inc, baseDir, sourceRoot, processing, entitySources);
+                    InsertInclude(inc, baseDir, session);
                     inc.Remove();
                 }
                 if (!host.HasElements)
@@ -180,18 +195,18 @@ public static class MetadataFlattener
         {
             if (child.Name.LocalName is "Includes" or "Include")
                 continue;
-            ExpandElement(child, baseDir, sourceRoot, processing, entitySources);
+            ExpandElement(child, baseDir, session);
         }
     }
 
-    private static void InsertInclude(XElement includeEl, string baseDir, string sourceRoot, HashSet<string> processing, Dictionary<string, List<string>> entitySources)
+    private static void InsertInclude(XElement includeEl, string baseDir, FlattenSession session)
     {
         var rel = includeEl.Attribute("Source")?.Value;
         if (string.IsNullOrWhiteSpace(rel))
             throw new InvalidOperationException("Include 缺少 Source");
 
         var target = Path.GetFullPath(Path.Combine(baseDir, rel.Replace('\\', '/')));
-        var includedRoot = LoadAndExpand(target, sourceRoot, processing, entitySources);
+        var includedRoot = LoadAndExpand(target, session);
 
         var anchor = includeEl.Parent is { Name.LocalName: "Includes" } host
             ? host
@@ -216,11 +231,11 @@ public static class MetadataFlattener
                     continue;
                 }
 
-                var sourceRel = ToRootRelative(target, sourceRoot);
+                var sourceRel = ToRootRelative(target, session.SourceRootFull);
                 // 叶子 Manifest 经自身展平已限定（构建期产物）；贡献者手写前缀由 QualifyId 拒绝
                 var qualified = id.Contains(':', StringComparison.Ordinal)
                     ? id
-                    : QualifyId(PathPrefix(target, sourceRoot), id);
+                    : QualifyId(PathPrefix(target, session.SourceRootFull), id);
                 var stub = new XElement("Manifest",
                     new XAttribute("ID", qualified),
                     new XAttribute("Source", sourceRel));
@@ -232,33 +247,30 @@ public static class MetadataFlattener
         }
     }
 
-    /// <summary>仅限定本文件尚未限定的登记节点 ID（include 进来的已限定节点跳过）。</summary>
-    private static void QualifyRegistrationIds(XElement root, string pathPrefix)
+    /// <summary>
+    /// 展开后单趟处理全部登记节点：Source 改写为相对源根、本文件登记 ID 限定为
+    /// {路径前缀}:{localId}，并按文档顺序同步建立 short localId → qualifiedId 作用域映射
+    /// （完整限定 ID 始终可查；同文件作用域内短名冲突则移出短名键）。
+    /// </summary>
+    private static Dictionary<string, string> ProcessRegistrations(XElement root, string baseDir, string pathPrefix, FlattenSession session)
     {
-        foreach (var el in root.DescendantsAndSelf()
-                     .Where(e => e.Name.LocalName is "Image" or "Markdown" or "Manifest"))
+        var map = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var el in root.DescendantsAndSelf())
         {
+            if (!IsRegistrationNode(el))
+                continue;
+
+            RewriteSource(el, baseDir, session);
+
             var idAttr = el.Attribute("ID");
             if (idAttr == null || string.IsNullOrWhiteSpace(idAttr.Value))
                 continue;
-            // Background 内无 ID 的 Image 引用跳过；登记节点必有 ID
+
+            // 仅限定本文件尚未限定的登记节点 ID（include 进来的已限定节点跳过）
             if (!idAttr.Value.Contains(':', StringComparison.Ordinal))
                 idAttr.Value = QualifyId(pathPrefix, idAttr.Value);
-        }
-    }
 
-    private static Dictionary<string, string> BuildScopeMap(XElement root)
-    {
-        // short localId → qualifiedId；同文件作用域内短名冲突则失败
-        var map = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var el in root.DescendantsAndSelf()
-                     .Where(e => e.Name.LocalName is "Image" or "Markdown" or "Manifest"))
-        {
-            var id = el.Attribute("ID")?.Value;
-            if (string.IsNullOrWhiteSpace(id))
-                continue;
-
-            // 完整限定 ID 始终可查
+            var id = idAttr.Value;
             map[id] = id;
 
             var local = LocalId(id);
@@ -274,25 +286,40 @@ public static class MetadataFlattener
         return map;
     }
 
+    /// <summary>将登记节点（带 ID 的 Image/Markdown）的 Source 改写为相对源根路径；Url 外链跳过。</summary>
+    private static void RewriteSource(XElement el, string baseDir, FlattenSession session)
+    {
+        if (el.Name.LocalName is not ("Image" or "Markdown"))
+            return;
+
+        var sourceAttr = el.Attribute("Source");
+        if (sourceAttr == null || string.IsNullOrWhiteSpace(sourceAttr.Value))
+            return;
+        if (!string.IsNullOrWhiteSpace(el.Attribute("Url")?.Value))
+            return;
+        // 仅处理登记节点（有 ID）
+        if (el.Attribute("ID") == null)
+            return;
+
+        var raw = sourceAttr.Value.Replace('\\', '/');
+        var fromBase = Path.GetFullPath(Path.Combine(baseDir, raw));
+        if (File.Exists(fromBase))
+        {
+            sourceAttr.Value = ToRootRelative(fromBase, session.SourceRootFull);
+            return;
+        }
+
+        var fromRoot = Path.GetFullPath(Path.Combine(session.SourceRootFull, raw));
+        if (File.Exists(fromRoot))
+            sourceAttr.Value = ToRootRelative(fromRoot, session.SourceRootFull);
+    }
+
     private static void RewriteIdReferences(XElement root, Dictionary<string, string> scope)
     {
         foreach (var el in root.DescendantsAndSelf())
         {
-            switch (el.Name.LocalName)
-            {
-                case "Icon":
-                case "Manifest" when el.Attribute("ID") == null && !el.HasElements:
-                case "Content":
-                    RewriteTextRef(el, scope);
-                    break;
-                case "Logo":
-                    RewriteTextRef(el, scope);
-                    break;
-                case "Image" when el.Attribute("ID") == null:
-                    // Background 等处的 ID 文本引用
-                    RewriteTextRef(el, scope);
-                    break;
-            }
+            if (IsTextReference(el))
+                RewriteTextRef(el, scope);
         }
     }
 
@@ -306,38 +333,21 @@ public static class MetadataFlattener
         // 找不到：留给 ValidateHard 报断引用（可能是笔误）
     }
 
-    private static void RewriteSources(XElement element, string baseDir, string sourceRoot)
-    {
-        foreach (var el in element.DescendantsAndSelf().Where(e => e.Name.LocalName is "Image" or "Markdown"))
-        {
-            var sourceAttr = el.Attribute("Source");
-            if (sourceAttr == null || string.IsNullOrWhiteSpace(sourceAttr.Value))
-                continue;
-            if (!string.IsNullOrWhiteSpace(el.Attribute("Url")?.Value))
-                continue;
-            // 仅处理登记节点（有 ID）
-            if (el.Attribute("ID") == null)
-                continue;
-
-            var raw = sourceAttr.Value.Replace('\\', '/');
-            var fromBase = Path.GetFullPath(Path.Combine(baseDir, raw));
-            if (File.Exists(fromBase))
-            {
-                sourceAttr.Value = ToRootRelative(fromBase, sourceRoot);
-                continue;
-            }
-
-            var fromRoot = Path.GetFullPath(Path.Combine(sourceRoot, raw));
-            if (File.Exists(fromRoot))
-                sourceAttr.Value = ToRootRelative(fromRoot, sourceRoot);
-        }
-    }
-
     private static string ToRootRelative(string absolutePath, string sourceRoot)
     {
         var rel = Path.GetRelativePath(sourceRoot, absolutePath).Replace('\\', '/');
         if (rel.StartsWith("..", StringComparison.Ordinal))
             throw new InvalidOperationException($"资源不在源目录内: {absolutePath}");
         return rel;
+    }
+
+    /// <summary>单次展平过程的共享状态：源根、展开栈（循环检测）、实体 ID 来源表。</summary>
+    private sealed class FlattenSession
+    {
+        public FlattenSession(string sourceRootFull) => SourceRootFull = sourceRootFull;
+
+        public string SourceRootFull { get; }
+        public HashSet<string> Processing { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, List<string>> EntitySources { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 }
