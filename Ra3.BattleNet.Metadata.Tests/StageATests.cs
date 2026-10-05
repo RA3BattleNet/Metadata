@@ -128,6 +128,40 @@ public class StageATests
     }
 
     [TestMethod]
+    public void Build_RepoSample_TransferAdFlattensForDeclaringAppOnly()
+    {
+        var src = RepoMetadataDir;
+        var dst = Path.Combine(Path.GetTempPath(), $"stage-transfer-ad-{Guid.NewGuid():N}");
+
+        try
+        {
+            MetadataBuilder.Build(src, dst, schemaVersion: "1.0", contentRevision: "transfer-ad");
+
+            var doc = XDocument.Load(Path.Combine(dst, "metadata.xml"));
+            var apps = doc.Root!.Elements("Application").ToList();
+
+            var ra3 = apps.Single(a => (string?)a.Attribute("ID") == "RA3BattleNet");
+            ra3.Element("Version")!.Value.Should().Be("1.9.9.11");
+            ra3.Element("TransferAd").Should().NotBeNull();
+            ra3.Element("TransferAd")!.Value.Should().Be("true");
+
+            var content = apps.Single(a => (string?)a.Attribute("ID") == "content");
+            content.Element("TransferAd").Should().BeNull("未声明 TransferAd 的应用保持缺失兼容");
+
+            // 展平物继续满足发布 XSD
+            SchemaValidator
+                .ValidateFile(Path.Combine(dst, "metadata.xml"),
+                              Path.Combine(src, SchemaValidator.PublishSchemaFileName))
+                .Should().BeEmpty();
+        }
+        finally
+        {
+            if (Directory.Exists(dst))
+                Directory.Delete(dst, recursive: true);
+        }
+    }
+
+    [TestMethod]
     public void Build_MissingMarkdown_HardFails_AndCleansOutput()
     {
         var temp = Path.Combine(Path.GetTempPath(), $"stage-a-bad-{Guid.NewGuid():N}");

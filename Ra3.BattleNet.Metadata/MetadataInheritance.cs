@@ -11,7 +11,7 @@ public static class MetadataInheritance
         ["CurrentVersion", "Icon", "Style", "Packages", "Posts"];
 
     private static readonly string[] ApplicationChildOrder =
-        ["Version", "Packages", "Posts"];
+        ["Version", "TransferAd", "Packages", "Posts"];
 
     private static readonly string[] StyleChildOrder = ["Logo", "Controls", "Background"];
 

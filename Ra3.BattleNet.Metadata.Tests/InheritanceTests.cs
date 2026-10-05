@@ -117,6 +117,36 @@ public class InheritanceTests
     }
 
     [TestMethod]
+    public void Merge_ApplicationTransferAd_KeepsSchemaOrderBeforePackages()
+    {
+        var root = XElement.Parse("""
+            <Metadata>
+              <Base ID="StandardApp" Kind="Application">
+                <Version>1.0</Version>
+              </Base>
+              <Application ID="Child" InheritFrom="StandardApp">
+                <Version>2.0</Version>
+                <TransferAd>true</TransferAd>
+                <Packages>
+                  <Package Version="2.0">
+                    <Manifest>m</Manifest>
+                  </Package>
+                </Packages>
+              </Application>
+            </Metadata>
+            """);
+
+        MetadataInheritance.Resolve(root);
+
+        var app = root.Element("Application")!;
+        app.Attribute("InheritFrom").Should().BeNull();
+        // 合并后必须仍按发布 schema 顺序：Version、TransferAd、Packages
+        app.Elements().Select(e => e.Name.LocalName).Should().Equal("Version", "TransferAd", "Packages");
+        app.Element("Version")!.Value.Should().Be("2.0");
+        app.Element("TransferAd")!.Value.Should().Be("true");
+    }
+
+    [TestMethod]
     public void Fail_MissingBase()
     {
         var root = XElement.Parse("""
