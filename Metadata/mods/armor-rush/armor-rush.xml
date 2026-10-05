@@ -18,5 +18,37 @@
             </Package>
         </Packages>
         <Posts/>
+        <Settings>
+            <Choice ID="game-mode" Default="normal">
+                <DisplayName Language="zh">游戏模式</DisplayName>
+                <DisplayName Language="en">Game Mode</DisplayName>
+                <Option Value="normal">
+                    <DisplayName Language="zh">标准竞技</DisplayName>
+                    <DisplayName Language="en">Standard Competitive</DisplayName>
+                </Option>
+                <Option Value="crates">
+                    <DisplayName Language="zh">箱子模式</DisplayName>
+                    <DisplayName Language="en">Crates Mode</DisplayName>
+                </Option>
+            </Choice>
+            <Boolean ID="always-enable-engine-fix" Default="false">
+                <DisplayName Language="zh">强制引擎修复</DisplayName>
+                <DisplayName Language="en">Force Engine Fixes</DisplayName>
+                <Description Language="zh">启用装甲冲击整组原生引擎修复与独立脚本状态（需确认）</Description>
+                <Description Language="en">Enable Armor Rush full engine fixes and isolated state</Description>
+            </Boolean>
+            <Boolean ID="audio-fix" Default="false">
+                <DisplayName Language="zh">音频设备修复</DisplayName>
+                <DisplayName Language="en">Audio Device Fix</DisplayName>
+                <Description Language="zh">修复游戏运行时音频设备切换与回放异常</Description>
+                <Description Language="en">Fix game audio device switching and playback issues</Description>
+            </Boolean>
+            <Boolean ID="desync-debug" Default="false">
+                <DisplayName Language="zh">不同步调试生成</DisplayName>
+                <DisplayName Language="en">Generate Desync Debug File</DisplayName>
+                <Description Language="zh">在联机不同步时转储调试文件（可能影响正常联机，需确认）</Description>
+                <Description Language="en">Dump desync debug files (may affect multiplayer, confirmation required)</Description>
+            </Boolean>
+        </Settings>
     </Mod>
 </Metadata>

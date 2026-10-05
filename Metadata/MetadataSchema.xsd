@@ -26,6 +26,7 @@
       <xs:element name="Icon" type="xs:string"/>
       <xs:element name="Style" type="StyleType"/>
       <xs:element name="Packages" type="PackagesType"/>
+      <xs:element name="Settings" type="ModSettingsType"/>
     </xs:choice>
     <xs:attribute name="ID" type="xs:string" use="required"/>
     <xs:attribute name="Kind" use="required">
@@ -99,6 +100,7 @@
       <xs:element name="Packages" type="PackagesType" minOccurs="0"/>
       <xs:element name="Posts" type="PostsType" minOccurs="0"/>
       <xs:element name="Links" type="LinksType" minOccurs="0"/>
+      <xs:element name="Settings" type="ModSettingsType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="ID" type="xs:string" use="required"/>
     <xs:attribute name="InheritFrom" type="xs:string"/>
@@ -287,6 +289,109 @@
     <xs:attribute name="Language" type="xs:string" use="required"/>
   </xs:complexType>
 
+  <!-- 新设置动态文案：Language 为标准语言族（zh/en，可扩展其它 ISO 主语言族），地区标签仅用于既有 links/posts。 -->
+  <xs:complexType name="SettingTextType" mixed="true">
+    <xs:attribute name="Language" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <!-- 通用模组设置定义：仅布尔与单选枚举；ID 为 Mod 内局部 ID，不参与全根资源前缀 -->
+  <xs:complexType name="ModSettingsType">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="Boolean" type="BooleanSettingType"/>
+      <xs:element name="Choice" type="ChoiceSettingType"/>
+    </xs:choice>
+  </xs:complexType>
+
+  <xs:complexType name="BooleanSettingType">
+    <xs:sequence>
+      <xs:element name="DisplayName" type="SettingTextType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Description" type="SettingTextType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="ID" type="xs:string" use="required"/>
+    <xs:attribute name="Default" type="xs:boolean" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="ChoiceSettingType">
+    <xs:sequence>
+      <xs:element name="DisplayName" type="SettingTextType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Description" type="SettingTextType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Option" type="SettingOptionType" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="ID" type="xs:string" use="required"/>
+    <xs:attribute name="Default" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="SettingOptionType">
+    <xs:sequence>
+      <xs:element name="DisplayName" type="SettingTextType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Description" type="SettingTextType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="Value" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <!-- 无条件注入动作：空节点是显式新执行机制标记 -->
+  <xs:complexType name="InjectionType">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="RequireDll" type="DllRefType"/>
+      <xs:element name="InjectDll" type="DllRefType"/>
+    </xs:choice>
+  </xs:complexType>
+
+  <xs:complexType name="DllRefType">
+    <xs:attribute name="Ref" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <!-- 版本清单设置绑定：全部引用语法，禁止用 ID 冒充定义 -->
+  <xs:complexType name="ManifestSettingsType">
+    <xs:sequence>
+      <xs:element name="SettingRef" type="SettingRefType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SettingRefType">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="MountPackage" type="MountPackageType"/>
+      <xs:element name="MountLanguage" type="EmptyType"/>
+      <xs:element name="InjectDll" type="DllRefType"/>
+      <xs:element name="ConfigureLuaBridge" type="ConfigureLuaBridgeType"/>
+      <xs:element name="Case" type="SettingCaseType"/>
+    </xs:choice>
+    <xs:attribute name="Ref" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="SettingCaseType">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="MountPackage" type="MountPackageType"/>
+      <xs:element name="MountLanguage" type="EmptyType"/>
+      <xs:element name="InjectDll" type="DllRefType"/>
+      <xs:element name="ConfigureLuaBridge" type="ConfigureLuaBridgeType"/>
+    </xs:choice>
+    <xs:attribute name="Value" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="MountPackageType">
+    <xs:attribute name="Name" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="ConfigureLuaBridgeType">
+    <xs:attribute name="Ref" type="xs:string" use="required"/>
+    <xs:attribute name="Adapter" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="EmptyType"/>
+
+  <!-- DLL 声明的类型化运行参数；当前仅 utf8/log-file -->
+  <xs:complexType name="DllCustomDataType">
+    <xs:sequence>
+      <xs:element name="RuntimeValue" type="RuntimeValueType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="Encoding" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="RuntimeValueType">
+    <xs:attribute name="Name" type="xs:string" use="required"/>
+  </xs:complexType>
+
   <xs:complexType name="PostsType">
     <xs:sequence>
       <xs:element name="Post" type="PostType" minOccurs="0" maxOccurs="unbounded"/>
@@ -340,6 +445,8 @@
       <xs:element name="Skudef" type="SkudefType" minOccurs="0"/>
       <xs:element name="File" type="FileType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Dependencies" type="DependenciesType" minOccurs="0"/>
+      <xs:element name="Injection" type="InjectionType" minOccurs="0"/>
+      <xs:element name="Settings" type="ManifestSettingsType" minOccurs="0"/>
       <xs:element name="SubManifest" type="SubManifestType" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
     <xs:attribute name="ID" type="xs:string" use="required"/>
@@ -428,10 +535,15 @@
   </xs:complexType>
 
   <xs:complexType name="DllType">
+    <xs:sequence>
+      <xs:element name="CustomData" type="DllCustomDataType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="ID" type="xs:string"/>
     <xs:attribute name="Name" type="xs:string" use="required"/>
     <xs:attribute name="Version" type="xs:string"/>
     <xs:attribute name="Hash" type="xs:string" use="required"/>
     <xs:attribute name="KindOf" type="xs:string"/>
+    <xs:attribute name="Protocol" type="xs:string"/>
   </xs:complexType>
 
   <xs:complexType name="PatchInfoType">

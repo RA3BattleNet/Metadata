@@ -70,13 +70,17 @@ public static class MetadataQueryExtensions
     /// </summary>
     private static ModEntry ToMod(Metadata node)
     {
+        var settingsNode = node.Find("Settings");
         return new ModEntry(
             Id: node.Get("ID") ?? string.Empty,
             Version: node.Find("CurrentVersion")?.Value,
             Icon: node.Find("Icon")?.Value,
             DisplayNames: ReadDisplayNames(node),
             Packages: ReadPackages(node),
-            Raw: node);
+            Raw: node)
+        {
+            Settings = settingsNode == null ? [] : ModSettingsContract.ParseDefinitions(settingsNode),
+        };
     }
 
     /// <summary>
@@ -215,12 +219,66 @@ public static class MetadataQueryExtensions
                 Name: dll.Get("Name") ?? string.Empty,
                 Version: dll.Get("Version"),
                 Hash: dll.Get("Hash") ?? string.Empty,
-                KindOf: dll.Get("KindOf")))
+                KindOf: dll.Get("KindOf"))
+            {
+                Id = string.IsNullOrWhiteSpace(dll.Get("ID")) ? null : dll.Get("ID"),
+                Protocol = string.IsNullOrWhiteSpace(dll.Get("Protocol")) ? null : dll.Get("Protocol"),
+                CustomData = ReadCustomData(dll, id),
+            })
             .ToList()
             ?? [];
 
         var skudefNode = manifestNode.Find("Skudef");
-        return new ManifestEntry(id, algo, files, dependencies, skudefNode == null ? null : ReadSkudef(skudefNode, id));
+        var settingsNode = manifestNode.Find("Settings");
+        var injectionNode = manifestNode.Find("Injection");
+        return new ManifestEntry(id, algo, files, dependencies, skudefNode == null ? null : ReadSkudef(skudefNode, id))
+        {
+            Settings = settingsNode == null ? [] : ModSettingsContract.ParseBindings(settingsNode),
+            Injection = injectionNode == null ? null : ReadInjection(injectionNode, id),
+        };
+    }
+
+    /// <summary>读 <c>Injection</c> 的无条件动作；空节点返回空列表（显式新机制标记）。</summary>
+    private static IReadOnlyList<ManifestInjectionAction> ReadInjection(Metadata injectionNode, string manifestId)
+    {
+        var actions = new List<ManifestInjectionAction>();
+        foreach (var child in injectionNode.Children)
+        {
+            var reference = child.Get("Ref");
+            if (string.IsNullOrWhiteSpace(reference))
+                throw new InvalidOperationException($"Manifest '{manifestId}' 的 {child.Name} 缺少 Ref");
+
+            var inject = child.Name switch
+            {
+                "InjectDll" => true,
+                "RequireDll" => false,
+                _ => throw new InvalidOperationException($"Manifest '{manifestId}' 的 Injection 未知动作: {child.Name}"),
+            };
+            actions.Add(new ManifestInjectionAction(inject, reference));
+        }
+        return actions;
+    }
+
+    /// <summary>读 Dll 的类型化运行参数；当前仅支持单一 RuntimeValue。</summary>
+    private static ManifestDllCustomData? ReadCustomData(Metadata dll, string manifestId)
+    {
+        var node = dll.Find("CustomData");
+        if (node == null)
+            return null;
+
+        var encoding = node.Get("Encoding");
+        if (string.IsNullOrWhiteSpace(encoding))
+            throw new InvalidOperationException($"Manifest '{manifestId}' 的 Dll CustomData 缺少 Encoding");
+
+        var values = node.Children.Where(c => c.Name == "RuntimeValue").ToList();
+        if (values.Count != 1)
+            throw new InvalidOperationException($"Manifest '{manifestId}' 的 Dll CustomData 必须恰好声明一个 RuntimeValue");
+
+        var name = values[0].Get("Name");
+        if (string.IsNullOrWhiteSpace(name))
+            throw new InvalidOperationException($"Manifest '{manifestId}' 的 Dll CustomData RuntimeValue 缺少 Name");
+
+        return new ManifestDllCustomData(encoding, name);
     }
 
     /// <summary>把 <c>Skudef</c> 节点解析成有序指令；子元素顺序即输出顺序。</summary>

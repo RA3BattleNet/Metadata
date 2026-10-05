@@ -54,9 +54,36 @@
             </Sources>
         </File>
         <Dependencies>
-            <Dll Name="Lyi.dll" KindOf="APPLICATION" Hash="A4A7924F" />
-            <Dll Name="RA3LuaBridge.dll" KindOf="APPLICATION" Hash="0D49B9A0" />
-            <Dll Name="EnhancerCorona.dll" KindOf="APPLICATION" Hash="01C6510C" />
+            <Dll ID="lyi" Name="Lyi.dll" KindOf="APPLICATION" Hash="A4A7924F" />
+            <Dll ID="enhancer" Name="EnhancerCorona.dll" KindOf="APPLICATION" Hash="01C6510C" />
+            <Dll ID="lua-bridge" Name="RA3LuaBridge.dll" KindOf="APPLICATION" Hash="0D49B9A0" Protocol="lyi-create-process" />
+            <Dll ID="crates-hook" Name="ARCratesDll.dll" KindOf="APPLICATION" Hash="7E77F4E5" Protocol="easyhook">
+                <CustomData Encoding="utf8">
+                    <RuntimeValue Name="log-file" />
+                </CustomData>
+            </Dll>
         </Dependencies>
+        <Injection>
+            <RequireDll Ref="lyi" />
+            <RequireDll Ref="enhancer" />
+            <InjectDll Ref="lua-bridge" />
+        </Injection>
+        <Settings>
+            <SettingRef Ref="game-mode">
+                <Case Value="crates">
+                    <MountPackage Name="crates" />
+                    <InjectDll Ref="crates-hook" />
+                </Case>
+            </SettingRef>
+            <SettingRef Ref="always-enable-engine-fix">
+                <ConfigureLuaBridge Ref="lua-bridge" Adapter="always-enable-engine-fix" />
+            </SettingRef>
+            <SettingRef Ref="audio-fix">
+                <ConfigureLuaBridge Ref="lua-bridge" Adapter="audio-fix" />
+            </SettingRef>
+            <SettingRef Ref="desync-debug">
+                <ConfigureLuaBridge Ref="lua-bridge" Adapter="desync-debug" />
+            </SettingRef>
+        </Settings>
     </Manifest>
 </Metadata>

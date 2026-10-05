@@ -83,5 +83,61 @@
                 <DisplayName Language="zh-CN">抖音</DisplayName>
             </Link>
         </Links>
+        <Settings>
+            <Boolean ID="disable-sky-and-patches" Default="false">
+                <DisplayName Language="zh">禁用天空与补丁</DisplayName>
+                <DisplayName Language="en">Disable Sky and Patches</DisplayName>
+                <Description Language="zh">挂载禁用天空盒与特定地图补丁的优化包</Description>
+                <Description Language="en">Mount package to disable skybox and patches</Description>
+            </Boolean>
+            <Boolean ID="hd-shadow" Default="false">
+                <DisplayName Language="zh">高清阴影</DisplayName>
+                <DisplayName Language="en">High-Res Shadows</DisplayName>
+                <Description Language="zh">启用更高分辨率的实时地面阴影</Description>
+                <Description Language="en">Enable higher resolution real-time ground shadows</Description>
+            </Boolean>
+            <Choice ID="mod-language" Default="chs">
+                <DisplayName Language="zh">模组语言</DisplayName>
+                <DisplayName Language="en">Mod Language</DisplayName>
+                <Option Value="chs">
+                    <DisplayName Language="zh">简体中文</DisplayName>
+                    <DisplayName Language="en">Simplified Chinese</DisplayName>
+                </Option>
+                <Option Value="en">
+                    <DisplayName Language="zh">英语 (English)</DisplayName>
+                    <DisplayName Language="en">English</DisplayName>
+                </Option>
+            </Choice>
+            <Boolean ID="world-builder" Default="false">
+                <DisplayName Language="zh">地图编辑器支持包</DisplayName>
+                <DisplayName Language="en">World Builder Package</DisplayName>
+                <Description Language="zh">挂载地图编辑器配套静态版本资源包</Description>
+                <Description Language="en">Mount World Builder static resource package</Description>
+            </Boolean>
+            <Boolean ID="debug-overlay" Default="false">
+                <DisplayName Language="zh">性能统计悬浮窗</DisplayName>
+                <DisplayName Language="en">Performance Overlay</DisplayName>
+                <Description Language="zh">在游戏中加载 PerformanceStatistics 悬浮窗</Description>
+                <Description Language="en">Load PerformanceStatistics overlay in game</Description>
+            </Boolean>
+            <Boolean ID="audio-fix" Default="false">
+                <DisplayName Language="zh">音频设备修复</DisplayName>
+                <DisplayName Language="en">Audio Device Fix</DisplayName>
+                <Description Language="zh">修复游戏运行时音频设备切换与回放异常</Description>
+                <Description Language="en">Fix game audio device switching and playback issues</Description>
+            </Boolean>
+            <Boolean ID="desync-debug" Default="false">
+                <DisplayName Language="zh">不同步调试生成</DisplayName>
+                <DisplayName Language="en">Generate Desync Debug File</DisplayName>
+                <Description Language="zh">在联机不同步时转储调试文件（可能影响正常联机，需确认）</Description>
+                <Description Language="en">Dump desync debug files (may affect multiplayer, confirmation required)</Description>
+            </Boolean>
+            <Boolean ID="enhancer-logger" Default="false">
+                <DisplayName Language="zh">Enhancer 日志</DisplayName>
+                <DisplayName Language="en">Enhancer Logger</DisplayName>
+                <Description Language="zh">输出日冕 Enhancer 底层运行日志至本地日志目录</Description>
+                <Description Language="en">Output Corona Enhancer runtime logs to local logs folder</Description>
+            </Boolean>
+        </Settings>
     </Mod>
 </Metadata>

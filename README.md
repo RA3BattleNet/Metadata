@@ -144,7 +144,9 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: MetadataSchema.Curren
 | `File@DownloadName` | File 属性（可选） | 服务器上存放的压缩包文件名；如果不写，默认与 `FileName` 相同 |
 | `File@Compression` | File 属性（可选） | 压缩包的压缩算法，目前仅支持 `zstd`；下载完校验无误后解压成正式的 `FileName` |
 | `Sources/Source` | File 的子标签（可选） | 声明下载地址：包含协议类型 `@Type`（`HTTP` 或 `BT`）与下载链接 `@Url`；HTTP 必须是完整的 http/https 绝对地址，BT 必须以 `.torrent` 结尾 |
-| `Dependencies/Dll` | Manifest 子标签（可选） | 声明该 Mod 依赖的第三方 DLL：`@Name` 和 `@Hash` 必填，`@Version` 和 `@KindOf` 可选 |
+| `Dependencies/Dll` | Manifest 子标签（可选） | 声明该 Mod 依赖的第三方 DLL：`@Name` 和 `@Hash` 必填；`@ID` 稳定局部 ID、`@Protocol` 注入协议（`lyi-create-process`／`easyhook`，仅注入目标需要）、`@Version`／`@KindOf` 可选；可选 `CustomData`（`@Encoding="utf8"` + `RuntimeValue@Name="log-file"`） |
+| `Injection` | Manifest 子标签（可选） | 无条件动作：`RequireDll/@Ref` 仅校验、`InjectDll/@Ref` 注入并计入必需校验集合；凡清单声明了任何 Dll `ID` 或任何版本设置绑定（`Manifest/Settings`）都必须显式写出，无无条件动作时写空节点 `<Injection />` |
+| `Manifest/Settings/SettingRef` | Manifest 子标签（可选） | 版本设置绑定：`@Ref` 命中 `Mod/Settings` 定义；子动作 `MountPackage@Name`、`MountLanguage`、`InjectDll@Ref`、`ConfigureLuaBridge@Ref/@Adapter` 与 `Case@Value` 有限值命中 |
 | `Skudef` | Manifest 子标签（可选） | 启动脚本生成规则，必须写在所有的 `File` 标签之前；`@GameVersion` 缺省默认为 `1.12` |
 | `Skudef/AddBig` | Skudef 的子标签 | 挂载 big 包：`@File` 必填（必须引用当前清单里声明过的某个 `FileName`），配上可选的触发条件 `@Language` 或 `@Package`（两个条件只能写一个）；不写条件表示默认始终挂载 |
 | `Skudef/AddConfig` | Skudef 的子标签 | 挂载用户配置文件：`@LocalFile` 必填（必须是存放在 Mod 目录下的纯文件名），`@Optional`（可选，默认为 false，如果找不到该文件就报错） |
@@ -162,13 +164,48 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: MetadataSchema.Curren
 
 解析代码示例：通过 `doc.ManifestRegistration(id)` 获取清单登记节点，然后通过叶子节点的 `ToManifestEntry()` 方法直接转成强类型的 `ManifestEntry`（内置 Files 列表、Dependencies 依赖和 Skudef 计划）。
 
+### 通用模组设置与依赖注入契约（新格式）
+
+模组作者可以在根模组里用通用、可扩展的语法声明设置项与依赖注入动作。所有 ID 都是**模组／清单内局部 ID**，引用一律写 `Ref`，不参与 `{路径前缀}:{localId}` 的资源 ID 规则；同一份拓扑（另一个模组声明不同 DLL ID 但相同 `Protocol`）只需改数据，不需要改客户端代码。
+
+**根模组设置定义 `Mod/Settings`**（必须写在 `Mod` 的最后一个子元素位置）：
+
+| 节点 | 说明 |
+|---|---|
+| `Boolean` | 布尔开关：`@ID` 必填、`@Default` 必填且只能是 `true`／`false` |
+| `Choice` | 单选枚举：`@ID` 必填、`@Default` 必填且必须是某个 `Option@Value`；至少一个 `Option` |
+| `Option` | `Choice` 的合法选项：`@Value` 必填且同组内唯一 |
+| `DisplayName` / `Description` | 动态文案：`@Language` 用标准语言族（`zh`／`en`，可扩展其它 ISO 主语言族）。既有根级 `DisplayName`、`links`、`posts` 保留地区标签，不顺改 |
+
+**版本清单依赖声明 `Manifest/Dependencies/Dll`**：`@ID` 稳定局部 ID、`@Name` 真实物理文件名、`@Hash` 沿清单 `HashAlgorithm` 的真实哈希。`@Protocol` 只有注入目标才需要声明（`lyi-create-process`／`easyhook`）；纯校验依赖不必声明。可选 `<CustomData Encoding="utf8"><RuntimeValue Name="log-file" /></CustomData>` 目前仅支持 `utf8` + `log-file`。
+
+**无条件动作 `Manifest/Injection`**：`<RequireDll Ref="..." />` 仅做存在性与哈希校验、不注入目标进程；`<InjectDll Ref="..." />` 注入目标进程并自动计入必需校验集合。凡清单声明了任何 Dll `ID` 或任何版本设置绑定（`Manifest/Settings`，含只挂包/挂语言），就**必须显式写出 `<Injection>`**；没有无条件动作时写显式空节点 `<Injection />` 作为新执行机制标记。未写出 `<Injection>` 的历史清单完全沿用旧路由与全量基础校验，不因缺失 Injection 而把依赖视为可选项。
+
+**版本设置绑定 `Manifest/Settings/SettingRef`**（`Ref` 必须命中所属 Mod 的 `Settings` 定义，禁止重复声明）：
+
+| 动作 | 说明 |
+|---|---|
+| `MountPackage Name="..."` | 条件挂载 BIG 包；`Name` 必须是本清单 `Skudef/AddBig@Package` 声明过的 Package |
+| `MountLanguage` | 条件匹配模组语言包；无属性 |
+| `InjectDll Ref="..."` | 条件注入指定的 Dll（Boolean 为 `true` 或 Choice `Case` 命中才激活），激活时计入必需校验集合 |
+| `ConfigureLuaBridge Ref="..." Adapter="..."` | 为 `Protocol="lyi-create-process"` 的 DLL 配置已实现适配器（`audio-fix`／`desync-debug`／`debug-overlay`／`enhancer-logger`／`always-enable-engine-fix`）；目标 DLL 必须处于注入集合中 |
+| `Case Value="..."` | `Choice` 的有限值命中：`Value` 必须在对应 `Choice` 的 `Option@Value` 中，命中时激活其动作 |
+
+**动作类型约束**：`Boolean` 只能使用 `MountPackage`／`InjectDll`／`ConfigureLuaBridge`；`Choice` 的根 `Actions` 只允许 `MountLanguage`（枚举原值直传），`MountPackage`／`InjectDll`／`ConfigureLuaBridge` 必须写在 `Case` 中；`Case` 内不允许 `MountLanguage`；整个清单最多声明一个 `MountLanguage`。设置文案 `@Language` 必须是主语言族（如 `zh`／`en`），不接受地区标签。
+
+**继承合并**：子模组同 ID 且同类型（`Boolean` 对 `Boolean`、`Choice` 对 `Choice`）原位覆盖父项并保留父项位置，新 ID 按声明顺序追加；类型冲突构建期直接报错。
+
+**跨节点硬校验**（构建完整叶子清单时执行，失败即中断）：设置 ID 唯一；Boolean `Default` 合法；Choice `Default` 与 `Case` 值必须命中 Option；`Option@Value` 唯一；`SettingRef`／`RequireDll`／`InjectDll`／`ConfigureLuaBridge` 的 `Ref` 必须存在；注入目标必须声明已知 `Protocol`；`ConfigureLuaBridge` 的 `Ref` 必须是 `lyi-create-process` 且处于注入集合；`MountPackage` 必须命中 `Skudef` 的 Package；注释与快照、定义与绑定必须同轮配对。
+
+**设置快照**：安装成功时把根模组定义与版本绑定的配对固化为 `<SettingsSnapshot>`（`ModSettingsContract.SerializeSnapshot`／`ParseSnapshot` 往返），支持离线与历史版本启动；`InstalledManifest` 与设置快照分节点保存，安装服务只做结构校验，不按用户选项校验 DLL。
+
 ## 核心元数据模型属性总览
 
 | 模型元素 | 所在 XML 位置 | 属性与功能说明 |
 |---|---|---|
 | `SchemaVersion` / `ContentRevision` | 根节点属性 | 数据协议大版本号 / 构建注入的 Git 提交修订号 |
 | `Application` | 根的子元素 | 应用程序实体：包含 `@ID`、当前版本 `Version`、版本包列表 `Packages`、自己的新闻 `Posts`。新闻不从 Base 继承，也不使用顶层公共列表 |
-| `Mod` | 根的子元素 | 模组实体：包含 `@ID`、当前推荐版本 `CurrentVersion`、图标 `Icon`（引用图片 ID）、多语言显示名 `DisplayName`、外观样式 `Style`、版本列表 `Packages`、自己的公告 `Posts`、可选友情链接 `Links`。Base 不定义 Posts 或 Links |
+| `Mod` | 根的子元素 | 模组实体：包含 `@ID`、当前推荐版本 `CurrentVersion`、图标 `Icon`（引用图片 ID）、多语言显示名 `DisplayName`、外观样式 `Style`、版本列表 `Packages`、自己的公告 `Posts`、可选友情链接 `Links`、通用设置定义 `Settings`（仅 `Boolean`／`Choice`）。Base 不定义 Posts 或 Links |
 | `Package` | 实体子元素 | 纯安装数据：必填版本号 `@Version`、可选发布日期 `ReleaseDate`、可选独立清单 `Manifest`。不再包含更新日志；可以没有任何新闻 |
 | `Post` | Mod 或 Application 的直接子元素 | 独立新闻：发布时间 `@DateTime`、多语言标题 `Titles`、可选多语言介绍 `Descriptions`、正文 Markdown 引用 `Contents`。不关联版本包，不加外跳链接；介绍省略时不从 Markdown 截取 |
 | `Link` | 仅 Mod 的直接子元素 | 友情链接：必填 `@Url`（仅 HTTP／HTTPS）、可选 `@Languages`、可选图标短 ID `Icon`、至少一条 `DisplayName`。顺序即展示顺序 |

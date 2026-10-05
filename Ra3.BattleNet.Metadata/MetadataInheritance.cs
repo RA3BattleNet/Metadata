@@ -101,7 +101,7 @@ public static class MetadataInheritance
             throw new InvalidOperationException($"{child.Name.LocalName} 合并后缺少 ID");
 
         var order = child.Name.LocalName == "Mod" ? ModChildOrder : ApplicationChildOrder;
-        var known = new HashSet<string>(order, StringComparer.Ordinal);
+        var known = new HashSet<string>(order, StringComparer.Ordinal) { "Settings" };
 
         foreach (var name in order)
         {
@@ -145,7 +145,83 @@ public static class MetadataInheritance
             result.Add(new XElement(el));
         }
 
+        // Settings 局部 ID 保序合并：父项保位、子同名同类型原位覆盖、子新项按声明顺序追加。
+        if (child.Name.LocalName == "Mod")
+        {
+            var baseSettings = baseEl.Element("Settings");
+            var childSettings = child.Element("Settings");
+            if (baseSettings != null || childSettings != null)
+                result.Add(MergeSettings(baseSettings, childSettings));
+        }
+
         return result;
+    }
+
+    /// <summary>
+    /// Mod 设置定义合并：父稳定位置保留，子同 ID 且同类型原位覆盖，子新增项按声明顺序追加；类型冲突直接失败。
+    /// </summary>
+    internal static XElement MergeSettings(XElement? baseSettings, XElement? childSettings)
+    {
+        var result = new XElement("Settings");
+        if (baseSettings == null)
+        {
+            foreach (var el in childSettings!.Elements())
+                result.Add(new XElement(el));
+            return result;
+        }
+        if (childSettings == null)
+        {
+            foreach (var el in baseSettings.Elements())
+                result.Add(new XElement(el));
+            return result;
+        }
+
+        var childById = new Dictionary<string, XElement>(StringComparer.OrdinalIgnoreCase);
+        var childOrder = new List<XElement>();
+        foreach (var el in childSettings.Elements())
+        {
+            var id = SettingId(el);
+            if (!childById.TryAdd(id, el))
+                throw new InvalidOperationException($"设置 ID 重复: {id}");
+            childOrder.Add(el);
+        }
+
+        var emitted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var baseEl in baseSettings.Elements())
+        {
+            var id = SettingId(baseEl);
+            if (childById.TryGetValue(id, out var childEl))
+            {
+                if (!string.Equals(baseEl.Name.LocalName, childEl.Name.LocalName, StringComparison.Ordinal))
+                    throw new InvalidOperationException(
+                        $"设置 ID '{id}' 类型不一致: 父 {baseEl.Name.LocalName}，子 {childEl.Name.LocalName}");
+                result.Add(new XElement(childEl));
+            }
+            else
+            {
+                result.Add(new XElement(baseEl));
+            }
+            emitted.Add(id);
+        }
+
+        foreach (var childEl in childOrder)
+        {
+            if (!emitted.Contains(SettingId(childEl)))
+                result.Add(new XElement(childEl));
+        }
+
+        return result;
+    }
+
+    private static string SettingId(XElement el)
+    {
+        if (el.Name.LocalName is not ("Boolean" or "Choice"))
+            throw new InvalidOperationException($"Settings 未知子元素: {el.Name.LocalName}");
+
+        var id = el.Attribute("ID")?.Value;
+        if (string.IsNullOrWhiteSpace(id))
+            throw new InvalidOperationException($"Settings 子元素 {el.Name.LocalName} 缺少 ID");
+        return id;
     }
 
     internal static XElement MergeStyle(XElement baseStyle, XElement childStyle)

@@ -67,6 +67,7 @@
       <xs:element name="Packages" type="PackagesType" minOccurs="0"/>
       <xs:element name="Posts" type="PostsType" minOccurs="0"/>
       <xs:element name="Links" type="LinksType" minOccurs="0"/>
+      <xs:element name="Settings" type="ModSettingsType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="ID" type="xs:string" use="required"/>
   </xs:complexType>
@@ -251,6 +252,45 @@
 
   <xs:complexType name="LocalizedTextType" mixed="true">
     <xs:attribute name="Language" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <!-- 发布根只携带 Mod 设置定义；Manifest 保持存根，版本绑定在独立叶子文件里 -->
+  <xs:complexType name="SettingTextType" mixed="true">
+    <xs:attribute name="Language" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="ModSettingsType">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="Boolean" type="BooleanSettingType"/>
+      <xs:element name="Choice" type="ChoiceSettingType"/>
+    </xs:choice>
+  </xs:complexType>
+
+  <xs:complexType name="BooleanSettingType">
+    <xs:sequence>
+      <xs:element name="DisplayName" type="SettingTextType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Description" type="SettingTextType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="ID" type="xs:string" use="required"/>
+    <xs:attribute name="Default" type="xs:boolean" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="ChoiceSettingType">
+    <xs:sequence>
+      <xs:element name="DisplayName" type="SettingTextType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Description" type="SettingTextType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Option" type="SettingOptionType" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="ID" type="xs:string" use="required"/>
+    <xs:attribute name="Default" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="SettingOptionType">
+    <xs:sequence>
+      <xs:element name="DisplayName" type="SettingTextType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Description" type="SettingTextType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="Value" type="xs:string" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="PostsType">
