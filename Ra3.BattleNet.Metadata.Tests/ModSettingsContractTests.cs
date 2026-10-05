@@ -5,8 +5,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Ra3.BattleNet.Metadata.Tests;
 
 /// <summary>
-/// 通用模组设置契约的可见行为：定义/绑定解析、快照往返、跨节点硬校验、
-/// 继承保序合并、以及真实数据里 Corona 8 项 / ArmorRush 4 项的投影与真实哈希。
+/// 模组设置契约的单元测试集：
+/// 涵盖设置定义与绑定的解析、快照序列化与反序列化往返保持、跨节点结构与引用一致性硬校验、
+/// 继承中的按原位覆盖与保序合并规则，以及对 Corona 与 Armor Rush 真实样例的投影与哈希校验。
 /// </summary>
 [TestClass]
 public class ModSettingsContractTests

@@ -238,7 +238,7 @@ public static class MetadataQueryExtensions
         };
     }
 
-    /// <summary>读 <c>Injection</c> 的无条件动作；空节点返回空列表（显式新机制标记）。</summary>
+    /// <summary>解析 <c>Injection</c> 节点下的无条件动作；若为自闭合或空节点（<c>&lt;Injection /&gt;</c>）则返回空列表，作为显式启用新注入机制的标记。</summary>
     private static IReadOnlyList<ManifestInjectionAction> ReadInjection(Metadata injectionNode, string manifestId)
     {
         var actions = new List<ManifestInjectionAction>();
@@ -259,7 +259,7 @@ public static class MetadataQueryExtensions
         return actions;
     }
 
-    /// <summary>读 Dll 的类型化运行参数；当前仅支持单一 RuntimeValue。</summary>
+    /// <summary>解析 Dll 节点的类型化运行参数；当前仅支持一个 RuntimeValue（如 log-file）。</summary>
     private static ManifestDllCustomData? ReadCustomData(Metadata dll, string manifestId)
     {
         var node = dll.Find("CustomData");
