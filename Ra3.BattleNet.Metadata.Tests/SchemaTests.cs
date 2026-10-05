@@ -36,6 +36,33 @@ public class SchemaTests
     }
 
     [TestMethod]
+    [DataRow("", true)]
+    [DataRow(" FileName=\"AR_3.370.skudef\"", true)]
+    [DataRow(" FileName=\"AR_legacy.skudef\"", true)]
+    [DataRow(" FileName=\"\"", false)]
+    [DataRow(" FileName=\"   \"", false)]
+    [DataRow(" FileName=\"&#x9;&#xA;&#xD;\"", false)]
+    public void SourceSchema_SkudefFileName_RejectsOnlyEmptyDeclarations(string attribute, bool valid)
+    {
+        var schema = Path.Combine(RepoRoot, "Metadata", SchemaValidator.SourceSchemaFileName);
+        var path = Path.Combine(Path.GetTempPath(), $"skudef-name-{Guid.NewGuid():N}.xml");
+        try
+        {
+            File.WriteAllText(path,
+                $"<Metadata><Manifest ID=\"m\"><Skudef{attribute}><AddBig File=\"core.big\" /></Skudef></Manifest></Metadata>");
+            var errors = SchemaValidator.ValidateFile(path, schema);
+            if (valid)
+                errors.Should().BeEmpty();
+            else
+                errors.Should().Contain(error => error.Contains("FileName", StringComparison.Ordinal));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [TestMethod]
     public void Build_ApplicationMissingId_FailsSourceSchema()
     {
         var temp = Path.Combine(Path.GetTempPath(), $"schema-bad-{Guid.NewGuid():N}");
