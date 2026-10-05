@@ -70,6 +70,8 @@ public class StyleResourceTests
   </Includes>
   <Mod ID="Demo" InheritFrom="Theme">
     <CurrentVersion>1</CurrentVersion>
+    <DisplayName Language="zh">演示</DisplayName>
+    <DisplayName Language="en">Demo</DisplayName>
   </Mod>
 </Metadata>
 """);
@@ -195,6 +197,8 @@ public class StyleResourceTests
   <Image ID="decoy" Url="https://example.com/decoy.png" />
   <Mod ID="Demo">
     <CurrentVersion>1.0</CurrentVersion>
+    <DisplayName Language="zh">演示</DisplayName>
+    <DisplayName Language="en">Demo</DisplayName>
     <Style>
       <Logo Width="400" Height="80">{logoRef}</Logo>
       <Background Random="false">

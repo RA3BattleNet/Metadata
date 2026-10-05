@@ -9,7 +9,7 @@
 
     <Mod ID="ArmorRush">
         <CurrentVersion>3.370</CurrentVersion>
-        <DisplayName Language="zh-CN">装甲冲击</DisplayName>
+        <DisplayName Language="zh">装甲冲击</DisplayName>
         <DisplayName Language="en">Armor Rush</DisplayName>
         <Packages>
             <Package Version="3.370">

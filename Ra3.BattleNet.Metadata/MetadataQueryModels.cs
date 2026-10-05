@@ -52,9 +52,10 @@ public sealed class MetadataCatalog
 /// </summary>
 /// <param name="Id">应用 ID。</param>
 /// <param name="Version">应用当前版本（来自 <c>&lt;Version&gt;</c>）。</param>
+/// <param name="DisplayNames">分语言的显示名；节点顺序即声明顺序。</param>
 /// <param name="Packages">版本包列表。</param>
 /// <param name="Raw">原始元数据节点。</param>
-public sealed record ApplicationEntry(string Id, string? Version, IReadOnlyList<PackageEntry> Packages, Metadata Raw);
+public sealed record ApplicationEntry(string Id, string? Version, IReadOnlyList<LocalizedTextEntry> DisplayNames, IReadOnlyList<PackageEntry> Packages, Metadata Raw);
 
 /// <summary>
 /// Mod 业务实体。

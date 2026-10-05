@@ -6,6 +6,9 @@
   <Mod ID="YourMod">
     <CurrentVersion>1.0.0</CurrentVersion>
     <Icon>mod-icon-64px</Icon>
+    <!-- 显示名：zh 与 en 两个语言族都必须写，可再补其它语言；实体自身拥有，不从 Base 继承 -->
+    <DisplayName Language="zh">你的模组</DisplayName>
+    <DisplayName Language="en">Your Mod</DisplayName>
     <Style>
       <Logo Width="400" Position="BottomLeft" OffsetX="24" OffsetY="-24">mod-icon-64px</Logo>
       <Controls>
@@ -79,12 +82,12 @@
     <Links>
       <Link Url="https://example.com/" Languages="zh en">
         <Icon>mod-icon-64px</Icon>
-        <DisplayName Language="zh-CN">官方网站</DisplayName>
-        <DisplayName Language="en-US">Official website</DisplayName>
+        <DisplayName Language="zh">官方网站</DisplayName>
+        <DisplayName Language="en">Official website</DisplayName>
       </Link>
       <Link Url="https://example.com/wiki">
-        <DisplayName Language="zh-CN">资料站</DisplayName>
-        <DisplayName Language="en-US">Wiki</DisplayName>
+        <DisplayName Language="zh">资料站</DisplayName>
+        <DisplayName Language="en">Wiki</DisplayName>
       </Link>
     </Links>
     -->

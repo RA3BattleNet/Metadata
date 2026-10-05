@@ -204,6 +204,8 @@ public class StageATests
   <Markdown ID="ok-md" Source="note.md" Hash="${MD5::}"/>
   <Application ID="App">
     <Version>1.0</Version>
+    <DisplayName Language="zh">应用</DisplayName>
+    <DisplayName Language="en">App</DisplayName>
     <Packages>
       <Package Version="1.0">
         <Manifest>no-such-manifest</Manifest>

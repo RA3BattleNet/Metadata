@@ -7,11 +7,13 @@ namespace Ra3.BattleNet.Metadata;
 /// </summary>
 public static class MetadataInheritance
 {
+    // 顺序即发布物里的元素顺序。DisplayName 在表里只是为了让它排在正确位置：
+    // 显示名属于实体自身，合并时只取子实体的全部 DisplayName，绝不从 Base 继承。
     private static readonly string[] ModChildOrder =
-        ["CurrentVersion", "Icon", "Style", "Packages", "Posts"];
+        ["CurrentVersion", "Icon", "DisplayName", "Style", "Packages", "Posts"];
 
     private static readonly string[] ApplicationChildOrder =
-        ["Version", "TransferAd", "Packages", "Posts"];
+        ["Version", "DisplayName", "TransferAd", "Packages", "Posts"];
 
     private static readonly string[] StyleChildOrder = ["Logo", "Controls", "Background"];
 
@@ -105,6 +107,14 @@ public static class MetadataInheritance
 
         foreach (var name in order)
         {
+            // DisplayName 可以出现多次，且属于实体自身：只照抄子实体的全部节点，不从 Base 继承。
+            if (name == "DisplayName")
+            {
+                foreach (var displayName in child.Elements("DisplayName"))
+                    result.Add(new XElement(displayName));
+                continue;
+            }
+
             var fromBase = baseEl.Element(name);
             var fromChild = child.Element(name);
             if (fromBase == null && fromChild == null)

@@ -397,6 +397,7 @@ public static class MetadataBuilder
 
         foreach (var app in metadata.GetAllElements("Application").Concat(metadata.GetAllElements("Mod")))
         {
+            ValidateEntityDisplayNames(app, errors);
             ValidateIdRef(app.Find("Icon")?.Value, "Icon", idIndex, errors);
             var packages = app.Find("Packages");
             if (packages != null)
@@ -443,6 +444,46 @@ public static class MetadataBuilder
 
         if (errors.Count > 0)
             throw new InvalidOperationException("核心构建校验失败:\n- " + string.Join("\n- ", errors));
+    }
+
+    /// <summary>
+    /// 实体显示名硬校验：Mod 与 Application 都必须声明 zh 与 en 两个语言族（各取一条即可，
+    /// 语言族匹配不区分大小写：zh 匹配 zh / zh-*，en 匹配 en / en-*，en 不匹配 english），
+    /// 完整语言标签不许重复（不区分大小写），语言与文本都不能为空白；允许再声明其它语言。
+    /// 显示名属于实体自身，不从 Base 继承——校验针对合并后的节点。
+    /// </summary>
+    private static void ValidateEntityDisplayNames(Metadata entity, List<string> errors)
+    {
+        var name = $"{entity.Name} '{entity.Get("ID")}'";
+        var languages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var displayName in entity.Children.Where(c => c.Name == "DisplayName"))
+        {
+            var language = displayName.Get("Language");
+            if (string.IsNullOrWhiteSpace(language))
+            {
+                errors.Add($"{name}: DisplayName 缺少 Language");
+            }
+            else if (!languages.Add(language))
+            {
+                errors.Add($"{name}: DisplayName Language 重复: {language}");
+            }
+
+            if (string.IsNullOrWhiteSpace(displayName.Value))
+                errors.Add($"{name}: DisplayName（{language ?? "?"}）文本不能为空");
+        }
+
+        if (!languages.Any(language => MatchesLanguageFamily(language, "zh")))
+            errors.Add($"{name}: 缺少 zh DisplayName");
+        if (!languages.Any(language => MatchesLanguageFamily(language, "en")))
+            errors.Add($"{name}: 缺少 en DisplayName");
+    }
+
+    /// <summary>语言族匹配：zh 命中 zh 与 zh-*，en 命中 en 与 en-*；不区分大小写，en 不命中 english。</summary>
+    private static bool MatchesLanguageFamily(string language, string family)
+    {
+        return string.Equals(language, family, StringComparison.OrdinalIgnoreCase)
+            || language.StartsWith(family + "-", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void ValidateIdRef(string? id, string kind, HashSet<string> idIndex, List<string> errors)

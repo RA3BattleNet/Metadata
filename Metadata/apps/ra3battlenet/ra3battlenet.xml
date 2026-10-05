@@ -10,6 +10,8 @@
 
     <Application ID="RA3BattleNet">
         <Version>1.9.9.11</Version>
+        <DisplayName Language="zh">红警3战网</DisplayName>
+        <DisplayName Language="en">RA3 BattleNet</DisplayName>
         <TransferAd>true</TransferAd>
         <Packages>
             <Package Version="1.9.9.11">

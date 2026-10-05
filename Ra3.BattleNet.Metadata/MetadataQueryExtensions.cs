@@ -87,6 +87,7 @@ public static class MetadataQueryExtensions
         return new ApplicationEntry(
             Id: node.Get("ID") ?? string.Empty,
             Version: node.Find("Version")?.Value,
+            DisplayNames: ReadDisplayNames(node),
             Packages: ReadPackages(node),
             Raw: node);
     }

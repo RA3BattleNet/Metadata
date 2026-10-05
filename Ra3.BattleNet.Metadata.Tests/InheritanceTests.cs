@@ -147,6 +147,38 @@ public class InheritanceTests
     }
 
     [TestMethod]
+    public void Merge_DisplayNames_ChildKeepsAllAndNeverInheritsBase()
+    {
+        var root = XElement.Parse("""
+            <Metadata>
+              <Base ID="StandardMod" Kind="Mod">
+                <DisplayName Language="en-US">Base Name</DisplayName>
+                <DisplayName Language="ja-JP">ベース</DisplayName>
+                <Style>
+                  <Controls><PrimaryLabel><FontSize>14</FontSize></PrimaryLabel></Controls>
+                </Style>
+              </Base>
+              <Mod ID="Child" InheritFrom="StandardMod">
+                <CurrentVersion>1</CurrentVersion>
+                <DisplayName Language="zh">子名</DisplayName>
+                <DisplayName Language="en">Child Name</DisplayName>
+              </Mod>
+            </Metadata>
+            """);
+
+        MetadataInheritance.Resolve(root);
+
+        var mod = root.Element("Mod")!;
+        // 显示名属于实体自身：保留子实体的全部节点（顺序不变），绝不从 Base 继承
+        mod.Elements("DisplayName")
+            .Select(e => (Lang: e.Attribute("Language")!.Value, Text: e.Value))
+            .Should().Equal(("zh", "子名"), ("en", "Child Name"));
+        mod.Elements().Select(e => e.Name.LocalName)
+            .Should().Equal("CurrentVersion", "DisplayName", "DisplayName", "Style");
+        mod.Element("Style").Should().NotBeNull("样式仍从 Base 继承");
+    }
+
+    [TestMethod]
     public void Fail_MissingBase()
     {
         var root = XElement.Parse("""
@@ -280,6 +312,8 @@ public class InheritanceTests
   <Mod ID="Demo" InheritFrom="StandardMod">
     <CurrentVersion>3.0</CurrentVersion>
     <Icon>icon-a</Icon>
+    <DisplayName Language="zh">演示</DisplayName>
+    <DisplayName Language="en">Demo</DisplayName>
     <Packages>
       <Package Version="3.0">
         <ReleaseDate>2026-01-01</ReleaseDate>
