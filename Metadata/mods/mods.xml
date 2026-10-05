@@ -8,5 +8,6 @@
         <!-- 子模块 -->
         <Include Source="corona/corona.xml" />
         <Include Source="armor-rush/armor-rush.xml" />
+        <Include Source="neuroeva/neuroeva.xml" />
     </Includes>
 </Metadata>   

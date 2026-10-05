@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Includes>
+        <Include Source="manifests/manifests.xml" />
+    </Includes>
+
+    <Image ID="background" Source="images/background-1.webp" />
+    <Image ID="homepage-bilibili" Source="images/homepage-bilibili.webp" />
+    <Image ID="homepage-douyin" Source="images/homepage-douyin.webp" />
+
+    <Mod ID="NeuroEva">
+        <CurrentVersion>1.3</CurrentVersion>
+        <Style>
+            <Controls>
+                <PrimaryLabel>
+                    <Color>#f6d6ff</Color>
+                    <FontSize>18</FontSize>
+                    <FontWeight>700</FontWeight>
+                </PrimaryLabel>
+                <SecondaryLabel>
+                    <Color>#ff85d8</Color>
+                    <FontSize>13</FontSize>
+                    <FontWeight>400</FontWeight>
+                </SecondaryLabel>
+                <PrimaryButton>
+                    <BackgroundColor>#ffccfd</BackgroundColor>
+                    <BorderColor>#ffffff</BorderColor>
+                    <BorderWidth>0</BorderWidth>
+                    <Color>#18181B</Color>
+                    <FontSize>15</FontSize>
+                    <FontWeight>650</FontWeight>
+                    <Hover>
+                        <BackgroundColor>#ffe5ff</BackgroundColor>
+                    </Hover>
+                    <Active>
+                        <BackgroundColor>#424242</BackgroundColor>
+                        <BorderColor>#ffffff</BorderColor>
+                        <Color>#a1a1a1</Color>
+                    </Active>
+                </PrimaryButton>
+                <SecondaryButton>
+                    <BackgroundColor>#18181BB3</BackgroundColor>
+                    <BorderColor>#FFFFFF24</BorderColor>
+                    <BorderWidth>1</BorderWidth>
+                    <Color>#D4D4D8</Color>
+                    <FontSize>14</FontSize>
+                    <FontWeight>500</FontWeight>
+                    <Hover>
+                        <BackgroundColor>#3F3F46</BackgroundColor>
+                        <BorderColor>#FFFFFF55</BorderColor>
+                    </Hover>
+                    <Active>
+                        <BackgroundColor>#09090B</BackgroundColor>
+                        <BorderWidth>0</BorderWidth>
+                    </Active>
+                </SecondaryButton>
+            </Controls>
+            <Background Random="false">
+                <Image>background</Image>
+                <Color Format="ARGB">#7f000000</Color>
+                <SecondaryColor>#18181BDA</SecondaryColor>
+            </Background>
+        </Style>
+        <Packages>
+            <Package Version="1.3">
+                <ReleaseDate>2026-10-05</ReleaseDate>
+                <Manifest>manifest-13</Manifest>
+            </Package>
+        </Packages>
+        <Posts/>
+        <Links>
+            <Link Url="https://space.bilibili.com/400315239">
+                <Icon>homepage-bilibili</Icon>
+                <DisplayName Language="zh-CN">哔哩哔哩</DisplayName>
+            </Link>
+            <Link Url="https://v.douyin.com/iM121nWW/">
+                <Icon>homepage-douyin</Icon>
+                <DisplayName Language="zh-CN">抖音</DisplayName>
+            </Link>
+        </Links>
+    </Mod>
+</Metadata>

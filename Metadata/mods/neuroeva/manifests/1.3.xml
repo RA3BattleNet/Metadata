@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Includes>
+    </Includes>
+    <Manifest ID="manifest-13" HashAlgorithm="CRC32C">
+        <Skudef GameVersion="1.12">
+            <AddBig File="NeuroEva_1.3.big" />
+        </Skudef>
+        <File Hash="C7268DFF" Size="64283814">
+            <FileName>NeuroEva_1.3.big</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MISC;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://web.file.cor-games.com/srv/test/NeuroEva_1.3.big" />
+            </Sources>
+        </File>
+    </Manifest>
+</Metadata>
