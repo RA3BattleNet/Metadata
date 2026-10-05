@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Includes>
+    </Includes>
+
+    <Image ID="headimg" Source="../images/headimg.jpg" />
+    <Markdown ID="news-zh-3.256" Source="news-zh-3.256.md" Hash="${MD5::}" />
+    <Markdown ID="news-zh-3.255" Source="news-zh-3.255.md" Hash="${MD5::}" />
+    <Markdown ID="news-zh-3.253" Source="news-zh-3.253.md" Hash="${MD5::}" />
+</Metadata>
