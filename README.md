@@ -146,6 +146,7 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: MetadataSchema.Curren
 | `Sources/Source` | File 的子标签（可选） | 声明下载地址：包含协议类型 `@Type`（`HTTP` 或 `BT`）与下载链接 `@Url`；HTTP 必须是完整的 http/https 绝对地址，BT 必须以 `.torrent` 结尾 |
 | `Dependencies/Dll` | Manifest 子标签（可选） | 声明该 Mod 依赖的第三方 DLL：`@Name` 和 `@Hash` 必填，`@Version` 和 `@KindOf` 可选 |
 | `Skudef` | Manifest 子标签（可选） | 启动脚本生成规则，必须写在所有的 `File` 标签之前；`@GameVersion` 缺省默认为 `1.12` |
+| `Skudef@FileName` | Skudef 属性（可选） | 完整的启动脚本文件名（含扩展名），如 `AR_3.370.skudef`；显式声明不能为空或仅含 XML 空白字符，源 XSD 校验会拒绝；客户端原样使用，不做版本匹配或模板替换，未声明时使用 `<modId>_<version>.skudef` |
 | `Skudef/AddBig` | Skudef 的子标签 | 挂载 big 包：`@File` 必填（必须引用当前清单里声明过的某个 `FileName`），配上可选的触发条件 `@Language` 或 `@Package`（两个条件只能写一个）；不写条件表示默认始终挂载 |
 | `Skudef/AddConfig` | Skudef 的子标签 | 挂载用户配置文件：`@LocalFile` 必填（必须是存放在 Mod 目录下的纯文件名），`@Optional`（可选，默认为 false，如果找不到该文件就报错） |
 

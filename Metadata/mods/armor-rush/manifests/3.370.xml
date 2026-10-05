@@ -6,7 +6,7 @@
     <Includes>
     </Includes>
     <Manifest ID="manifest-3370" HashAlgorithm="CRC32C">
-        <Skudef GameVersion="1.12">
+        <Skudef GameVersion="1.12" FileName="AR_3.370.skudef">
             <AddBig File="AR_Core_3.370.lyi" />
             <AddBig File="AR_Data_3.370.big" />
             <AddBig File="AR_chs_3.370.big" />

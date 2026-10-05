@@ -159,7 +159,8 @@ public sealed record ManifestSkudefCommand(SkudefCommandKind Kind, string Target
 /// </summary>
 /// <param name="GameVersion">头版本，形如 1.12。</param>
 /// <param name="Commands">有序列的挂载指令。</param>
-public sealed record ManifestSkudefEntry(string GameVersion, IReadOnlyList<ManifestSkudefCommand> Commands)
+/// <param name="FileName">完整字面脚本文件名（含扩展名）；未声明时客户端使用默认名称。</param>
+public sealed record ManifestSkudefEntry(string GameVersion, IReadOnlyList<ManifestSkudefCommand> Commands, string? FileName = null)
 {
     /// <summary>清单没写 GameVersion 时用的头版本。</summary>
     public const string DefaultGameVersion = "1.12";
