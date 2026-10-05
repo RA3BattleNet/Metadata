@@ -289,12 +289,12 @@
     <xs:attribute name="Language" type="xs:string" use="required"/>
   </xs:complexType>
 
-  <!-- 新设置动态文案：Language 为标准语言族（zh/en，可扩展其它 ISO 主语言族），地区标签仅用于既有 links/posts。 -->
+  <!-- 模组设置文案：Language 必须为标准主语言族代号（如 zh、en）。特定地区变体仅在既有的 links/posts 中使用。 -->
   <xs:complexType name="SettingTextType" mixed="true">
     <xs:attribute name="Language" type="xs:string" use="required"/>
   </xs:complexType>
 
-  <!-- 通用模组设置定义：仅布尔与单选枚举；ID 为 Mod 内局部 ID，不参与全根资源前缀 -->
+  <!-- 模组级通用设置定义：仅支持布尔开关与单选枚举；ID 为所属 Mod 内部的局部 ID，不含全根资源前缀 -->
   <xs:complexType name="ModSettingsType">
     <xs:choice minOccurs="0" maxOccurs="unbounded">
       <xs:element name="Boolean" type="BooleanSettingType"/>
@@ -329,7 +329,7 @@
     <xs:attribute name="Value" type="xs:string" use="required"/>
   </xs:complexType>
 
-  <!-- 无条件注入动作：空节点是显式新执行机制标记 -->
+  <!-- 显式无条件注入动作：即便不包含任何子节点，空节点 <Injection /> 也是显式启用新注入机制的重要标记（用于区别于旧版清单） -->
   <xs:complexType name="InjectionType">
     <xs:choice minOccurs="0" maxOccurs="unbounded">
       <xs:element name="RequireDll" type="DllRefType"/>
@@ -341,7 +341,7 @@
     <xs:attribute name="Ref" type="xs:string" use="required"/>
   </xs:complexType>
 
-  <!-- 版本清单设置绑定：全部引用语法，禁止用 ID 冒充定义 -->
+  <!-- 版本清单的模组设置绑定：全部使用 Ref 引用所属 Mod 中已定义的设置 ID，严禁在此处重新定义设置 -->
   <xs:complexType name="ManifestSettingsType">
     <xs:sequence>
       <xs:element name="SettingRef" type="SettingRefType" maxOccurs="unbounded"/>
@@ -380,7 +380,7 @@
 
   <xs:complexType name="EmptyType"/>
 
-  <!-- DLL 声明的类型化运行参数；当前仅 utf8/log-file -->
+  <!-- DLL 声明的特定运行参数：目前仅支持 utf8 编码与 log-file 运行参数 -->
   <xs:complexType name="DllCustomDataType">
     <xs:sequence>
       <xs:element name="RuntimeValue" type="RuntimeValueType" minOccurs="0" maxOccurs="unbounded"/>

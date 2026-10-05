@@ -455,8 +455,11 @@ public static class MetadataBuilder
     }
 
     /// <summary>
-    /// 所属 Mod 设置定义与版本叶子清单绑定的配对硬校验：逐版本解析配对快照并交给
-    /// <see cref="ModSettingsContract.Validate"/>。无设置声明、无新格式的旧清单不受影响。
+    /// 校验所属 Mod 的设置定义与各版本叶子 Manifest 的设置绑定是否合法匹配。
+    /// 校验逻辑：
+    /// 1. 遍历元数据中所有 Mod，解析其 <c>Mod/Settings</c>（若未声明则视为空集合）。
+    /// 2. 依次读取该 Mod 下每个 Package 对应的叶子 Manifest 文件，交由 <see cref="ModSettingsContract.Validate"/> 进行跨节点硬校验。
+    /// 3. 兼容性保证：未声明设置绑定且未声明 Dll ID 的旧清单不包含新语法节点，校验直接通过，完全不受影响。
     /// </summary>
     private static void ValidateModSettingsPairing(Metadata metadata, string outputDir, List<string> errors)
     {

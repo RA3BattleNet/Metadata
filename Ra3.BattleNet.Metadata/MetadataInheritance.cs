@@ -145,7 +145,7 @@ public static class MetadataInheritance
             result.Add(new XElement(el));
         }
 
-        // Settings 局部 ID 保序合并：父项保位、子同名同类型原位覆盖、子新项按声明顺序追加。
+        // Settings 局部 ID 保序合并：保留父项顺序与位置，子项同 ID 同类型直接原位覆盖（不改变相对位置），子项新增项依次追加到末尾。
         if (child.Name.LocalName == "Mod")
         {
             var baseSettings = baseEl.Element("Settings");
@@ -158,7 +158,9 @@ public static class MetadataInheritance
     }
 
     /// <summary>
-    /// Mod 设置定义合并：父稳定位置保留，子同 ID 且同类型原位覆盖，子新增项按声明顺序追加；类型冲突直接失败。
+    /// 合并 Mod 级别的设置定义：
+    /// 1. 保序与原位覆盖：继承时以父定义的出现顺序为基准，子定义中同 ID 且同类型的项直接覆盖父项内容，但位置保持在父项原位；子定义中新增的 ID 则按其声明顺序追加到末尾。
+    /// 2. 类型一致性硬要求：若子项与父项同 ID 但类型不一致（例如父项是 Boolean，子项改为 Choice），直接抛出异常阻止非法覆盖。
     /// </summary>
     internal static XElement MergeSettings(XElement? baseSettings, XElement? childSettings)
     {

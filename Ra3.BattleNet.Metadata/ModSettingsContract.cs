@@ -4,16 +4,16 @@ using System.Xml.Linq;
 namespace Ra3.BattleNet.Metadata;
 
 /// <summary>
-/// 通用模组设置契约：<c>Mod/Settings</c> 定义与 <c>Manifest/Settings</c> 绑定的解析、
-/// 快照序列化/回读，以及所属 Mod 与叶子清单之间的跨节点硬校验。
-/// 设置 ID 为 Mod 内局部 ID，所有引用节点一律用 <c>Ref</c> 且不参与全根资源 ID 前缀。
+/// 模组设置契约：解析与校验 <c>Mod/Settings</c>（定义）与 <c>Manifest/Settings</c>（版本绑定），并负责安装快照序列化。
+/// 设置 ID 属于 Mod 局部，依赖 Dll ID 属于 Manifest 局部，均不含全根资源前缀。
+/// Manifest 仅使用 <c>SettingRef Ref="..."</c> 引用定义；开关为 false 不等同于全局阻止注入。
 /// </summary>
 public static class ModSettingsContract
 {
-    /// <summary>已支持的注入协议（注入目标必须声明其中之一）。</summary>
+    /// <summary>支持的 DLL 注入协议。凡是需要被注入的 DLL，都必须在清单的 Protocol 属性中显式指定其中之一。</summary>
     public static readonly IReadOnlyList<string> KnownProtocols = ["lyi-create-process", "easyhook"];
 
-    /// <summary>Desktop 已实现的 LuaBridge 协议适配器。</summary>
+    /// <summary>客户端已实现的 LuaBridge 功能适配器名称列表，用于校验 ConfigureLuaBridge 的 Adapter 属性。</summary>
     public static readonly IReadOnlyList<string> KnownAdapters =
         ["audio-fix", "desync-debug", "debug-overlay", "enhancer-logger", "always-enable-engine-fix"];
 
@@ -22,8 +22,8 @@ public static class ModSettingsContract
     private const string Utf8Encoding = "utf8";
 
     /// <summary>
-    /// 解析 Mod 级设置定义（节点为 <c>Mod/Settings</c> 或快照的 <c>Definitions</c>）。
-    /// 子元素 <c>Boolean</c>/<c>Choice</c> 的声明顺序即定义顺序。
+    /// 解析 Mod 级设置定义（来源可是元数据节点的 <c>Mod/Settings</c>，也可以是快照中的 <c>Definitions</c>）。
+    /// 返回列表中各项的顺序与 XML 中子元素（<c>Boolean</c>/<c>Choice</c>）的声明顺序严格一致。
     /// </summary>
     public static IReadOnlyList<ModSettingDefinition> ParseDefinitions(Metadata node)
     {
@@ -63,8 +63,8 @@ public static class ModSettingsContract
     }
 
     /// <summary>
-    /// 解析版本清单设置绑定（节点为 <c>Manifest/Settings</c> 或快照的 <c>Bindings</c>）。
-    /// <c>SettingRef</c> 的声明顺序即绑定顺序。
+    /// 解析版本清单的设置绑定（来源可是 <c>Manifest/Settings</c>，也可以是快照中的 <c>Bindings</c>）。
+    /// 返回列表中各项的顺序与 XML 中 <c>SettingRef</c> 的声明顺序严格一致。
     /// </summary>
     public static IReadOnlyList<ModSettingBinding> ParseBindings(Metadata node)
     {
@@ -90,7 +90,8 @@ public static class ModSettingsContract
     }
 
     /// <summary>
-    /// 序列化设置快照为 <c>&lt;SettingsSnapshot&gt;</c> 元素字符串（不含 XML 声明，便于嵌入外层 XML）。
+    /// 将模组设置快照序列化为 <c>&lt;SettingsSnapshot&gt;</c> XML 字符串。
+    /// 不包含 XML 头部声明（&lt;?xml...?&gt;），以便直接嵌入到宿主系统的存储文件或外层 XML 中。
     /// </summary>
     public static string SerializeSnapshot(ModSettingsSnapshot snapshot)
     {
@@ -102,7 +103,8 @@ public static class ModSettingsContract
     }
 
     /// <summary>
-    /// 回读 <see cref="SerializeSnapshot"/> 产物；与解析后再次序列化保持一致（roundtrip）。
+    /// 回读 <see cref="SerializeSnapshot"/> 输出的 XML 字符串，恢复为强类型快照对象。
+    /// 该方法保证与序列化互为可逆操作（roundtrip），字段解析顺序与内容完全对称。
     /// </summary>
     public static ModSettingsSnapshot ParseSnapshot(string xml)
     {
@@ -134,11 +136,11 @@ public static class ModSettingsContract
     }
 
     /// <summary>
-    /// 跨节点硬校验：设置定义合法性，以及叶子清单绑定/注入对定义与依赖的引用一致性。
-    /// 失败抛 <see cref="InvalidOperationException"/>，消息列出全部问题。
+    /// 校验 Mod 级设置定义合法性，以及叶子 Manifest 绑定与引用的协同一致性。
+    /// 包含定义值域与多语言校验、设置与 Dll 局部引用存在性、类型规则匹配，以及新格式清单的显式 Injection 节点要求。
     /// </summary>
-    /// <param name="definitions">所属 Mod 的设置定义（无声明时传空列表）。</param>
-    /// <param name="manifest">叶子清单实体。</param>
+    /// <param name="definitions">所属 Mod 的设置定义列表；若 Mod 未声明任何设置则传空列表。</param>
+    /// <param name="manifest">待校验的叶子清单实体。</param>
     public static void Validate(IReadOnlyList<ModSettingDefinition> definitions, ManifestEntry manifest)
     {
         ArgumentNullException.ThrowIfNull(definitions);
@@ -209,7 +211,10 @@ public static class ModSettingsContract
         return map;
     }
 
-    /// <summary>设置文案的 Language 必须是存在的标准主语言族标签（如 zh／en），不接受地区标签。</summary>
+    /// <summary>
+    /// 校验语言标签必须为标准主语言族代号（如 zh、en）。
+    /// 模组设置面向通用国际化显示，不应绑定特定国家/地区变体（如 zh-CN、en-US）。
+    /// </summary>
     private static readonly Regex LanguageFamilyPattern = new(@"^[A-Za-z]{2,3}$", RegexOptions.Compiled);
 
     private static void RequireLanguages(IReadOnlyList<LocalizedTextEntry> texts, string where, List<string> errors)
@@ -313,7 +318,8 @@ public static class ModSettingsContract
                 continue;
             }
 
-            // Choice 根 Actions 只允许 MountLanguage（枚举原值直传）；其余动作必须写在 Case 中。
+            // Choice 根级 Actions 只允许声明 MountLanguage（用于把用户选中的语言代码直传挂载）；
+            // 其余具体动作（挂载包、注入 DLL、配置桥接等）必须按分支写在对应的 Case 中。
             foreach (var action in binding.Actions)
             {
                 if (action.Kind == ModSettingActionKind.MountLanguage)
@@ -466,7 +472,7 @@ public static class ModSettingsContract
                     actions.Add(new ModSettingAction(ModSettingActionKind.ConfigureLuaBridge, child.Get("Ref"), child.Get("Adapter")));
                     break;
                 case "Case":
-                    break; // Case 由 ParseBindings 单独读取
+                    break; // Case 属于条件分支容器，由 ParseBindings 循环单独提取，不混入平铺动作列表
                 default:
                     throw new InvalidOperationException($"未知设置动作节点: {child.Name}");
             }
