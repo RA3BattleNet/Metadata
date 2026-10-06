@@ -9,5 +9,6 @@
         <Include Source="corona/corona.xml" />
         <Include Source="armor-rush/armor-rush.xml" />
         <Include Source="neuroeva/neuroeva.xml" />
+        <Include Source="eisenreich/eisenreich.xml" />
     </Includes>
-</Metadata>   
+</Metadata>
