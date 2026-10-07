@@ -104,6 +104,8 @@ public class PostHeadImageTests
   <Markdown ID="news" Source="news.md" />
   <Mod ID="Demo">
     <CurrentVersion>1.0</CurrentVersion>
+    <DisplayName Language="zh-CN">演示模组</DisplayName>
+    <DisplayName Language="en-US">Demo</DisplayName>
     <Posts>
       <Post DateTime="2026-01-01T00:00:00">
         <Titles>
