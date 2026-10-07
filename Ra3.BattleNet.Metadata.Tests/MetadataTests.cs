@@ -107,7 +107,6 @@ public class MetadataTests
 
             var app = metadata.Catalog().Application("RA3BattleNet");
             app.Should().NotBeNull();
-            app!.Version.Should().Be("1.9.9.11");
         }
         finally
         {

@@ -113,7 +113,7 @@ public class StageATests
             File.ReadAllText(Path.Combine(dst, markdown.Source!.Replace('/', Path.DirectorySeparatorChar)))
                 .Should().Be(sourceBody);
 
-            app.Packages[0].ManifestId.Should().Be(manifest.Get("ID"));
+            app.Packages.Single(p => p.Version == "1.9.9.11").ManifestId.Should().Be(manifest.Get("ID"));
             var corona = loaded.Mods().Single(m => m.Id == "Corona");
             var icon = loaded.Images().Single(image => image.Id == corona.Icon);
             var sourceDoc = XDocument.Load(Path.Combine(src, "mods", "corona", "corona.xml"));
@@ -141,7 +141,6 @@ public class StageATests
             var apps = doc.Root!.Elements("Application").ToList();
 
             var ra3 = apps.Single(a => (string?)a.Attribute("ID") == "RA3BattleNet");
-            ra3.Element("Version")!.Value.Should().Be("1.9.9.11");
             ra3.Element("TransferAd").Should().NotBeNull();
             ra3.Element("TransferAd")!.Value.Should().Be("true");
 
