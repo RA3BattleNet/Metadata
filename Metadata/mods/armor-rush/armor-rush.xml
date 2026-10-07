@@ -7,10 +7,72 @@
         <Include Source="manifests/manifests.xml" />
     </Includes>
 
+    <Image ID="ar-logo" Source="images/ar-logo.webp" />
+    <Image ID="ar-banner" Source="images/ar-banner.webp" />
+    <Image ID="ar-bg1" Source="images/ar-bg1.webp" />
+    <Image ID="ar-bg2" Source="images/ar-bg2.webp" />
+    <Image ID="ar-bg3" Source="images/ar-bg3.webp" />
+    <Image ID="ar-bg4" Source="images/ar-bg4.webp" />
+    <Image ID="ar-bg5" Source="images/ar-bg5.webp" />
+
     <Mod ID="ArmorRush">
         <CurrentVersion>3.370</CurrentVersion>
+        <Icon>ar-logo</Icon>
         <DisplayName Language="zh-CN">装甲冲击</DisplayName>
         <DisplayName Language="en-US">Armor Rush</DisplayName>
+        <Style>
+            <Logo Position="BottomLeft" OffsetY="0" OffsetX="0">ar-banner</Logo>
+            <Controls>
+                <PrimaryLabel>
+                    <Color>#F4F4F5</Color>
+                    <FontSize>18</FontSize>
+                    <FontWeight>700</FontWeight>
+                </PrimaryLabel>
+                <SecondaryLabel>
+                    <Color>#dedede</Color>
+                    <FontSize>13</FontSize>
+                    <FontWeight>400</FontWeight>
+                </SecondaryLabel>
+                <PrimaryButton>
+                    <BackgroundColor>#fdfcfc</BackgroundColor>
+                    <BorderColor>#2e2e2e</BorderColor>
+                    <BorderWidth>1</BorderWidth>
+                    <Color>#18181B</Color>
+                    <FontSize>15</FontSize>
+                    <FontWeight>650</FontWeight>
+                    <Hover>
+                        <BackgroundColor>#FAFAFA</BackgroundColor>
+                    </Hover>
+                    <Active>
+                        <BackgroundColor>#A1A1AA</BackgroundColor>
+                    </Active>
+                </PrimaryButton>
+                <SecondaryButton>
+                    <BackgroundColor>#1c1c22B3</BackgroundColor>
+                    <BorderColor>#FFFFFF24</BorderColor>
+                    <BorderWidth>1</BorderWidth>
+                    <Color>#D4D4D8</Color>
+                    <FontSize>14</FontSize>
+                    <FontWeight>500</FontWeight>
+                    <Hover>
+                        <BackgroundColor>#3F3F46</BackgroundColor>
+                        <BorderColor>#FFFFFF55</BorderColor>
+                    </Hover>
+                    <Active>
+                        <BackgroundColor>#09090B</BackgroundColor>
+                    </Active>
+                </SecondaryButton>
+            </Controls>
+            <Background Random="true">
+                <Image>ar-bg1</Image>
+                <Image>ar-bg2</Image>
+                <Image>ar-bg3</Image>
+                <Image>ar-bg4</Image>
+                <Image>ar-bg5</Image>
+                <Color Format="CSS">#09090BEC</Color>
+                <SecondaryColor Format="CSS">#18181BDA</SecondaryColor>
+            </Background>
+        </Style>
         <Packages>
             <Package Version="3.370">
                 <ReleaseDate>2026-02-18</ReleaseDate>
