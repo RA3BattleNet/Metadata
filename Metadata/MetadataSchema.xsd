@@ -328,14 +328,12 @@
   <xs:complexType name="MarkdownRegType">
     <xs:attribute name="ID" type="xs:string" use="required"/>
     <xs:attribute name="Source" type="xs:string" use="required"/>
-    <xs:attribute name="Hash" type="xs:string"/>
   </xs:complexType>
 
   <xs:complexType name="ImageRegType">
     <xs:attribute name="ID" type="xs:string" use="required"/>
     <xs:attribute name="Source" type="xs:string"/>
     <xs:attribute name="Url" type="xs:string"/>
-    <xs:attribute name="Hash" type="xs:string"/>
   </xs:complexType>
 
   <!-- 源侧叶子清单：含 File 表（Updater 生成）；HashAlgorithm 缺省按 CRC32C。

@@ -103,12 +103,12 @@ public class QueryApiTests
             File.WriteAllText(Path.Combine(src, "metadata.xml"), """
 <?xml version="1.0" encoding="UTF-8"?>
 <Metadata>
-  <Markdown ID="news-only-zh" Source="news-zh.md" Hash="${MD5::}"/>
-  <Markdown ID="news-only-en" Source="news-en.md" Hash="${MD5::}"/>
-  <Markdown ID="mixed-zh" Source="mixed-zh.md" Hash="${MD5::}"/>
-  <Markdown ID="mixed-en" Source="mixed-en.md" Hash="${MD5::}"/>
-  <Markdown ID="bare-zh" Source="bare-zh.md" Hash="${MD5::}"/>
-  <Markdown ID="bare-en" Source="bare-en.md" Hash="${MD5::}"/>
+  <Markdown ID="news-only-zh" Source="news-zh.md"/>
+  <Markdown ID="news-only-en" Source="news-en.md"/>
+  <Markdown ID="mixed-zh" Source="mixed-zh.md"/>
+  <Markdown ID="mixed-en" Source="mixed-en.md"/>
+  <Markdown ID="bare-zh" Source="bare-zh.md"/>
+  <Markdown ID="bare-en" Source="bare-en.md"/>
   <Mod ID="PackageOnly">
     <CurrentVersion>9.0</CurrentVersion>
     <DisplayName Language="zh-CN">仅版本包</DisplayName>

@@ -172,7 +172,7 @@ public class StageATests
             File.WriteAllText(Path.Combine(src, "metadata.xml"), """
 <?xml version="1.0" encoding="UTF-8"?>
 <Metadata>
-  <Markdown ID="missing-md" Source="nope.md" Hash="${MD5::}"/>
+  <Markdown ID="missing-md" Source="nope.md"/>
 </Metadata>
 """);
 
@@ -200,7 +200,7 @@ public class StageATests
             File.WriteAllText(Path.Combine(src, "metadata.xml"), """
 <?xml version="1.0" encoding="UTF-8"?>
 <Metadata>
-  <Markdown ID="ok-md" Source="note.md" Hash="${MD5::}"/>
+  <Markdown ID="ok-md" Source="note.md"/>
   <Application ID="App">
     <Version>1.0</Version>
     <DisplayName Language="zh-CN">应用</DisplayName>

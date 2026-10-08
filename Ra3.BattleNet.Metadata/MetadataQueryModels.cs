@@ -89,9 +89,8 @@ public sealed record PackageEntry(string Version, string? ReleaseDate, string? M
 /// </summary>
 /// <param name="Id">资源 ID。</param>
 /// <param name="Source">源文件路径。</param>
-/// <param name="Hash">内容哈希值。</param>
 /// <param name="Raw">原始元数据节点。</param>
-public sealed record MarkdownEntry(string Id, string? Source, string? Hash, Metadata Raw);
+public sealed record MarkdownEntry(string Id, string? Source, Metadata Raw);
 
 /// <summary>
 /// 图片资源实体。

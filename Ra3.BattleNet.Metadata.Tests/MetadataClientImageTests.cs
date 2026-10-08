@@ -173,25 +173,6 @@ public class MetadataClientImageTests
     }
 
     [TestMethod]
-    public async Task Image_XmlHashIsIgnored()
-    {
-        using var fixture = Fixture.Create();
-        fixture.Handler.Next = (request, _) => Task.FromResult(
-            request.RequestUri!.AbsoluteUri == RootUrl
-                ? Xml(RootXml("""<Image ID="icon" Source="images/icon.png" Hash="0000000000000000000000000000DEAD" />"""))
-                : Png(IconBytes, "\"icon-1\""));
-        var root = await fixture.Client.RefreshRootAsync(RootUrl);
-
-        var first = await fixture.Client.GetImageAsync(root, "icon");
-        first.Bytes.Should().Equal(IconBytes, "XML 里的 Image Hash 不参与图片校验");
-
-        fixture.Handler.Next = (_, _) => Task.FromResult(NotModified());
-        var second = await fixture.Client.GetImageAsync(root, "icon");
-        second.Status.Should().Be(MetadataFreshness.Stale);
-        second.Bytes.Should().Equal(IconBytes);
-    }
-
-    [TestMethod]
     public async Task Image_NonImageResponse_IsRejectedAndNotCached()
     {
         using var fixture = Fixture.Create();

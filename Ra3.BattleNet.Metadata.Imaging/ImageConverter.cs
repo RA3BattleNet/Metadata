@@ -1,10 +1,9 @@
-using System.Security.Cryptography;
 using SkiaSharp;
 
 namespace Ra3.BattleNet.Metadata.Imaging;
 
 /// <summary>
-/// 纯图片处理：转 WebP 并计算输出文件 MD5。不读 XML。
+/// 纯图片处理：转 WebP。不读 XML，也不计算哈希。
 /// </summary>
 public static class ImageConverter
 {
@@ -14,9 +13,9 @@ public static class ImageConverter
     };
 
     /// <summary>
-    /// 将 input 转为 WebP 写入 output，返回 output 的 MD5（小写 hex）。
+    /// 将 input 转为 WebP 写入 output。
     /// </summary>
-    public static string ConvertToWebP(string inputPath, string outputPath)
+    public static void ConvertToWebP(string inputPath, string outputPath)
     {
         inputPath = Path.GetFullPath(inputPath);
         outputPath = Path.GetFullPath(outputPath);
@@ -40,15 +39,6 @@ public static class ImageConverter
         using var data = image.Encode(SKEncodedImageFormat.Webp, 90);
         using (var output = File.Open(outputPath, FileMode.Create, FileAccess.Write))
             data.SaveTo(output);
-
-        return ComputeMd5(outputPath);
-    }
-
-    public static string ComputeMd5(string filePath)
-    {
-        using var md5 = MD5.Create();
-        using var stream = File.OpenRead(filePath);
-        return Convert.ToHexString(md5.ComputeHash(stream)).ToLowerInvariant();
     }
 
     public static bool IsConvertible(string path) =>

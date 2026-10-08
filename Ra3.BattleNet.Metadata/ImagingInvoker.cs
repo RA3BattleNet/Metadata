@@ -4,7 +4,7 @@ using System.Text;
 namespace Ra3.BattleNet.Metadata;
 
 /// <summary>
-/// 调用 Imaging CLI：单张图片转 WebP，返回 MD5。主包不引用 SkiaSharp。
+/// 调用 Imaging CLI：单张图片转 WebP。主包不引用 SkiaSharp。
 /// </summary>
 public static class ImagingInvoker
 {
@@ -12,9 +12,9 @@ public static class ImagingInvoker
     private static readonly object Gate = new();
 
     /// <summary>
-    /// 将 input 转为 WebP 写到 output，返回 hash（小写 hex）。
+    /// 将 input 转为 WebP 写到 output。只关心转换是否成功，不回传哈希。
     /// </summary>
-    public static string ConvertToWebP(string inputPath, string outputPath)
+    public static void ConvertToWebP(string inputPath, string outputPath)
     {
         var dll = EnsureImagingDll();
         var psi = new ProcessStartInfo
@@ -28,7 +28,6 @@ public static class ImagingInvoker
                 $"--output={Path.GetFullPath(outputPath)}"
             },
             UseShellExecute = false,
-            RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true
         };
@@ -36,11 +35,8 @@ public static class ImagingInvoker
         using var proc = Process.Start(psi)
             ?? throw new InvalidOperationException("无法启动 Imaging CLI");
 
-        var stdout = new StringBuilder();
         var stderr = new StringBuilder();
-        proc.OutputDataReceived += (_, e) => { if (e.Data != null) stdout.AppendLine(e.Data); };
         proc.ErrorDataReceived += (_, e) => { if (e.Data != null) stderr.AppendLine(e.Data); };
-        proc.BeginOutputReadLine();
         proc.BeginErrorReadLine();
         proc.WaitForExit();
 
@@ -52,14 +48,6 @@ public static class ImagingInvoker
                     ? $"Imaging CLI 失败 (exit {proc.ExitCode})"
                     : $"Imaging CLI 失败: {err}");
         }
-
-        var hash = stdout.ToString().Trim()
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .LastOrDefault();
-        if (string.IsNullOrWhiteSpace(hash) || hash.Length != 32)
-            throw new InvalidOperationException($"Imaging CLI 未返回有效 MD5: '{stdout}'");
-
-        return hash.ToLowerInvariant();
     }
 
     public static string? FindImagingProject()

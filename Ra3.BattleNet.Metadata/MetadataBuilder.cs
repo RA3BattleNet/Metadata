@@ -83,11 +83,11 @@ public static class MetadataBuilder
             if (leftover.Count > 0)
                 throw new InvalidOperationException("变量替换后仍有残留: " + string.Join("; ", leftover));
 
-            // 展平后：按图调用 Imaging（只产 webp+hash），本管线写回 XML
+            // 展平后：按图调用 Imaging（只产 webp），本管线写回 XML
             if (convertImages)
             {
                 var n = ImagePostProcessor.ApplyWebP(dst);
-                Console.WriteLine($"  Imaging: 转换 {n} 张图片并写回 Source/Hash");
+                Console.WriteLine($"  Imaging: 转换 {n} 张图片并写回 Source");
             }
 
             var publishSchema = SchemaValidator.FindSchema(src, SchemaValidator.PublishSchemaFileName)
