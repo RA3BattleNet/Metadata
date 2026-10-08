@@ -6,6 +6,6 @@
     <Includes>
     </Includes>
 
-    <Markdown ID="news-zh-1.9.9.11" Source="news-zh-1.9.9.11.md" Hash="${MD5::}"/>
-    <Markdown ID="news-en-1.9.9.11" Source="news-en-1.9.9.11.md" Hash="${MD5::}"/>
+    <Markdown ID="news-zh-1.9.9.11" Source="news-zh-1.9.9.11.md"/>
+    <Markdown ID="news-en-1.9.9.11" Source="news-en-1.9.9.11.md"/>
 </Metadata>

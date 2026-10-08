@@ -84,8 +84,8 @@ internal static class Program
               build --src=./Metadata --dst=./Output
               build --webp --src=./Metadata --dst=./Output
 
-            --webp: 展平后对每张本地图调用 Imaging CLI（只产 webp+hash），
-                    由本程序改写 metadata.xml 的 Source/Hash。
+            --webp: 展平后对每张本地图调用 Imaging CLI（只产 webp），
+                    由本程序改写 metadata.xml 的 Source。
 
             NuGet 主包不含 Imaging；Imaging 为仓库编译 CLI。
             """);

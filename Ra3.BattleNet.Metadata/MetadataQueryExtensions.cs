@@ -46,7 +46,6 @@ public static class MetadataQueryExtensions
             .Select(node => new MarkdownEntry(
                 Id: node.Get("ID") ?? string.Empty,
                 Source: node.Get("Source"),
-                Hash: node.Get("Hash"),
                 Raw: node));
     }
 

@@ -7,7 +7,7 @@
     </Includes>
 
     <Image ID="headimg-325x" Source="../images/headimg.jpg" />
-    <Markdown ID="news-zh-3.256" Source="news-zh-3.256.md" Hash="${MD5::}" />
-    <Markdown ID="news-zh-3.255" Source="news-zh-3.255.md" Hash="${MD5::}" />
-    <Markdown ID="news-zh-3.253" Source="news-zh-3.253.md" Hash="${MD5::}" />
+    <Markdown ID="news-zh-3.256" Source="news-zh-3.256.md" />
+    <Markdown ID="news-zh-3.255" Source="news-zh-3.255.md" />
+    <Markdown ID="news-zh-3.253" Source="news-zh-3.253.md" />
 </Metadata>

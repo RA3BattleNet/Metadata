@@ -6,29 +6,32 @@ using System.Text.Json;
 namespace Ra3.BattleNet.Metadata.Cache;
 
 /// <summary>
-/// 最后一份校验合法的 XML。正文按**发布文件树**落盘：第一次绑定的主发布基直接映射到缓存目录，
-/// 其余发布基放在可读的 <c>.sources</c> 子树。每个正文旁的 <c>.etag</c> 记录规范化 URI、正文
-/// SHA256 与条件请求校验器。校验器缺失时正文仍可离线读取；路径归属写在一次成型的 <c>.uri</c> 旁挂
-/// 文件里，所以同一磁盘路径上属于**另一个地址**的正文既不会被误读，也不会被覆盖。
+/// 最后一份校验合法的 XML 与图片。正文按**发布文件树**落盘：第一次绑定的主发布基直接映射到缓存目录，
+/// 其余发布基放在可读的 <c>.sources</c> 子树，带查询串的地址放进 <c>.requests</c> 保留区。每个正文旁的
+/// <c>.etag</c> 记录规范化 URI、正文 SHA256、图片响应类型与条件请求校验器。校验器缺失时正文仍可离线读取；
+/// 路径归属写在一次成型的 <c>.uri</c> 旁挂文件里，所以同一磁盘路径上属于**另一个地址**的正文既不会被误读，
+/// 也不会被覆盖。
 /// </summary>
 /// <remarks>
 /// <code>
 /// cacheDir/origin.json                                  一次性绑定主发布基，刷新不会改写
 /// cacheDir/metadata.xml                                 主发布基的根清单
-/// cacheDir/&lt;相对 Source&gt;                             主发布基的叶子（与发布文件树同名）
+/// cacheDir/&lt;相对 Source&gt;                             主发布基的叶子与图片（与发布文件树同名）
 /// cacheDir/.sources/&lt;scheme&gt;/&lt;host_port&gt;/&lt;path&gt;       其他发布基的正文
+/// cacheDir/.requests/&lt;请求键&gt;/body                     带查询串的图片正文（键 = 完整 URI 的 SHA256）
 /// </code>
-/// 同目录还有 <c>.etag</c>（校验器与正文 SHA256）、<c>.uri</c>（一次成型的路径归属地址）和写入中的
-/// <c>.tmp</c>。正文用替换发布，旧正文一直留到替换成功。只接受静态发布文件树：查询串、跳转/空路径段、
+/// 同目录还有 <c>.etag</c>（校验器、正文 SHA256 与图片类型）、<c>.uri</c>（一次成型的路径归属地址）和写入中的
+/// <c>.tmp</c>。正文用替换发布，旧正文一直留到替换成功。只接受静态发布文件树：跳转/空路径段、
 /// 编码的斜杠或反斜杠、Windows 歧义名（保留设备名、结尾空格或点）、旁挂后缀（<c>.etag</c>/<c>.tmp</c>/<c>.uri</c>）、
-/// 带用户信息或非 DNS/IPv4 主机的地址，以及会占用 <c>origin.json</c>、<c>.sources</c> 命名空间的主发布基
-/// 相对路径，都在写入前直接拒绝。主发布基相对路径不会与 <c>.sources</c> 子树交叉，路径身份由
-/// <c>origin.json</c> 绑定加上每个路径的归属地址唯一决定。
+/// 带用户信息或非 DNS/IPv4 主机的地址，以及会占用 <c>origin.json</c>、<c>.sources</c>、<c>.requests</c> 命名空间的
+/// 主发布基相对路径，都在写入前直接拒绝；查询串只对图片地址开放，并且一定落在 <c>.requests</c> 里。
+/// 主发布基相对路径不会与保留子树交叉，路径身份由 <c>origin.json</c> 绑定加上每个路径的归属地址唯一决定。
 /// </remarks>
 internal sealed class MetadataDiskCache
 {
     private const string OriginFileName = "origin.json";
     private const string SourcesDirectoryName = ".sources";
+    private const string RequestsDirectoryName = ".requests";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -79,6 +82,21 @@ internal sealed class MetadataDiskCache
         return canonical;
     }
 
+    /// <summary>
+    /// 图片地址的规范化：与 <see cref="Canonicalize"/> 同一条规则，但**允许查询串**——
+    /// 外链图片合法地带查询参数，查询串参与缓存身份而不是被丢掉。
+    /// </summary>
+    public static Uri CanonicalizeImage(Uri uri)
+    {
+        var canonical = CanonicalizeCore(uri, allowQuery: true);
+        if (Segments(canonical).Count == 0 || EndsWithSeparator(canonical))
+            throw new ArgumentException("地址缺少文件名");
+        return canonical;
+    }
+
+    /// <summary>图片请求键：去掉 fragment 的完整规范化 URI 的 SHA-256，用来隔离带查询串的地址。</summary>
+    public static string RequestKey(Uri canonical) => Sha256Hex(Encoding.UTF8.GetBytes(canonical.AbsoluteUri));
+
     private static bool EndsWithSeparator(Uri canonical)
     {
         if (canonical.IsFile)
@@ -87,7 +105,7 @@ internal sealed class MetadataDiskCache
         return canonical.AbsolutePath.EndsWith('/');
     }
 
-    private static Uri CanonicalizeCore(Uri uri)
+    private static Uri CanonicalizeCore(Uri uri, bool allowQuery = false)
     {
         ArgumentNullException.ThrowIfNull(uri);
         if (!uri.IsAbsoluteUri)
@@ -106,7 +124,7 @@ internal sealed class MetadataDiskCache
             canonical = CanonicalHttp(uri);
         }
 
-        if (!string.IsNullOrEmpty(canonical.Query))
+        if (!allowQuery && !string.IsNullOrEmpty(canonical.Query))
             throw new ArgumentException("缓存只接受静态发布文件地址，不接受查询串");
         _ = Segments(canonical);
         return canonical;
@@ -165,16 +183,38 @@ internal sealed class MetadataDiskCache
 
     public string LeafBodyPath(Uri leaf) => BodyPath(Canonicalize(leaf));
 
+    /// <summary>
+    /// 图片正文路径。相对 Source 图片与 XML 共用发布文件树；带查询串的地址按完整请求 URI 的
+    /// SHA-256 落到保留目录 <c>.requests/&lt;key&gt;/body</c>，不同查询串不会撞到同一份正文。
+    /// </summary>
+    public string ImageBodyPath(Uri image)
+    {
+        var canonical = CanonicalizeImage(image);
+        return string.IsNullOrEmpty(canonical.Query)
+            ? BodyPath(canonical)
+            : Combine([RequestsDirectoryName, RequestKey(canonical), "body"]);
+    }
+
     public DiskBody? TryReadRoot(Uri origin)
     {
         var canonical = Canonicalize(origin);
-        return TryReadBody(BodyPath(canonical), canonical.AbsoluteUri);
+        return TryReadBody(BodyPath(canonical), canonical.AbsoluteUri, requireValidators: true);
     }
 
     public DiskBody? TryReadLeaf(Uri leaf)
     {
         var canonical = Canonicalize(leaf);
-        return TryReadBody(BodyPath(canonical), canonical.AbsoluteUri);
+        return TryReadBody(BodyPath(canonical), canonical.AbsoluteUri, requireValidators: true);
+    }
+
+    /// <summary>
+    /// 读图片正文：只要正文 SHA-256 与旁挂摘要一致即可离线使用，不要求存在条件请求校验器。
+    /// 旁挂缺失或摘要对不上都返回 null，由调用方重新下载。
+    /// </summary>
+    public DiskBody? TryReadImage(Uri image)
+    {
+        var canonical = CanonicalizeImage(image);
+        return TryReadBody(ImageBodyPath(canonical), canonical.AbsoluteUri, requireValidators: false);
     }
 
     public async Task StageAsync(string bodyPath, string canonicalUri, byte[] bytes, CancellationToken ct)
@@ -316,6 +356,8 @@ internal sealed class MetadataDiskCache
             throw new ArgumentException($"相对 Source 不能占用缓存绑定文件 {OriginFileName}");
         if (string.Equals(first, SourcesDirectoryName, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException($"相对 Source 不能占用缓存保留目录 {SourcesDirectoryName}");
+        if (string.Equals(first, RequestsDirectoryName, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException($"相对 Source 不能占用缓存保留目录 {RequestsDirectoryName}");
     }
 
     private string Combine(List<string> segments)
@@ -428,7 +470,7 @@ internal sealed class MetadataDiskCache
         }
     }
 
-    private static DiskBody? TryReadBody(string path, string expectedUri)
+    private static DiskBody? TryReadBody(string path, string expectedUri, bool requireValidators)
     {
         if (!File.Exists(path))
             return null;
@@ -461,10 +503,14 @@ internal sealed class MetadataDiskCache
         if (ownerKnown && !string.Equals(owner, expectedUri, StringComparison.Ordinal))
             return null;
 
-        var verified = stamp is not null
-            && string.Equals(stamp.Sha256, digest, StringComparison.OrdinalIgnoreCase)
-            && (!string.IsNullOrWhiteSpace(stamp.ETag) || !string.IsNullOrWhiteSpace(stamp.LastModified));
-        return new DiskBody(path, bytes, digest, verified ? stamp : null, verified);
+        var integrity = stamp is not null && string.Equals(stamp.Sha256, digest, StringComparison.OrdinalIgnoreCase);
+        var validators = integrity
+            && (!string.IsNullOrWhiteSpace(stamp!.ETag) || !string.IsNullOrWhiteSpace(stamp.LastModified));
+        if (requireValidators)
+            return new DiskBody(path, bytes, digest, validators ? stamp : null, validators);
+
+        // 图片离线优先：摘要对得上就能用，校验器只决定能不能做条件请求。
+        return integrity ? new DiskBody(path, bytes, digest, stamp, validators) : null;
     }
 
     private static CacheStamp? ReadStamp(string path)
@@ -613,6 +659,9 @@ internal sealed class CacheStamp
     public string? LastModified { get; set; }
 
     public string Sha256 { get; set; } = "";
+
+    /// <summary>图片响应类型。XML 正文不写这个字段，缺失时按旧缓存处理。</summary>
+    public string? ContentType { get; set; }
 }
 
 internal sealed record DiskBody(string Path, byte[] Bytes, string Digest, CacheStamp? Stamp, bool Verified);

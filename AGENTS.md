@@ -70,8 +70,8 @@ Metadata/
 <Metadata>
   <!-- 登记你要用到的资源：写文件内部的短 ID 即可，Source 属性指向同目录下的实际文件 -->
   <Image ID="icon-64px" Source="images/icon-64px.png" />
-  <Markdown ID="news-zh-3229" Source="news-zh-3229.md" Hash="${MD5::}" />
-  <Markdown ID="news-en-3229" Source="news-en-3229.md" Hash="${MD5::}" />
+  <Markdown ID="news-zh-3229" Source="news-zh-3229.md" />
+  <Markdown ID="news-en-3229" Source="news-en-3229.md" />
   <Image ID="logo-example" Url="https://example.com/logo.png" />  <!-- 外部图片直链，不会下载保存到本地 -->
 
   <Mod ID="Corona">                              <!-- 实体 ID：在整个仓库里必须是唯一的 -->
@@ -173,7 +173,8 @@ Metadata/
 |---|---|
 | `${TIMESTAMP}` | 当前构建的 UTC 时间戳 |
 | `${ENV:NAME}` | 读取名为 NAME 的环境变量 |
-| `${MD5:}` / `${MD5::}` | 自动计算指定文件的 MD5 哈希（`${MD5::}` 会自动根据当前资源登记节点的 `Source` 文件去算） |
+
+> XML 里只有 Manifest 的 `File@Hash`/`Dependencies/Dll@Hash` 与 UpdateKind 的 `Updater@Hash` 带哈希，都由各自的生成方给出字面值；Image 与 Markdown **不写 Hash**，源 XSD 会直接拒绝。
 
 ## 提交代码前的本地自检
 

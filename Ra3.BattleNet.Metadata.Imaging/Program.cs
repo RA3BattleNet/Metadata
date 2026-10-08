@@ -1,7 +1,7 @@
 namespace Ra3.BattleNet.Metadata.Imaging;
 
 /// <summary>
-/// Imaging CLI：只处理图片，stdout 输出 MD5。不读/改 XML。
+/// Imaging CLI：只处理图片，不读/改 XML，也不回传哈希。
 /// </summary>
 internal static class Program
 {
@@ -42,9 +42,7 @@ internal static class Program
                 return 1;
             }
 
-            var hash = ImageConverter.ConvertToWebP(input, output);
-            // 机器可读：stdout 仅一行 hash，供展平管线解析
-            Console.WriteLine(hash);
+            ImageConverter.ConvertToWebP(input, output);
             return 0;
         }
         catch (Exception ex)
@@ -63,7 +61,7 @@ internal static class Program
               convert --input=in.png --output=out.webp
               convert in.png out.webp
 
-            成功: exit 0，stdout 一行 MD5（小写 hex）
+            成功: exit 0，无输出
             失败: exit != 0，错误在 stderr
 
             由核心 Build --webp 在展平阶段按图调用；不进 Desktop NuGet。

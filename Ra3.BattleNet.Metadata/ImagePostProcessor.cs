@@ -3,7 +3,8 @@ using System.Xml.Linq;
 namespace Ra3.BattleNet.Metadata;
 
 /// <summary>
-/// 展平后：扫描 Image 登记节点，调用 Imaging CLI 转 WebP，由本类改写 XML 的 Source/Hash。
+/// 展平后：扫描 Image 登记节点，调用 Imaging CLI 转 WebP，由本类改写 XML 的 Source。
+/// 图片不写 Hash：只有 Manifest 与 Updater 记录带哈希。
 /// </summary>
 public static class ImagePostProcessor
 {
@@ -51,9 +52,8 @@ public static class ImagePostProcessor
             var webpRel = Path.ChangeExtension(rel, ".webp")!.Replace('\\', '/');
 
             log.WriteLine($"  convert {rel} -> {webpRel}");
-            var hash = ImagingInvoker.ConvertToWebP(abs, webpAbs);
+            ImagingInvoker.ConvertToWebP(abs, webpAbs);
             sourceAttr.Value = webpRel;
-            image.SetAttributeValue("Hash", hash);
             removedSources.Add(abs);
             converted++;
         }
