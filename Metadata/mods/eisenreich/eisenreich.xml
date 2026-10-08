@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Metadata>
+  <Image ID="Eisenreich-icon" Source="images/icon-64px.png"/>
+  <Image ID="Eisenreich-logo" Source="images/banner.png"/>
+  <Image ID="Eisenreich-bg" Source="images/background-1.webp"/>
+  <Mod ID="Eisenreich">
+    <CurrentVersion>3.0</CurrentVersion>
+    <Icon>Eisenreich-icon</Icon>
+    <DisplayName Language="zh-CN">钢铁帝国</DisplayName>
+    <DisplayName Language="en-US">Eisenreich-MW</DisplayName>
+    <Style>
+      <Logo Width="200" Position="BottomLeft" OffsetX="0" OffsetY="3">Eisenreich-logo</Logo>
+      <Controls>
+        <PrimaryLabel>
+          <Color>#F4F4F5</Color>
+          <FontSize>18</FontSize>
+          <FontWeight>700</FontWeight>
+        </PrimaryLabel>
+        <SecondaryLabel>
+          <Color>#A1A1AA</Color>
+          <FontSize>13</FontSize>
+          <FontWeight>400</FontWeight>
+        </SecondaryLabel>
+        <PrimaryButton>
+          <BackgroundColor>#E4E4E7</BackgroundColor>
+          <BorderColor>#E4E4E7</BorderColor>
+          <BorderWidth>1</BorderWidth>
+          <Color>#18181B</Color>
+          <FontSize>15</FontSize>
+          <FontWeight>650</FontWeight>
+          <Hover>
+            <BackgroundColor>#FAFAFA</BackgroundColor>
+          </Hover>
+          <Active>
+            <BackgroundColor>#A1A1AA</BackgroundColor>
+          </Active>
+        </PrimaryButton>
+        <SecondaryButton>
+          <BackgroundColor>#18181BB3</BackgroundColor>
+          <BorderColor>#FFFFFF24</BorderColor>
+          <BorderWidth>1</BorderWidth>
+          <Color>#D4D4D8</Color>
+          <FontSize>14</FontSize>
+          <FontWeight>500</FontWeight>
+          <Hover>
+            <BackgroundColor>#3F3F46</BackgroundColor>
+            <BorderColor>#FFFFFF55</BorderColor>
+          </Hover>
+          <Active>
+            <BackgroundColor>#09090B</BackgroundColor>
+          </Active>
+        </SecondaryButton>
+      </Controls>
+      <Background Random="false">
+        <Image>Eisenreich-bg</Image>
+        <Color>#09090BEC</Color>
+        <SecondaryColor>#18181BDA</SecondaryColor>
+      </Background>
+    </Style>
+    <Posts/>
+  </Mod>
+</Metadata>
