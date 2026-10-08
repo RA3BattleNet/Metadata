@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Metadata CLI · Modder 管理工具实施计划</title>
+<title>Metadata CLI · 面向 Agent 的单模组元数据管理工具与实施计划</title>
 <style>
 :root{--bg:#f5f7fa;--paper:#ffffff;--fg:#243345;--muted:#54667c;--line:#d5dee8;--accent:#2359a0;--mono:"Cascadia Code",Consolas,monospace;--body:"Segoe UI","Microsoft YaHei UI",sans-serif;--title:"Yu Gothic UI","Microsoft YaHei UI",sans-serif;color-scheme:light}
 @media(prefers-color-scheme:dark){:root{--bg:#18222f;--paper:#202e3e;--fg:#edf2f9;--muted:#b2c1d3;--line:#41556b;--accent:#9bc6ff;color-scheme:dark}}
 :root[data-theme="light"]{--bg:#f5f7fa;--paper:#ffffff;--fg:#243345;--muted:#54667c;--line:#d5dee8;--accent:#2359a0;color-scheme:light}
 :root[data-theme="dark"]{--bg:#18222f;--paper:#202e3e;--fg:#edf2f9;--muted:#b2c1d3;--line:#41556b;--accent:#9bc6ff;color-scheme:dark}
-*{box-sizing:border-box}html{scroll-padding-top:24px}body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.8}a{color:var(--accent);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}:focus-visible{outline:3px solid var(--accent);outline-offset:4px}button{font:inherit;color:var(--fg);background:var(--paper);border:1px solid var(--line);padding:6px 12px;cursor:pointer;border-radius:4px}h1,h2,h3{font-family:var(--title);line-height:1.35;text-wrap:balance;margin:0}h1{font-size:32px}h2{font-size:24px}h3{font-size:19px}p,ul,ol,dl,pre{margin:0}p{max-width:65ch}ul,ol{padding-inline-start:1.4em}li+li{margin-top:7px}code{font-family:var(--mono);font-size:.88em;overflow-wrap:anywhere}pre{padding:18px;background:var(--bg);border:1px solid var(--line);line-height:1.6;overflow-x:auto}pre code{overflow-wrap:normal}small,.muted{color:var(--muted)}.shell{max-width:1280px;margin:auto;display:grid;grid-template-columns:225px minmax(0,1fr);gap:38px;padding:36px 32px 60px}.rail{align-self:start;position:sticky;top:28px;display:grid;gap:24px}.rail-title{font-size:19px;font-weight:700}.rail nav{display:grid;gap:8px}.rail nav a{color:var(--muted);text-decoration:none;padding:3px 0}.rail nav a:hover{color:var(--accent)}.rail small{font-size:13px}.document{min-width:0;background:var(--paper);padding:38px 42px;display:grid;gap:40px}.intro{display:grid;gap:16px;padding-bottom:26px;border-bottom:2px solid var(--accent)}.intro .lead{font-size:19px;line-height:1.7}.meta{font-size:13px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}section{display:grid;gap:18px;min-width:0;scroll-margin-top:24px}.stack{display:grid;gap:12px}.note{background:var(--bg);padding:18px 20px;display:grid;gap:10px;border:1px solid var(--line)}.table-wrap{overflow-x:auto;border:1px solid var(--line)}table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.65;text-align:left;font-variant-numeric:tabular-nums}th,td{padding:13px 15px;vertical-align:top;border-bottom:1px solid var(--line);min-width:145px}th{background:var(--bg);font-weight:650}tr:last-child td{border-bottom:0}.commands td:first-child{min-width:220px}caption{text-align:left;padding:12px 15px;font-size:14px;color:var(--muted)}.phase{display:grid;gap:14px;padding-top:22px;border-top:1px solid var(--line)}.phase h3{color:var(--accent)}.phase .fields{display:grid;grid-template-columns:80px minmax(0,1fr);gap:8px 12px;font-size:14px}.fields dt{font-weight:700}.fields dd{margin:0}details{border:1px solid var(--line);padding:14px 18px}summary{cursor:pointer;font-weight:650}details[open]{display:grid;gap:14px}details[open] summary{margin-bottom:14px}.checks{list-style:none;padding:0;display:grid;gap:10px}.checks li{padding-left:25px;position:relative;margin:0}.checks li::before{content:"□";position:absolute;left:0;color:var(--muted)}footer{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:var(--muted);display:grid;gap:8px}.skip{position:fixed;left:12px;top:-100px;background:var(--paper);padding:8px;z-index:10}.skip:focus{top:12px}@media(max-width:920px){.shell{grid-template-columns:1fr;padding:20px;gap:22px}.rail{position:static;gap:14px}.rail nav{grid-template-columns:repeat(3,minmax(0,1fr));font-size:14px}.rail small{display:none}.document{padding:28px;gap:32px}}@media(max-width:520px){.shell{padding:12px;gap:18px}.document{padding:22px 18px}h1{font-size:26px}h2{font-size:22px}.intro .lead{font-size:17px}.rail nav{grid-template-columns:repeat(2,minmax(0,1fr))}.phase .fields{grid-template-columns:1fr;gap:5px}.fields dd+dt{margin-top:8px}th,td{padding:10px;min-width:130px}.meta{gap:8px}.note{padding:14px}body{font-size:15px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}@media print{.rail,.skip{display:none}.shell{display:block;padding:0}.document{padding:0;background:none}body{background:none}section,.phase{break-inside:avoid}details{display:block}a{color:inherit}}
+*{box-sizing:border-box}html{scroll-padding-top:24px}body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.8}a{color:var(--accent);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}:focus-visible{outline:3px solid var(--accent);outline-offset:4px}button{font:inherit;color:var(--fg);background:var(--paper);border:1px solid var(--line);padding:6px 12px;cursor:pointer;border-radius:4px}h1,h2,h3{font-family:var(--title);line-height:1.35;text-wrap:balance;margin:0}h1{font-size:32px}h2{font-size:24px}h3{font-size:19px}p,ul,ol,dl,pre{margin:0}p{max-width:68ch}ul,ol{padding-inline-start:1.4em}li+li{margin-top:7px}code{font-family:var(--mono);font-size:.88em;overflow-wrap:anywhere}pre{padding:18px;background:var(--bg);border:1px solid var(--line);line-height:1.6;overflow-x:auto}pre code{overflow-wrap:normal}small,.muted{color:var(--muted)}.shell{max-width:1280px;margin:auto;display:grid;grid-template-columns:225px minmax(0,1fr);gap:38px;padding:36px 32px 60px}.rail{align-self:start;position:sticky;top:28px;display:grid;gap:24px}.rail-title{font-size:19px;font-weight:700}.rail nav{display:grid;gap:8px}.rail nav a{color:var(--muted);text-decoration:none;padding:3px 0}.rail nav a:hover{color:var(--accent)}.rail small{font-size:13px}.document{min-width:0;background:var(--paper);padding:38px 42px;display:grid;gap:40px}.intro{display:grid;gap:16px;padding-bottom:26px;border-bottom:2px solid var(--accent)}.intro .lead{font-size:19px;line-height:1.7}.meta{font-size:13px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}section{display:grid;gap:18px;min-width:0;scroll-margin-top:24px}.stack{display:grid;gap:12px}.note{background:var(--bg);padding:18px 20px;display:grid;gap:10px;border:1px solid var(--line)}.table-wrap{overflow-x:auto;border:1px solid var(--line)}table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.65;text-align:left;font-variant-numeric:tabular-nums}th,td{padding:13px 15px;vertical-align:top;border-bottom:1px solid var(--line);min-width:145px}th{background:var(--bg);font-weight:650}tr:last-child td{border-bottom:0}.commands td:first-child{min-width:230px}caption{text-align:left;padding:12px 15px;font-size:14px;color:var(--muted)}.phase{display:grid;gap:14px;padding-top:22px;border-top:1px solid var(--line)}.phase h3{color:var(--accent)}.phase .fields{display:grid;grid-template-columns:80px minmax(0,1fr);gap:8px 12px;font-size:14px}.fields dt{font-weight:700}.fields dd{margin:0}details{border:1px solid var(--line);padding:14px 18px}summary{cursor:pointer;font-weight:650}details[open]{display:grid;gap:14px}details[open] summary{margin-bottom:14px}.checks{list-style:none;padding:0;display:grid;gap:10px}.checks li{padding-left:25px;position:relative;margin:0}.checks li::before{content:"□";position:absolute;left:0;color:var(--muted)}footer{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:var(--muted);display:grid;gap:8px}.skip{position:fixed;left:12px;top:-100px;background:var(--paper);padding:8px;z-index:10}.skip:focus{top:12px}@media(max-width:920px){.shell{grid-template-columns:1fr;padding:20px;gap:22px}.rail{position:static;gap:14px}.rail nav{grid-template-columns:repeat(3,minmax(0,1fr));font-size:14px}.rail small{display:none}.document{padding:28px;gap:32px}}@media(max-width:520px){.shell{padding:12px;gap:18px}.document{padding:22px 18px}h1{font-size:26px}h2{font-size:22px}.intro .lead{font-size:17px}.rail nav{grid-template-columns:repeat(2,minmax(0,1fr))}.phase .fields{grid-template-columns:1fr;gap:5px}.fields dd+dt{margin-top:8px}th,td{padding:10px;min-width:130px}.meta{gap:8px}.note{padding:14px}body{font-size:15px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}@media print{.rail,.skip{display:none}.shell{display:block;padding:0}.document{padding:0;background:none}body{background:none}section,.phase{break-inside:avoid}details{display:block}a{color:inherit}}
 </style>
 </head>
 <body>
@@ -19,7 +19,19 @@
 <aside class="rail" aria-label="文档导航">
 <div class="rail-title">Metadata CLI</div>
 <nav aria-label="计划目录">
-<a href="#scope">要做与不做</a><a href="#evidence">现有代码分析</a><a href="#model">介绍与文件规则</a><a href="#commands">建议增加的命令</a><a href="#studio">内置 Web 页面</a><a href="#phases">分步开发计划</a><a href="#skill">配套 skill 规则</a><a href="#checks">测试验收用例</a><a href="#risks">问题讨论与风险</a><a href="#references">参考文件来源</a>
+<a href="#scope">要做与明确不做</a>
+<a href="#evidence">现有代码分析</a>
+<a href="#bootstrap">A. Skill 首次启动与获取</a>
+<a href="#model">数据模型与 XML 规范</a>
+<a href="#commands">B. Agent 写入 CLI 契约</a>
+<a href="#wizard">C. 单模组创建引导</a>
+<a href="#studio">D. 单模组本地 Studio</a>
+<a href="#palette">E. 取色与大模型配色</a>
+<a href="#phases">分步开发计划</a>
+<a href="#skill">F. Skill 工作流与修订</a>
+<a href="#checks">测试验收用例</a>
+<a href="#risks">问题讨论与风险</a>
+<a href="#references">参考文件来源</a>
 </nav>
 <div><button id="theme" type="button" aria-label="切换明暗主题">切换主题</button></div>
 <small>这是开发计划，不是写好的功能说明。<br>当前只写这一份计划文件，不改 CLI 代码，不改元数据，不改 Desktop 客户端。</small>
@@ -27,50 +39,87 @@
 <main id="main" class="document">
 <header class="intro">
 <div class="meta"><span>2026-10-08</span><span>调研代码基线：Metadata <code>1307b48</code></span><span>工作目录与分支：<code>cli</code></span></div>
-<h1>让 agent 通过 CLI 和网页管理模组元数据</h1>
-<p class="lead">给现有的 Metadata CLI 增加一套新功能：创建模组目录、导入真实清单登记新版本、修改战网界面的按钮与背景样式、编写 Markdown 模组介绍、在本地网页里实时预览、以及创建 GitHub PR；同时编写配套的 agent skill，指导 AI 代理按顺序调用这些命令。</p>
-<p>这些功能主要给 Modder 跑的 agent 使用，Modder 本人也可以手动使用。agent 运行 CLI 命令来读写文件并校验格式，用户也可以打开本地网页在界面上修改样式并查看预览。命令行和网页走同一套 C# 代码修改 XML 源文件，不写两套逻辑。Modder 如果不用 agent，也能在终端敲命令直接启动网页。</p>
+<h1>让 Agent 通过 Skill 与单模组 CLI / Studio 管理元数据</h1>
+<p class="lead">将设计重点调整为：以 Agent 为主要写入者、以 Skill 为操作载体、以单模组（Single-Mod）为核心对象的元数据工具链。作者无需自己手写或拼装 CLI 命令，只需向其 AI Agent 输入一句话启动提示，Agent 即可自动通过源码编译或 Release 离线包准备 CLI 与 Skill，执行模组创建向导、导入真实清单登记新版本、提取图片候选色板或通过大模型生成配色、维护 Markdown 独立介绍，并在绑定的本地单模组 Web Studio 中完成可视化预览与审查；经作者明确授权后方可发起 GitHub PR。</p>
+<p>整个方案保持清晰边界：CLI 主要服务 Agent 写数据和生成 XML，底层 C# 编辑服务同时支撑 CLI 与 Studio，不写两套改写逻辑；删除旧计划中的全局 <code>mod list</code> 命令及列表选择器，启动与引导完全面向单一指定模组；只负责元数据与真实 Manifest 登记，不打包 zip、不计算安装包哈希、不碰新闻 Posts、不碰 DLL 注入；先完成 Metadata 侧，Desktop 客户端后续独立接入渲染，不依赖 Desktop 源码编译。</p>
 </header>
 <section id="scope">
 <h2>本次要做与明确不做的事情</h2>
 <ul>
-<li><strong>只改 Metadata 仓库，不改 Desktop 客户端。</strong>这一轮只写计划并提交到分支；后面编写代码时也只在 Metadata 仓库实现，不把修改 Desktop 代码当成前置条件。架构上先做好 Metadata，Desktop 客户端后续再独立接入。</li>
-<li><strong>内置本地 Web 可视化页面。</strong>agent 是主要入口，同时工具在本地运行 Web 界面，不只是输出截图或在浏览器打开静态 XML；页面支持填写表单修改配置、编写 Markdown 介绍、挑选本地图片、查看实时渲染、比对改动差异并保存回文件。</li>
-<li><strong>模组介绍用 Markdown 编写且不借用新闻。</strong>介绍属于模组自己的独立说明，不借用新闻的 <code>Post.Descriptions</code> 或 <code>Posts</code> 节点；Desktop 客户端后续单独增加渲染 Markdown 介绍的代码。</li>
-<li><strong>更新模组只负责导入真实清单并登记版本号。</strong>更新时导入真实 Manifest 而不负责生成或上传，不计算安装文件的哈希值，不打包 zip，不上传文件到服务器，也不替代原本的 Updater 程序。</li>
-<li><strong>新闻与 DLL 注入相关功能彻底排除。</strong>完全不新增新闻管理功能，也不新增 DLL 注入配置；文件里现有的 Posts、Dependencies 以及其他未编辑节点全部原样保留，工具不提供新闻编辑页面、命令或注入选项。</li>
-<li><strong>提交 PR 之前必须展示改动差异并取得明确授权。</strong>向 GitHub 创建 PR 前必须向用户展示改动文件和差异文本，获得明确授权后才发起，不自动点击合并，不绕过人工审核；当前这一轮只推送计划分支，不自动创建计划 PR。</li>
+<li><strong>CLI 主要服务 Agent 写数据与生成 XML，作者依托 Skill 驱动。</strong>作者不需要自己编写 CLI 工具，也不需要记忆复杂参数。作者既可以把仓库拉到本地，也可以仅向其 Agent 发送一段标准启动提示；Agent 会自动拉取仓库编译 CLI，或者从 GitHub Release 下载预编译的自包含 CLI 与配套 Skill 运行。</li>
+<li><strong>启动与操作完全面向单模组，删除 <code>mod list</code>。</strong>旧计划里的全量模组列表命令（<code>mod list</code>）和 Studio 里的模组下拉切换列表全部删除。所有读写、向导与 Studio 启动均必须显式绑定目标模组（如 <code>--mod &lt;id&gt;</code>），避免无意义的全仓库大文本扫描，直接针对指定模组调整数据。</li>
+<li><strong>创建模组具备单模组格式化引导与编辑模式分流。</strong>针对指定模组执行时，若该模组已存在则直接进入单模组查看与编辑；若不存在则自动进入单模组创建向导。向导按步骤收集基础名、中英双语显示名、可选版本清单、独立介绍与样式，未全部确认前不写入磁盘 XML，不编造假哈希或假新闻。</li>
+<li><strong>内置单模组本地 Web Studio 与非像素级一致声明。</strong>Studio 启动直接绑定当前模组，提供表单编辑、实时构建预览、三态按钮切换与草稿对比。Agent 与 Web 表单共用同一套 C# Authoring 写入服务。明确声明此处为参考渲染，由于宿主和游戏控件物理差异，不保证与 Desktop 客户端 100% 像素级一致。</li>
+<li><strong>本地图片确定性取色与大模型一句话配色。</strong>本地图片取色由 CLI/本地工具通过确定性算法计算（基于固定采样网格、固定种子和透明像素过滤，并在合成背景检查点测量对比度），用户确认后应用；一句话生成配色由用户现有的外部 Agent/模型输出结构化 JSON，CLI 内部不内置任何 LLM 账户、Token 或网络推理，模型输出必须经过相同的强类型 Schema 验证方可进入预览。</li>
+<li><strong>模组介绍独立 Markdown，不借用新闻与 DLL 注入。</strong>在 Mod 下新增独立的 <code>Introductions</code> 字段，不借用新闻的 <code>Posts</code> 或 <code>Descriptions</code>；完全不提供新闻管理功能，不提供 DLL 注入配置；文件里现有的 Posts、Dependencies 等未编辑节点全部原样保留。</li>
+<li><strong>更新模组仅导入真实清单，不伪造或生成。</strong>更新版本时必须由外部打包工具提供真实 Manifest 叶子文件，工具仅负责导入并挂载进 <code>manifests.xml</code> 与 <code>Mod.xml</code>，不计算安装文件的哈希值，不打包 zip，不上传文件到服务器，不替代原本的 Updater。</li>
+<li><strong>提交 PR 必须展示差异并取得用户明确授权。</strong>在向 GitHub 发起 PR 之前，必须在终端或 Web 界面向用户清晰展示涉及的改动文件与 unified diff 差异文本，必须经由用户单独明确批准后才执行提交、推送与开 PR，不静默操作，不自动合并。</li>
 </ul>
-<div class="note"><strong>已定规则与待定建议的界限</strong><p>上面列出的范围来自用户确认的规则。后文提到的子命令名称、XML 里的 <code>Introductions</code> 字段名、工程拆分和打包发布方式都是拟定方案，工具还没有实现，它们不是现有的 API。计划里没有编造工期、排期、完成百分比或虚拟负责人。</p></div>
+<div class="note"><strong>已定规则与待定建议的界限</strong><p>上述规则为本轮设计的核心边界。后文涉及的子命令参数签名、XSD 扩展细节、色彩聚类阈值与内部服务接口均为拟定实施方案，当前尚未写进代码库，它们不是已有的 API。本计划不包含任何编造的交付进度、虚拟工期或虚构的责任人。</p></div>
 </section>
 <section id="evidence">
 <h2>现有代码分析与可复用逻辑</h2>
 <div class="table-wrap"><table><thead><tr><th scope="col">查看的代码位置</th><th scope="col">查到的实际代码逻辑</th><th scope="col">写新代码时必须遵守的限制</th></tr></thead><tbody>
-<tr><td><code>Ra3.BattleNet.Metadata/Program.cs:8–36, 78–91</code></td><td>现有的入口默认只执行 build 操作；参数循环只识别少数几个固定选项，其他输入全被直接忽略。我们在终端实际运行了 <code>dotnet run --project Ra3.BattleNet.Metadata -- --help</code>，打印结果仅包含两种 build 用法。</td><td>新增子命令前必须先重写命令行分发与参数校验逻辑，只要用户输入了未知命令或错误参数，必须立即报错退出，绝不能意外执行 build。</td></tr>
-<tr><td><code>MetadataBuilder.cs:36–108</code></td><td>代码里已经包含了完整的构建逻辑：源 XSD 校验、Manifest 格式检查、XML 展平合并、属性继承、复制图片资源、发布 XSD 校验以及引用关系检查；但构建开始时会递归清空删除输出目录 dst。</td><td>验证数据与改动试算时直接复用 Build 方法。但因为会清空输出目录，工具只能使用自建的临时目录，绝不能把仓库根目录或源码目录当作输出目标 dst。</td></tr>
-<tr><td><code>MetadataSchema.xsd:96–108, 300–314</code></td><td>现在的 Mod 标签下没有介绍字段；Descriptions 字段只属于新闻 Post 标签。不过顶层已经支持了 <code>Markdown</code> 这种资源的登记标签。</td><td>新增模组介绍必须同步修改源 XSD 与发布 XSD。展平合并 XML 时需要支持短 ID 改写，并在校验阶段严格核对引用的资源是否为 Markdown 类型。</td></tr>
-<tr><td><code>MetadataFlattener.cs:95–103, 317–333</code>；<code>MetadataInheritance.cs:12–18</code></td><td>代码里写死了哪些标签属于引用，以及子节点合并时的排列顺序表；当前会识别 Content、Icon、Logo 等资源引用。</td><td>新增 Introduction 不能只改 XSD：必须在 C# 代码里同步增加引用改写规则、节点排序规则，以及模组介绍不被子模组继承的规则。</td></tr>
-<tr><td><code>Metadata/Templates/Mod.xml</code>；<code>Metadata/mods/mods.xml</code></td><td>仓库里有现成的模板文件和 Include 索引结构；但模板里依然残留着占位清单、注释里的示例新闻与演示样式。</td><td>新建模组必须沿用这套多层目录结构，但绝不能照搬占位哈希、注释示例新闻或假资源。创建命令必须要求用户输入真实的模组名称与真实资源文件。</td></tr>
-<tr><td><code>package.json:5–12</code></td><td>现有的 preview 和 dev 脚本只是用 Cloudflare Wrangler 启动本地静态服务器来展示 Output 目录内容；里面没有任何可以修改样式的网页界面。</td><td>内置 Web Studio 是全新开发的功能，不能把现有的静态文件服务器当成可视化编辑与预览工具。</td></tr>
-<tr><td>旧 <code>mod-style-Studio.html:724–777, 811–812</code></td><td>旧工具里已经做出了控件与布局表单、XML 查看、图片绑定和按钮三态展示；但它不会解析多层 Include，改动后不写回磁盘文件，界面主题也是写死的一套样式。</td><td>我们可以借鉴它的界面交互设计，但绝不复制里面混淆压缩的第三方库或演示新闻。多层文件解析和格式校验必须由后端 C# 代码来做。</td></tr>
-<tr><td>Desktop 的 <code>BattleShadcn/src/host/mod-style.ts:13–47</code>、<code>browser-preview.ts</code>、<code>RecentModPage.vue</code></td><td>客户端代码里有把样式字段转成 CSS 的映射逻辑；但在普通浏览器里调用 GetModList 只会返回空数组，而且客户端里还没有模组介绍的展示规范。</td><td>我们可以借鉴它的字段定义和状态规则，但工具不能依赖 Desktop 的构建工程；这里看到的效果不保证与客户端完全一样，不能声称显示完全相同。</td></tr>
+<tr><td><code>Ra3.BattleNet.Metadata/Program.cs:8–36, 78–91</code></td><td>入口仅识别 <code>build</code> 命令和少数几个参数（<code>--src</code>、<code>--dst</code>、<code>--schema-version</code>、<code>--content-revision</code>、<code>--webp</code>），其他参数循环遍历后直接被忽略。运行 <code>dotnet run --project Ra3.BattleNet.Metadata -- --help</code> 仅打印两种 build 用法。</td><td>新增子命令前必须重写命令行参数分发，只要输入未知命令或参数错误必须立即报错退出（返回退出码 2），不能意外滑入 <code>build</code> 命令覆盖输出目录。</td></tr>
+<tr><td><code>MetadataBuilder.cs:36–108</code></td><td>构建逻辑包含完整流程：源 XSD 校验、Manifest 格式校验、XML 展平合并、属性继承、复制图片与叶子清单、发布 XSD 校验、以及在 <code>ValidateHard</code> 中做引用与短 ID 检查；但在开始构建时会递归清空删除输出目录 <code>dst</code>。</td><td>做数据验证与改动试算时直接复用现有的 <code>Build</code> 方法。但由于它会清空 <code>dst</code>，工具试算必须使用每次请求唯一的临时目录（如 <code>Temp/preview-{guid}/</code>），绝不能将用户工作目录或源码目录当作输出目标。</td></tr>
+<tr><td><code>MetadataSchema.xsd:96–108, 300–314</code></td><td>Mod 元素下目前只有 <code>CurrentVersion</code>、<code>Icon</code>、<code>DisplayName</code>、<code>Style</code>、<code>Packages</code>、<code>Posts</code>；没有模组自身的介绍字段。Descriptions 仅存在于新闻 Post 中。顶层已具备 <code>Markdown</code> 资源登记定义。</td><td>新增模组介绍必须同步修改 <code>MetadataSchema.xsd</code> 与 <code>MetadataPublishSchema.xsd</code>。展平合并时需支持短 ID 改写，并在校验阶段严格核对引用的短 ID 必须为 Markdown 类型。</td></tr>
+<tr><td><code>MetadataFlattener.cs:95–103, 317–333</code>；<code>MetadataInheritance.cs:12–18</code></td><td><code>IsTextReference</code> 写死了哪些标签属于短名文本引用；<code>MetadataInheritance.ModChildOrder</code> 硬编码了合并时子节点的排列顺序数组 <code>["CurrentVersion", "Icon", "DisplayName", "Style", "Packages", "Posts"]</code>。</td><td>新增 <code>Introduction</code> 必须同步加入 <code>IsTextReference</code> 列表；必须将 <code>Introductions</code> 插入 <code>ModChildOrder</code> 的 <code>DisplayName</code> 与 <code>Style</code> 之间，并在合并时保证只取当前 Mod 自己的介绍，不从 Base 继承。</td></tr>
+<tr><td><code>MetadataColor.cs:4–41</code></td><td>定义了 <code>ToCss(value, format)</code> 与 <code>Validate(value, format)</code>。仅支持 7 位 <code>#RRGGBB</code>、9 位 <code>#RRGGBBAA</code>（Format 缺省或 CSS）以及 9 位 <code>#AARRGGBB</code>（Format="ARGB"），拒绝任何其他长度或格式。</td><td>工具中的所有颜色生成（无论是本地图片取色还是大模型生成）必须严格契合该规则，8 位十六进制带有 Alpha 通道时必须明确标明 Format="ARGB" 且 Alpha 位于前两位（如 <code>#CC121216</code>）；若 Alpha 位于末尾则属于 CSS 格式（如 <code>#121216CC</code>），不能混淆。</td></tr>
+<tr><td><code>Metadata/Templates/Mod.xml</code>；<code>Metadata/mods/mods.xml</code></td><td>仓库有标准的 Include 结构，<code>mods.xml</code> 挂载各子模组（如 <code>armor-rush/armor-rush.xml</code>）。但 <code>Templates/Mod.xml</code> 仍残留着 <code>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</code> 占位哈希、注释里的示例新闻与演示配置。</td><td>单模组创建向导必须沿用现有多层 Include 目录模式，但不能照抄模板里的占位哈希或虚构新闻。若无真实版本，Packages 留空；无新闻则生成 <code>&lt;Posts /&gt;</code> 空容器。</td></tr>
+<tr><td><code>package.json:5–12</code>；<code>build.sh:23–34</code></td><td>现有的构建脚本通过 <code>dotnet-install.sh</code> 安装本地 .NET 10 并执行构建；package.json 中的 preview 脚本仅用 Cloudflare Wrangler 启动本地静态服务器托管 Output 目录，里面没有任何修改样式的可视化界面。</td><td>内置 Web Studio 是全新的轻量级宿主服务，不能把现有的静态文件服务器当成可视化工具；构建脚本证实了仓库基线要求 .NET 10.0 SDK。</td></tr>
+<tr><td>旧 <code>mod-style-Studio.html:724–777, 811–812</code></td><td>旧版工具实现了样式表单、ARGB 转换、图片绑定和按钮三态交互；但它是一个单文件纯前端页面，不会解析多层 Include，改动后不写回磁盘，代码包含混淆压缩的第三方依赖。</td><td>借鉴其直观的表单与三态切换交互，但底层文件解析、多层 Include 处理、Schema 校验与文件保存必须由后端托管 C# 代码完成，不复制其混淆代码。</td></tr>
+<tr><td>Desktop <code>mod-style.ts:13–47</code>、<code>contracts.ts:30–63</code></td><td>客户端代码定义了 <code>buttonVars</code>（按钮 base/hover/active 样式映射）和 <code>logoStyle</code>（九宫格对齐与偏移算法）；但在非客户端普通浏览器里调用 <code>GetModList</code> 返回空数组，且 Desktop 尚未实现模组介绍的渲染。</td><td>借鉴其 CSS 变量命名与 Logo 布局计算逻辑，确保 Studio 渲染语义基线一致；但明确 Studio 仅为参考渲染，不能依赖 Desktop 的构建工程，且明确声明两端不保证像素级一致。</td></tr>
 </tbody></table></div>
 <h3>历史 Git 提交给出的设计边界</h3>
 <ul>
-<li><code>6aac133</code> 提交记录：给装甲冲击模组配置样式与七张图片时，只改动了模组自己的 XML 文件与图片目录；随后的 <code>3357456</code> 提交微调了横幅偏移。这说明样式要能单独修改，改完后要能立刻在屏幕上看到布局挪动了多少。</li>
-<li><code>bde5afd</code> 与 <code>db034e6</code> 提交记录：模组显示名必须支持中英双语，且语言标签必须规范；新增模组命令必须同时要求提供 <code>zh-CN</code> 与 <code>en-US</code> 两种语言的名字。</li>
-<li><code>289f38f</code> 提交记录：仓库已经改成了不再为图片和 Markdown 资源计算、读取或校验哈希。新工具绝对不能走回头路去给图片算哈希；Manifest 清单里的安装包哈希继续由外部打包程序提供。</li>
-<li><code>Metadata/mods/armor-rush/manifests/manifests.xml</code> 与 <code>3.370.xml</code> 文件组织：采用一个索引文件挂载多个独立叶子清单的结构，新工具导入新版本时必须严格照着这个模式写。</li>
+<li><code>6aac133</code> 与 <code>3357456</code> 提交记录：装甲冲击（ArmorRush）配置样式与横幅时，仅改动了模组自己的 XML 文件与图片目录。这证明样式必须支持针对单个模组独立调整，无需遍历全仓库。</li>
+<li><code>bde5afd</code> 与 <code>db034e6</code> 提交记录：模组显示名必须提供 <code>zh-CN</code> 与 <code>en-US</code> 双语，且语言标签严格规范。创建向导必须要求录入这两种语言的名字。</li>
+<li><code>289f38f</code> 提交记录：明确不再为图片与 Markdown 资源计算哈希。新工具不能为本地图片或介绍文章生成哈希；Manifest 清单中的安装包文件哈希必须由外部打包程序提供。</li>
+<li><code>Metadata/mods/armor-rush/manifests/manifests.xml</code> 与 <code>3.370.xml</code> 结构：采用主清单索引包含独立叶子清单文件的树状结构，新工具导入新版本时必须遵循这一组织模式。</li>
+</ul>
+</section>
+<section id="bootstrap">
+<h2>A. Skill 优先的首次启动与工具获取路径</h2>
+<p class="lead">工具链的顶层交互定位调整为：Modder 作者无需亲自安装一套复杂的全局开发环境或编写 CLI 脚本，主要操作由其所使用的 AI Agent 在 Skill 的指导下自动化完成。作者只需向 Agent 发送一句简短的启动提示，Agent 即可按规范准备好工具并展开单模组维护。</p>
+<h3>1. 一句话启动提示词规范（Bootstrap Prompt）</h3>
+<p>为 Modder 作者提供标准的可复用提示词模版。作者将以下提示直接粘贴给其 AI Agent（如 Claude、GPT、DeepSeek 等）即可启动任务：</p>
+<pre><code>"请帮我维护红警3战网模组元数据。目标仓库为当前目录（或指定路径），目标模组为 [ModID]。
+请优先检查本地是否已有可用工具；若无，请通过源码目录编译 CLI，或从 GitHub Release 下载自包含包及配套 metadata-modder skill。
+请严格遵循单模组规范：若模组不存在请引导我创建，若存在请载入编辑；支持从图片提取色板或由你按我的描述生成符合规范的配色方案；
+在执行任何保存到磁盘或 GitHub PR 之前，必须向我展示差异对比并获得明确授权。"</code></pre>
+<h3>2. 仓库源码编译与 Release 已打包产物两条获取路径</h3>
+<div class="table-wrap"><table><thead><tr><th scope="col">获取路径</th><th scope="col">适用场景与获取方式</th><th scope="col">系统前置条件与依赖要求</th><th scope="col">版本与来源完整性校验</th></tr></thead><tbody>
+<tr><td><strong>路径一：仓库源码编译</strong></td><td>开发者环境，或作者已将 <code>RA3BattleNet/Metadata</code> 仓库克隆到本地。Agent 在仓库内执行：<br><code>dotnet build Metadata.sln -c Release</code><br>编译核心 CLI 与测试。若需要完整编译 Studio 宿主，调用对应的前端构建脚本生成静态资产。</td><td><strong>编译核心 CLI 仅需 .NET 10.0 SDK 和 Git</strong>（与仓库 <code>build.sh</code> 一致），无需 Node.js；<strong>若需从源码完整编译内置 Web 前端资源的 Studio 宿主，则需要 Node.js/npm</strong> 执行前端打包。</td><td>校验 Git Remote Origin 是否指向合法的上游或 Fork 仓库；检查当前 Commit 哈希并记录至日志，确保基于受控基线构建。</td></tr>
+<tr><td><strong>路径二：Release 已打包产物</strong></td><td>普通 Modder 环境，或系统未安装 .NET SDK 的轻量级机器。Agent 自动从 GitHub 官方 Release 资产中下载已编译好的自包含压缩包（如 <code>ra3-metadata-win-x64.zip</code>）并解压到专用工作目录。</td><td><strong>完全无需安装 .NET SDK，也无需安装 npm/Node.js</strong>。前端静态资源已在发布时预先打包内嵌进 Studio 二进制中；仅需受支持的 64 位操作系统（Windows 10/11 x64 自包含包已内置 CoreCLR 运行时）。</td><td>下载时核对 Release 页面公布的 <strong>SHA-256 Checksum 校验和</strong>；核验 Tag 版本与元数据 <code>SchemaVersion</code> 的兼容绑定，防止损坏或恶意篡改。</td></tr>
+</tbody></table></div>
+<h3>3. 离线已有产物支持与就地复用机制</h3>
+<p>在发起任何网络请求或执行编译之前，Agent 必须首先按以下顺序探测本地可用环境：</p>
+<ol>
+<li>检查环境变量 <code>RA3_METADATA_CLI</code> 或工作目录同级是否存在已有的 <code>ra3-metadata.exe</code> / <code>ra3-metadata</code>；</li>
+<li>检查当前仓库构建输出目录（如 <code>Ra3.BattleNet.Metadata/bin/Release/net10.0/</code>）中是否存在已编译产物；</li>
+<li>检查本地工具缓存目录（如用户临时文件夹或 Agent 缓存区）中是否存在解压完毕的 Release 归档。</li>
+</ol>
+<p>只要命中上述任一有效且版本匹配的产物，<strong>直接就地运行，不强行联网检查更新，不重复下载，确保离线开发环境正常可用</strong>。</p>
+<h3>4. 失败时明确报缺失，不伪装成功</h3>
+<ul>
+<li>若探测到缺少 .NET 10.0 SDK，且无法从 Release 下载预编译包，CLI/Skill 必须立即终止并输出明确错误诊断：<code>"MissingPrerequisite: .NET 10.0 SDK is required for source compilation, but 'dotnet' was not found in PATH."</code>，并附带官方 SDK 下载指引与 Release 下载链接。</li>
+<li>若网络超时、Git 无法克隆、或 Release 包哈希校验不匹配，必须原样向上抛出具体异常，<strong>禁止捕获异常后吞掉错误（exit 0）、禁止通过伪造 Mock 数据或返回假路径假装工具已就绪</strong>。</li>
+</ul>
+<h3>5. 环境安全与凭据保护边界</h3>
+<ul>
+<li><strong>不修改全局 PATH 或系统配置：</strong>工具和 Skill 的执行仅限定在当前工作会话或局部项目目录内，不得将自身路径写入 Windows 机器级注册表、不得篡改操作系统的全局环境变量 <code>PATH</code>、不得安装全局后台服务。</li>
+<li><strong>确保不泄露凭据：</strong>标准输出、标准错误和日志文件中，不得打印任何 GitHub Personal Access Token、SSH 私钥、本地敏感环境变量（如 <code>.env</code>）或携带账号密码的 Git Remote 链接。所有敏感认证均复用本地系统既有的 Git / <code>gh</code> 凭据助手。</li>
+<li><strong>Skill 防御提示词注入（Prompt Injection）：</strong>Skill 在读取仓库内的 Markdown 介绍、外部 XML、清单文件或 Issue/PR 内容时，必须将其视为<strong>不可信的受保护纯数据</strong>。Skill 禁止解析并执行其中出现的任何 Shell 指令、命令行脚本或代码片段，防止针对 AI Agent 的任意指令执行攻击。</li>
 </ul>
 </section>
 <section id="model">
-<h2>数据模型：介绍独立存放，源 XML 文件是唯一写入目标</h2>
-<div class="table-wrap"><table><thead><tr><th scope="col">名词</th><th scope="col">在本工具中的具体操作与定义</th></tr></thead><tbody>
-<tr><td>模组</td><td>在全仓库具有唯一 ID 的 Mod 实体，包含显示名、界面样式、安装包和自己独有的介绍。</td></tr>
-<tr><td>版本更新</td><td>导入外部生成好的真实清单并登记版本号，可同时设为 CurrentVersion；不是下载、安装或向服务器发布安装包。</td></tr>
-<tr><td>模组介绍</td><td>按语言登记的独立 Markdown 说明文，用来介绍模组玩法或特色；不是新闻摘要，也不是更新日志。</td></tr>
-<tr><td>预览</td><td>在临时目录跑 C# 的 Build 逻辑，将计算后的样式、图片和介绍渲染在网页上；用户手填的值与继承来的值分开标明。</td></tr>
-<tr><td>保存 / 提交</td><td>保存只会修改本地磁盘上的 XML 和资源文件；向 Git 提交改动、推送到远程以及创建 PR 必须由用户明确授权后才会执行。</td></tr>
+<h2>数据模型与 XML 规范：介绍独立存放，源 XML 是唯一写入目标</h2>
+<div class="table-wrap"><table><thead><tr><th scope="col">核心概念</th><th scope="col">在本工具中的具体定义与落地行为</th></tr></thead><tbody>
+<tr><td><strong>模组实体（Mod）</strong></td><td>在全仓库具有唯一 ID 的 Mod 标签，包含中英显示名、界面样式、安装包清单挂载和自己独有的 Markdown 介绍。</td></tr>
+<tr><td><strong>版本更新（Update）</strong></td><td>导入外部生成好的真实清单并登记版本号，可同时设为 CurrentVersion；不负责下载、安装或打包 zip。</td></tr>
+<tr><td><strong>模组介绍（Intro）</strong></td><td>按语言登记的独立 Markdown 说明文，用来介绍模组玩法或特色；<strong>不是新闻摘要，不借用 Posts 节点</strong>。</td></tr>
+<tr><td><strong>预览（Preview）</strong></td><td>在临时隔离目录运行 C# Build 逻辑，将计算后的样式、图片和介绍渲染在网页上；用户手填值与继承值明确分离。</td></tr>
+<tr><td><strong>保存 / PR</strong></td><td>保存仅改写本地磁盘上的源 XML；向 Git 提交、推送到远程和创建 PR 必须由用户明确授权后才会执行。</td></tr>
 </tbody></table></div>
 <h3>建议为介绍字段制定的格式规则</h3>
 <p>在 Mod 标签下新增可选的 <code>Introductions</code>，位置固定在 DisplayName 之后、Style 之前；容器标签一旦出现就必须包含至少一项。<code>Introduction@Language</code> 必须填写完整的语言标签，文本引用已登记的 Markdown 短 ID。介绍只属于模组自己，不从 Base 继承，也不给 Application 增加介绍功能。</p>
@@ -99,132 +148,354 @@
 <h3>源文件写入的具体操作规则</h3>
 <ul>
 <li>工具顺着 XML 的实际 Include 引用链定位模组文件和资源声明文件，保留每一项配置的来源文件映射；不能直接修改展平合并后的 XML 再反向覆盖源文件。模组 ID 与文件夹名称不一定完全相同，代码不能做等同假设。</li>
-<li>把用户自己填的值、从父模板继承来的有效值与网页默认外观彻底分开；如果用户把输入框删空，工具就从 XML 里删掉对应的标签，不删除公共 Base 模板，也不把预览页面的默认外观写进 XML。如果用户修改了从父模组继承过来的 Logo 或 Background，界面上要明确提示这会整体覆盖该项配置。</li>
+<li>把用户自己填的值、从父模板继承来的有效值与网页默认外观明确分开；如果用户把输入框删空，工具就从 XML 里删掉对应的标签，不删除公共 Base 模板，也不把预览页面的默认外观写进 XML。如果用户修改了从父模组继承过来的 Logo 或 Background，界面上要明确提示这会整体覆盖该项配置。</li>
 <li>修改文件时，先在内存中生成候选改动，在工具自建的临时工作目录中复用 Build 命令跑完整构建。只有全部校验通过后，才允许写回目标源文件。写入时必须保留 XML 现有的注释、未编辑的未知节点、新闻 Posts、清单内容以及其他模组的数据，禁止全文件强制重新格式化。</li>
-<li>一次修改多个文件无法做到数据库那样的原生原子事务：工具先做全面校验，并检查文件在磁盘上是否被外部程序修改过；确认无误后逐个替换文件。如果中途某个文件写入失败，工具必须把已经写好的文件还原回滚，并报告失败的文件名。如果保存前检测到磁盘源文件已被外部修改，工具直接拒绝覆盖并要求用户重新加载。</li>
+<li><strong>验证后逐文件替换与失败恢复已写文件：</strong>文件系统不支持数据库原生事务，多文件修改无法做到天然原子性。工具先做全面校验，并检查文件在磁盘上是否被外部程序修改过；确认无误后逐个替换文件。如果中途某个文件写入失败，工具记录失败文件名，并将已经替换好的文件逐一恢复还原。如果保存前检测到磁盘源文件已被外部修改，工具直接拒绝覆盖并要求用户重新加载。</li>
 <li>严格限制工具能够写入的文件夹范围；遇到路径包含跨目录、越界 Include、或者是指向外部的符号链接与目录连接时，直接报错拒绝。工具只更新当前命令负责的文件，绝不去修改无关的模块。</li>
 </ul>
 </section>
 <section id="commands">
-<h2>建议增加的命令行指令</h2>
-<p>下面列出的 <code>ra3-metadata</code> 是我们建议的子命令调用形式，这些是拟定方案，工具还没有实现。现有的 <code>dotnet run --project Ra3.BattleNet.Metadata -- build …</code> 以及发布构建入口会全部保留，新增功能直接在现有 CLI 内部做子命令分派，不引入额外的 StageB 调度系统。</p>
-<div class="table-wrap"><table class="commands"><caption>所有命令都支持用 <code>--repo</code> 指定仓库路径，支持 <code>--json</code> 输出结构化数据；写入文件的命令支持用 <code>--dry-run</code> 试跑。</caption><thead><tr><th scope="col">子命令</th><th scope="col">需要输入什么、具体做什么</th><th scope="col">输出什么结果、改变哪些文件</th></tr></thead><tbody>
-<tr><td><code>build</code> / <code>validate</code></td><td>build 保留现在的全部参数；validate 不需要用户指定输出目录，工具自动在临时文件夹里跑完完整 Build 校验全量数据。</td><td>validate 不改动源文件，也不改动已有的 Output 目录；如果校验失败，报告出错文件、节点和原因，并以非零状态码退出。</td></tr>
-<tr><td><code>mod list</code> / <code>mod show &lt;id&gt;</code></td><td>mod list 列出仓库里的所有模组；mod show 查询指定模组，给出来源文件、本地手填配置、继承计算样式、版本列表和介绍引用。</td><td>只读操作，不修改任何文件；直接返回结构化数据，agent 不需要自己解析 XML 和拼接 ID。</td></tr>
-<tr><td><code>mod add --input create.json</code></td><td>传入包含模组 ID、唯一文件夹名、中英显示名的 JSON；可选同时指定真实图标、介绍以及首个真实版本清单。</td><td>在磁盘上创建模组文件夹和实体 XML，挂载进 mods.xml。如果不传版本，绝不凭空编造 CurrentVersion 或 Package；无新闻时写入 Posts 空容器。</td></tr>
-<tr><td><code>mod update &lt;id&gt; --version V --manifest file.xml --set-current</code></td><td>更新导入真实 Manifest 不生成/上传，导入一个明确目标 Manifest 的叶子 XML，可选手填 ReleaseDate；如果输入文件包含多个 Manifest，必须传 ID 选定一个。</td><td>复制叶子清单文件，在 manifests.xml 中加引用，在 Mod.xml 中加 Package 节点；只有显式传了 set-current 参数时才修改 CurrentVersion，所有旧版本完整保留。</td></tr>
-<tr><td><code>mod style &lt;id&gt; --input style.json</code></td><td>传入结构化字段补丁来修改样式，字段传 null 表示删除本地声明以恢复继承；颜色代码与格式整合成一项。</td><td>只修改当前模组的 Mod.Style 节点。如果要使用新的本地图片，需要先用 <code>mod asset</code> 命令登记。</td></tr>
-<tr><td><code>mod asset &lt;id&gt; --id image-id --file image.png</code></td><td>把本地图片复制到当前模组的 images 文件夹，并在 XML 中登记短 ID；如果该 ID 已存在必须显式确认，不静默覆盖已有文件。</td><td>复制图片文件并在 XML 中新增 Image 资源登记；无需为图片生成 Hash。</td></tr>
-<tr><td><code>mod intro &lt;id&gt; --language zh-CN --file intro.md</code></td><td>介绍用 Markdown 不借新闻，导入或更新指定语言的 Markdown 文件；与可选的 <code>--remove-language</code> 互斥。</td><td>将文件写入 introductions/*.md，登记 Markdown 资源节点，更新 Introductions 节点；新闻/DLL注入排除，不修改 Posts。</td></tr>
-<tr><td><code>studio --mod &lt;id&gt; --no-open</code></td><td>agent主要入口+内置Web可视化。启动本地内置的 Web 服务；默认打开系统浏览器，传 no-open 时不自动开浏览器，只把会话地址输出给 agent。</td><td>以后台长期服务运行。用户在网页里修改表单、实时预览和点击保存；启动服务本身不修改源数据、不提交 Git。</td></tr>
-<tr><td><code>pr prepare</code> / <code>pr create --confirm</code></td><td>指定 base 与 head 分支、目标上游仓库、模组和变更文件；prepare 仅生成差异与说明正文，PR 明确授权后 create 才执行被授权的提交、推送与开 PR。</td><td>生成可供审查的提交记录、远程分支与 PR 网页链接；新 PR 默认设为草稿，不自动合并。</td></tr>
+<h2>B. Agent 专用数据写入 CLI 与字段契约</h2>
+<p class="lead">CLI 是专为 Agent 设计的低开销、强类型、确定性数据写入与生成引擎。废止旧计划中面向人类翻阅的 <code>mod list</code>，所有子命令均要求绑定工作树与单一 Mod 身份，通过标准 JSON Schema 与差异校验保障写入安全。</p>
+<div class="table-wrap"><table class="commands"><caption>所有命令均支持 <code>--repo &lt;path&gt;</code> 指定仓库路径，支持 <code>--json</code> 输出结构化数据；写操作支持 <code>--dry-run</code> 试跑。</caption><thead><tr><th scope="col">子命令与调用形式</th><th scope="col">需要输入什么、具体做什么</th><th scope="col">输出什么结果、改变哪些文件</th></tr></thead><tbody>
+<tr><td><code>build</code> / <code>validate</code></td><td><code>build</code> 保留现有全部参数；<code>validate</code> 无需指定输出目录，自动在隔离临时文件夹中运行完整 Build 校验全量数据。</td><td>只读或校验；<code>validate</code> 不修改源文件，不改变已有的 Output 目录；校验失败输出结构化诊断并以非零退出。</td></tr>
+<tr><td><code>mod show &lt;id&gt;</code></td><td><strong>单模组只读检索。</strong>传入唯一的 Mod ID，读取该模组的物理文件路径、本地声明属性、继承后的有效属性、版本清单与介绍短 ID 引用。</td><td>只读操作，不改动文件；返回该 Mod 的完整结构化 JSON，Agent 无需自行拼接 Include 链或正则解析 XML。</td></tr>
+<tr><td><code>mod init &lt;id&gt; --input init.json</code></td><td><strong>单模组创建命令。</strong>当向导确认模组不存在后调用。传入包含中英显示名、可选版本清单、介绍及样式的结构化 JSON。</td><td>在 <code>mods/&lt;name&gt;/</code> 创建专属目录与实体 XML，并在 <code>mods/mods.xml</code> 中登记 Include。无版本不写 Package，无新闻写入 <code>&lt;Posts /&gt;</code> 空容器。</td></tr>
+<tr><td><code>mod update &lt;id&gt; --version V --manifest file.xml [--set-current]</code></td><td><strong>单模组版本导入。</strong>导入外部真实生成的 Manifest 叶子 XML，可选设置 ReleaseDate 和是否设为当前版本；若清单包含多个需传 ID 指定。</td><td>将叶子清单复制到 <code>manifests/</code> 目录，在 <code>manifests.xml</code> 中加 Include，在当前 Mod 中追加 Package 节点；所有旧版完整保留，不修改文件哈希。</td></tr>
+<tr><td><code>mod style &lt;id&gt; --input style.json</code></td><td><strong>单模组样式局部补丁。</strong>传入符合 Schema 的样式补丁 JSON；<strong>字段值显式传 null 表示删除本地标签以恢复继承</strong>。</td><td>仅修改当前模组 XML 的 <code>Mod.Style</code> 节点；保留原有注释与未修改的未知标签。使用本地新图片需先调用 <code>mod asset</code>。</td></tr>
+<tr><td><code>mod palette &lt;id&gt; --image &lt;file&gt; [--json]</code></td><td><strong>本地图片确定性取色命令。</strong>输入本地图片路径，在本地使用固定采样网格与固定种子提取色板，并在合成背景检查点计算对比度。</td><td>输出候选配色方案 JSON（含 background、labels、buttons 三态及对比度诊断），不修改 XML；供作者预览或作为 <code>mod style</code> 的输入候选。</td></tr>
+<tr><td><code>mod asset &lt;id&gt; --id image-id --file image.png</code></td><td><strong>单模组图片资产登记。</strong>将本地图片文件复制到当前模组的 <code>images/</code> 目录，并在 XML 中登记 Image 短 ID。</td><td>复制图片并生成 <code>&lt;Image ID="..." Source="..." /&gt;</code> 登记节点；已有相同 ID 时报错拒绝，不静默覆盖；无需计算图片哈希。</td></tr>
+<tr><td><code>mod intro &lt;id&gt; --language zh-CN --file intro.md</code></td><td><strong>单模组介绍维护。</strong>为指定语言导入或更新独立的 Markdown 介绍文档；与可选的 <code>--remove-language</code> 互斥。</td><td>将文件写入当前模组的 <code>introductions/</code> 目录，登记 Markdown 资源节点并更新 <code>Introductions</code> 容器；排除新闻 Posts。</td></tr>
+<tr><td><code>studio --mod &lt;id&gt; [--port 0] [--no-open]</code></td><td><strong>单模组 Web Studio 启动。</strong>以后台或前台服务启动，直接锁定该模组；默认打开系统浏览器，传 <code>--no-open</code> 则向 Agent 输出会话 URL 与端口。</td><td>启动本地 Kestrel 服务。用户在浏览器中微调样式、编写介绍并点击保存；保存调用与 CLI 相同的 Authoring 写入服务。</td></tr>
+<tr><td><code>pr prepare --mod &lt;id&gt;</code> / <code>pr create --mod &lt;id&gt; --confirm</code></td><td><strong>单模组 PR 发起。</strong>指定上游与当前 Mod；<code>prepare</code> 仅生成 diff 与说明正文；经用户在终端明确确认授权后，<code>create</code> 才执行提交与开 PR。</td><td>调用系统 Git 与 <code>gh</code>；生成审查清晰的提交记录与 PR 链接；默认创建为 Draft PR，不自动合并。</td></tr>
 </tbody></table></div>
-<div class="note"><strong>面向 agent 的结构化数据规范</strong><p>JSON 单个响应建议包含 <code>ok</code>、<code>command</code>、<code>modId</code>、<code>changedFiles</code>、<code>diff</code>、<code>diagnostics</code>；诊断信息包含 <code>code/file/node/message</code>，能获取时补齐行列号。标准输出只放 JSON 数据，普通运行日志一律输出到标准错误。帮助文档与输入 JSON schema 随工具一起打包发布。</p><p>建议的退出状态码：0 成功；2 命令或输入参数错误；3 数据校验失败；4 磁盘文件被外部改动发生冲突；5 Git 或 GitHub 操作失败。非交互场景下缺少必要信息立即报错退出，绝不停在原地等待人工输入。dry-run 试跑时给出相同的候选改动差异和完整校验结果，但不修改本地仓库、Git 暂存区或远程仓库。</p></div>
-<h3>导入版本清单时的具体技术限制</h3>
-<p>导入前，工具先严格校验清单文件的 HashAlgorithm 格式、真实文件哈希、Source 与 Skudef 挂载引用。工具绝不重新计算文件哈希，绝不修改清单内部的 FileName，也绝不改变加载顺序。导入前必须检查该 Mod 的所有 Include 作用域内 Manifest 短 ID 是否唯一。如果发现清单短ID冲突，必须打印出到底是哪两个叶子清单文件冲突了，避免 Package 的短引用变得歧义。如果相同的版本号或目标路径已经存在，工具直接拒绝覆盖；如果重复执行一模一样的导入操作，工具可以提示无变化，但绝不能创建重复的 Package 或 Include 节点。每次导入默认保留历史版本；更改 CurrentVersion 必须指向现存的有效版本，版本字符串按用户输入原样存储，不擅自按 SemVer 排序。</p>
+<h3>1. 结构化 JSON 输入与 Schema 契约</h3>
+<p>为防止 Agent 产生格式幻觉，CLI 提供严格的 JSON Schema 校验文件（随包交付 <code>schemas/style.schema.json</code>、<code>schemas/init.schema.json</code>）。样式补丁 <code>style.json</code> 示例（注意颜色格式定义：若为 ARGB，必须使用 9 位字符且 Alpha 位于最前；若为 CSS 9 位字符，Alpha 位于末尾）：</p>
+<pre><code>{
+  "$schema": "https://ra3battlenet.local/schemas/style.schema.json",
+  "logo": {
+    "imageId": "ar-banner",
+    "position": "BottomLeft",
+    "offsetX": 0,
+    "offsetY": 0
+  },
+  "controls": {
+    "primaryLabel": {
+      "color": "#F4F4F5",
+      "fontSize": 18,
+      "fontWeight": 700
+    },
+    "primaryButton": {
+      "backgroundColor": "#18181B",
+      "color": "#FFFFFF",
+      "borderColor": "#3F3F46",
+      "borderWidth": 1,
+      "hover": { "backgroundColor": "#27272A" },
+      "active": { "backgroundColor": "#09090B" }
+    },
+    "secondaryButton": null
+  },
+  "background": {
+    "random": false,
+    "color": "#CC121216",
+    "format": "ARGB"
+  }
+}</code></pre>
+<h3>2. 字段补丁（Patch）与删除恢复继承语义</h3>
+<ul>
+<li><strong>增量补丁（Merge Patch）：</strong>JSON 中出现的字段仅更新对应的 XML 子节点，未在 JSON 中出现的字段保持 XML 原状，不整块清空 Style。</li>
+<li><strong>显式 <code>null</code> 删除语义：</strong>如果某个字段被显式设为 <code>null</code>（如上例中的 <code>"secondaryButton": null</code>），CLI 的语义为：<strong>从当前模组 XML 中物理删除该 <code>&lt;SecondaryButton&gt;</code> 标签，使其恢复并继承父模板（Base）中定义的该控件样式</strong>。这继承了 HEAD 计划中既有的 null 删除恢复继承规范。</li>
+</ul>
+<h3>3. XML 实体转义、排列顺序与短 ID 映射</h3>
+<ul>
+<li><strong>字符实体严格转义：</strong>写入 XML 属性或文本内容时，必须对 <code>&amp;</code>、<code>&lt;</code>、<code>&gt;</code>、<code>"</code>、<code>'</code> 执行标准 XML 实体转义（如 <code>&amp;amp;</code>、<code>&amp;lt;</code> 等），防止破坏 XML 树结构。</li>
+<li><strong>硬编码排列顺序：</strong>写入时子元素顺序必须严格遵循 <code>MetadataInheritance.ModChildOrder</code>：<code>CurrentVersion</code> → <code>Icon</code> → <code>DisplayName</code> → <code>Introductions</code> → <code>Style</code> → <code>Packages</code> → <code>Posts</code>；以及 <code>StyleChildOrder</code>：<code>Logo</code> → <code>Controls</code> → <code>Background</code>。颠倒顺序将直接触发 XSD 校验硬失败。</li>
+<li><strong>局部短 ID 作用域：</strong>资源引用（如 <code>Logo</code> 中的文本值）使用模组内部登记的短 ID（如 <code>ar-banner</code>），CLI 自动维护短 ID 唯一性，展平阶段再由构建器统一改写为全局唯一标识。</li>
+</ul>
+<h3>4. dry-run 机制与差异验证</h3>
+<p>任何写入命令传入 <code>--dry-run</code> 时，CLI 在内存虚拟 DOM 中应用改动，并在唯一的临时隔离目录（如 <code>Temp/dryrun-{guid}/</code>）中执行一次完整的 <code>MetadataBuilder.Build</code> 硬校验。若校验通过，向标准输出打印候选 Unified Diff 文本和受影响文件列表，<strong>不修改磁盘文件、不修改 Git 暂存区</strong>；若校验失败，返回详细错误诊断，退出状态码为 3。</p>
+<h3>5. 真实 Manifest 清单保护机制</h3>
+<p>在执行 <code>mod update</code> 导入新版本清单时，工具严格核对外部输入的清单结构。<strong>不重新计算清单文件的哈希值，不修改清单内部的 <code>&lt;File Hash="..."&gt;</code> 或 <code>&lt;FileName&gt;</code>，不改动 <code>&lt;Skudef&gt;</code> 的挂载顺序</strong>。工具只负责建立文件映射与 Include 引用，确保发布元数据与用户真实上传的安装包完全一致。</p>
+<h3>6. 标准化 JSON 诊断输出契约</h3>
+<p>命令执行结果输出纯 JSON 至标准输出（stdout），运行日志输出至标准错误（stderr）。结构规范如下：</p>
+<pre><code>{
+  "ok": true,
+  "command": "mod.style",
+  "modId": "ArmorRush",
+  "changedFiles": [ "Metadata/mods/armor-rush/armor-rush.xml" ],
+  "diff": "--- a/armor-rush.xml\n+++ b/armor-rush.xml\n@@ -26,1 +26,1 @@\n- <Color>#FFFFFF</Color>\n+ <Color>#F4F4F5</Color>",
+  "diagnostics": []
+}</code></pre>
+<p>若失败，<code>ok</code> 为 false，并在 <code>diagnostics</code> 中提供清晰数组（包含 <code>code</code>、<code>file</code>、<code>line</code>、<code>col</code>、<code>node</code>、<code>message</code>）。建议退出码：0 成功；2 参数错误；3 数据/构建校验失败；4 磁盘外部文件冲突；5 Git/PR 操作失败。</p>
+</section>
+<section id="wizard">
+<h2>C. 单模组创建引导与格式化向导</h2>
+<p class="lead">采用单模组目标路由机制：Agent 带着指定的 Mod ID 启动，若该模组存在则直接进入编辑模式；若该模组不存在，则自动激活格式化创建向导，确保新建过程分步受控，未全部通过校验前不写入磁盘 XML。</p>
+<h3>1. 单模组状态判定与路由逻辑</h3>
+<ol>
+<li>Agent 接收用户指令中的目标 Mod ID（例如 <code>--mod NewEra</code>）；</li>
+<li>CLI 在 <code>Metadata/mods/mods.xml</code> 及其 Include 树中检索是否存在 <code>&lt;Mod ID="NewEra"&gt;</code>：
+  <ul>
+    <li><strong>分支 A（Mod 已存在）：</strong>直接输出既有配置 JSON，提示“模组已存在，进入单模组查看与编辑模式”，跳过创建向导；</li>
+    <li><strong>分支 B（Mod 不存在）：</strong>自动触发<strong>单模组创建向导（Creation Wizard）</strong>，引导 Agent 与作者分步完成基础信息初始化。</li>
+  </ul>
+</li>
+</ol>
+<h3>2. 创建向导的分步状态机（Step-by-Step Wizard）</h3>
+<div class="table-wrap"><table><thead><tr><th scope="col">步骤阶段</th><th scope="col">向导执行操作与必要校验</th><th scope="col">数据规则与异常处理</th></tr></thead><tbody>
+<tr><td><strong>Step 1: 基础标识与目录校验</strong></td><td>确定 Mod ID（仅允许字母数字，如 <code>NewEra</code>）与存放目录名（短横线命名，如 <code>mods/new-era/</code>）。</td><td>检查目标目录在磁盘上是否已存在，防止意外覆盖；检查全仓库 ID 唯一性，冲突立即报错中断。</td></tr>
+<tr><td><strong>Step 2: 双语显示名强制录入</strong></td><td><strong>要求同时录入 <code>zh-CN</code> 与 <code>en-US</code> 两种语言的显示名。</strong>例如中文名“新纪元”，英文名“New Era”。</td><td>不填单语，不使用机器翻译强行拼凑英文；若缺少任一语言，向导在当前步骤挂起并向 Agent 报错索取。</td></tr>
+<tr><td><strong>Step 3: 可选真实版本与资源导入</strong></td><td>检查用户是否提供了首发版本的真实 Manifest 清单与图标资源。若提供真实清单，登记到 <code>manifests/</code> 目录并配置首个 <code>&lt;Package&gt;</code> 与 <code>&lt;CurrentVersion&gt;</code>。</td><td><strong>若无真实版本，Packages 容器直接留空，不编造 CurrentVersion，不生成伪造的哈希值（如 AAAAAAAA）或假文件！</strong>允许以无初版形式先建外观。</td></tr>
+<tr><td><strong>Step 4: 模组介绍（Markdown）初始化</strong></td><td>询问是否配置初始介绍。若有，引导创建 <code>introductions/zh-CN.md</code> 与 <code>en-US.md</code>，并在 XML 顶层登记 Markdown 短 ID，在 Mod 下写入 <code>&lt;Introductions&gt;</code>。</td><td>若作者暂未准备好介绍，则完全不写入 <code>Introductions</code> 标签。<strong>不借用新闻 Posts，无新闻时生成空容器 <code>&lt;Posts /&gt;</code></strong>。</td></tr>
+<tr><td><strong>Step 5: 界面样式初值配置</strong></td><td>默认声明 <code>&lt;Mod InheritFrom="Base"&gt;</code>，继承战网全局基类样式。支持在向导中快速注入品牌主色与背景色，或交由后续 Studio / 配色工具微调。</td><td>仅写入用户明确指定的非空样式，未指定的属性完全留空以自动继承 Base，不把 Studio 页面默认外观硬编码进 XML。</td></tr>
+</tbody></table></div>
+<h3>3. 严格的“未完成不污染 XML”事务保护</h3>
+<ul>
+<li><strong>全流程内存暂存：</strong>在向导走完所有必需步骤之前，所有输入数据仅保存在会话内存或临时草稿中，磁盘文件系统保持零改动。</li>
+<li><strong>保存前全树预构建校验：</strong>在最终写入磁盘前，工具在隔离临时目录中组装完整的候选 XML，执行 <code>MetadataBuilder.Build</code> 完整构建。不仅校验该模组自身的 XSD，还校验挂载入 <code>mods.xml</code> 后的整树引用关系。</li>
+<li><strong>校验后逐文件替换与失败恢复：</strong>只有构建校验完全通过，工具才依次写出模组专属 XML 文件、复制资源文件、并在 <code>mods/mods.xml</code> 中追加 <code>&lt;Include Source="new-era/new-era.xml" /&gt;</code>。若中途发生异常或校验失败，工具逐一恢复还原已写出文件并清理临时产物，<strong>不留下半个残缺目录，不污染 <code>mods.xml</code></strong>。</li>
+</ul>
 </section>
 <section id="studio">
-<h2>内置 Web 页面（Studio）的设计与安全限制</h2>
-<p>采用现有 Studio 的“左边编辑面板 + 右边预览区”交互方式，但直接从 CLI 所选工作树读取真实数据。网页上的保存操作调用与 CLI 相同的候选变更服务，禁止在前端单独写一套修改 XML 的编辑器。</p>
-<div class="table-wrap"><table><thead><tr><th scope="col">界面区域</th><th scope="col">必须支持的具体操作</th><th scope="col">预览表现与功能限制</th></tr></thead><tbody>
-<tr><td>模组 / 版本</td><td>下拉选择已有模组、点击新增模组；修改中英显示名；导入 Manifest 清单、登记版本号，可勾选显式设为当前版。</td><td>更新导入真实 Manifest 不生成/上传，展示真实清单的检查结果，不模拟下载或安装游戏文件。</td></tr>
-<tr><td>控件样式</td><td>编辑 Primary/Secondary Label 和 Button 的样式；修改字号、字重、文字颜色、边框宽度与圆角；切换普通、Hover 和 Active 三种状态。</td><td>Active 状态未配置时退回普通状态显示，绝不错误退回 Hover 状态；颜色直接按 CSS/ARGB 解析；输入 0 与留空不填严格区分。</td></tr>
-<tr><td>布局 / 图片</td><td>调整 Logo 宽高、九宫格拉伸参数和坐标偏移；配置背景图片列表、Random 轮播、Color 与 SecondaryColor 底色；导入本地图片并登记短 ID 引用。</td><td>只填单边尺寸时自动按原图比例缩放；多张背景图支持手动点按钮切换；引用的图片不存在时显示报错图标；Inherited 与 local 标识清楚。</td></tr>
-<tr><td>模组介绍</td><td>切换语言选项卡、编写 Markdown 正文、插入模组内图片，并在右侧并排看 Markdown 渲染结果。</td><td>介绍用 Markdown 不借新闻，只使用真实的说明文档，不展示虚构新闻；精确语言未命中时回退规则清晰可见，草稿未保存状态与已保存状态有明确视觉区分。</td></tr>
-<tr><td>检查 / 保存</td><td>查看本次修改前后源文件的 diff 差异文本、查看后台完整校验结果的报错列表；点击保存写回源文件，或点击放弃丢弃草稿。</td><td>有格式错误的无效草稿只暂存于会话内存中，绝对不能写进源文件；保存成功后重新从磁盘拉取最新验证结果。</td></tr>
-<tr><td>PR</td><td>查看目标上游仓库、base 与 head 分支、本次提交的文件列表和说明正文；PR 明确授权后才由用户点击发起。</td><td>普通的编辑、预览或直接关闭网页标签，绝对不会因编辑、预览或关闭窗口而自动向远程推送分支。</td></tr>
-</tbody></table></div>
-<h3>网页渲染与游戏客户端的真实差异</h3>
+<h2>D. 单模组本地 Studio 与安全渲染</h2>
+<p class="lead">Studio 是随 CLI 交付的内置轻量级 Web 可视化工作台。它摒弃了多模组切换的冗余复杂度，启动即与单一目标 Mod 绑定，与 Agent 完全共享同一套托管 C# 编辑服务，提供直观的表单交互与安全沙箱实时预览。</p>
+<h3>1. CLI 启动绑定单一模组</h3>
+<p>在终端或由 Agent 调用 <code>ra3-metadata studio --mod &lt;id&gt; [--repo &lt;path&gt;] [--no-open]</code>。Studio 启动后：</p>
 <ul>
-<li>计算后的有效数据由 C# 执行 Build 和 Load 得到；颜色代码只在服务端通过 <code>MetadataColor.ToCss</code> 转换一次，Web 前端不另做 ARGB 转换，后端也不擅自给空字段补充默认主题色。布局和状态映射是 Studio 自有实现，语义基线为 Desktop <code>mod-style.ts:13–47</code>；记录来源版本，以相同状态与布局场景检查漂移，不直接导入 Desktop 工程。</li>
-<li>预览区域必须明确显示“Metadata Studio 参考渲染；Desktop 的介绍渲染尚未接入”，这里看到的效果不保证与客户端完全一样。当前网页的外层框架、磨砂玻璃效果和卡片间距属于 Studio 页面主题，不能成为 XML 配置字段。</li>
-<li>提供浅色与深色主题切换、桌面宽屏与窄屏切换、按钮真实鼠标交互与强制三态切换、背景图片手动切换；全部使用真实的模组名称和介绍正文做检查，不从旧 Studio 拷贝演示文章。</li>
-<li>本地资源通过专用 asset route 接口，根据登记的资源短 ID 映射到许可文件读取，不开放任意路径读取。Markdown 里的外链默认不加载；点击链接后弹窗提示，经用户确认后才在系统默认浏览器中打开 HTTP 或 HTTPS 网页。</li>
+<li><strong>无多模组切换下拉框：</strong>工作区顶部固定显示当前锁定的 Mod ID、显示名与来源文件路径，页面内不提供切换其他模组的功能，确保所有视线与操作严格聚焦在当前模组上。</li>
+<li><strong>随包运行的 Kestrel 独立宿主：</strong>采用轻量级 ASP.NET Core 最小 API 承载，只监听本地回环地址（<code>127.0.0.1</code>），默认使用动态端口（端口 0 由系统分配），避免端口冲突。</li>
+<li><strong>会话鉴权与 CSRF 防护：</strong>服务启动时生成高强度随机 Token，网页端请求必须携带该 Token 与合法 Origin，拒绝外部网页跨域请求与 DNS Rebinding 攻击。</li>
 </ul>
-<p>预览构建使用每次请求唯一的临时 dst，同一会话串行 Build；成功后才替换当前预览快照。因为 Build 会校验整棵源树，整树错误阻塞预览，其他不相干模组里的错误也会阻塞本次预览，工具必须在网页上展示真实失败文件，不能绕过该校验。Markdown 引用与文件校验明确扩展 <code>ValidateHard</code>，不将未参与 Build 的旧校验辅助代码当作现成入口。</p>
-<h3>服务运行、依赖引入与安全防护</h3>
-<p>建议增加独立 <code>Ra3.BattleNet.Metadata.Studio</code> 可执行项目：引用主项目中的纯 managed 编辑服务，使用 ASP.NET Core 和 Kestrel 承载编译打包后的 Web 资源。原 NuGet 解析包不引用 ASP.NET Core、Vue 或 SkiaSharp；原 CLI 的 <code>studio</code> 子命令启动随安装包交付的 Studio 进程。开发环境用 .NET 10，前端建议 Vue 3，与参考工具及客户端一致；具体依赖版本在实施时按锁文件和官方文档确定。</p>
+<h3>2. Agent 与 Web 表单共用后端 Authoring 写入服务</h3>
+<p>Web 界面上的任何表单输入在点击“保存”时，绝不是由前端 JavaScript 去直接拼装字符串或改写 XML，而是向本地后端发起标准的 JSON Patch 请求。后端的处理流程与 CLI 的 <code>mod style</code> / <code>mod intro</code> <strong>调用完全相同的纯托管 C# Authoring Service</strong>：同样进行 JSON Schema 校验、同样的 XML 实体转义、同样的 <code>ModChildOrder</code> 顺序保障、同样的临时目录构建硬校验。这确保无论通过 Agent 自动化写入还是人类在界面上手填，生成的 XML 格式完全一致。</p>
+<h3>3. 字段三态区分与视觉标识</h3>
+<p>界面输入框清晰呈现三种完全不同的取值来源，避免作者产生困惑：</p>
 <ul>
-<li>只监听 <code>127.0.0.1</code>，默认由系统分配动态端口；Kestrel 用显式 loopback 地址，不用不支持端口 0 的 ListenLocalhost。在终端按 Ctrl+C 关闭子进程和会话；浏览器关闭不等于后台进程退出。</li>
-<li>会话初始化后用受保护 cookie 与请求校验建立权限；校验 Host、Origin 和会话写入凭证，拒绝跨域写入及 DNS rebinding。严格做到不泄露凭据，不会将访问凭据、GitHub Token、环境变量写入日志或元数据。</li>
-<li>Markdown 在渲染后净化 HTML，限制 URL 协议；不执行内嵌脚本与事件、不加载任意 iframe。导入 XML 禁用 DTD 与外部实体读取；拒绝路径穿越和链接逃逸。上传只接受本工具需要的资源类型和合理大小。</li>
-<li>前端静态资源和运行库随包交付，无 CDN、无首启联网下载；普通 Modder 不需要安装 npm 或 Desktop。建议首个安装产物为自包含 win-x64 包，包含 CLI、Studio、XSD、模板、skill 和许可证；其他平台仅在真实构建与烟测后声明支持。</li>
-<li>分发装配与更新沿仓库现有构建入口补齐，不创建依赖 Desktop 的循环构建。打包后在不安装 SDK 或 npm 的 Windows 环境实际启动 CLI 和 Studio，验证不是只在源码目录能运行。</li>
+<li><strong>本地手填值（Local）：</strong>当前模组 XML 中显式声明的标签值，高亮显示。作者修改即改变该值；<strong>将输入框完全删空意味着发送 null 补丁，物理删除本地标签以恢复继承</strong>。</li>
+<li><strong>继承基类值（Inherited）：</strong>当前模组未声明、从 <code>InheritFrom="Base"</code> 继承来的有效值，以浅灰色字体和来源角标标明，作者可直观看到继承下来的颜色或字号。</li>
+<li><strong>Studio 页面兜底值（Theme Default）：</strong>未在任何元数据中声明、仅为保证 Studio 网页自身排版美观而使用的界面兜底值（如底板边距、磨砂模糊度），以半透明注明“仅作为界面参考，未声明在 XML 中”，<strong>不把这些兜底值写回 XML</strong>。</li>
+</ul>
+<h3>4. 隔离预览、整树校验阻塞与外部并发冲突检测</h3>
+<ul>
+<li><strong>唯一临时 dst 串行预览：</strong>每次预览构建在唯一的临时目录（如 <code>Temp/preview-{guid}/</code>）中执行，且会话内严格排队串行化，防止并发写目录产生竞争碰撞。</li>
+<li><strong>整树错误阻塞并准确定位：</strong>由于 <code>MetadataBuilder.Build</code> 校验的是全仓库 Include 树，如果其他不相关的模组存在语法错误，也会阻塞本次构建。Studio 会立即在界面上弹出阻断告警，明确列出具体哪一个外部文件在第几行报错，不绕过校验提供虚假预览。</li>
+<li><strong>外部文件并发改动冲突告警：</strong>Studio 在加载时记录磁盘源文件的最后写入时间戳与内容指纹。若作者在外部使用 VS Code 编辑或 Git 切换了分支，Studio 在执行保存前会先检测指纹，一旦发现外部改动立即拒绝覆盖，并弹出差异比对弹窗，允许作者选择“重新从磁盘加载”或“放弃草稿”。</li>
+<li><strong>随时放弃草稿（Discard）：</strong>编辑过程中的所有改动先存于前端草稿状态，界面提供一键“放弃草稿”按钮，点击后恢复磁盘已保存状态。</li>
+</ul>
+<h3>5. 明确声明：非 Desktop 客户端像素级一致</h3>
+<p>界面右侧预览区顶部常驻醒目提示：<code>"Metadata Studio 独立参考渲染 · Desktop 的 Markdown 介绍渲染尚未接入"</code>。计划向作者公开说明真实差异原因：</p>
+<ul>
+<li>Desktop 客户端是运行在 Webview2 内部的 Vue3 + Tailwind 应用，并受游戏内 C++ 原生窗体、显卡 DPI 缩放与深浅色调色板的共同作用；</li>
+<li>Studio 实现了与客户端 <code>mod-style.ts:13–47</code> 相同的 CSS 变量命名、Logo 九宫格计算与按钮三态（Base/Hover/Active）逻辑，能够检验字号、边框、颜色对比度与图片相对偏移，但<strong>不保证与游戏客户端 100% 像素级对齐</strong>，作者不能将 Studio 截图作为客户端最终上线的一致性承诺。</li>
+</ul>
+</section>
+<section id="palette">
+<h2>E. 图片本地取色与大模型一句话配色</h2>
+<p class="lead">为帮助模组作者快速制定协调的界面色彩，方案引入两项互补机制：由本地工具执行的图片确定性取色命令，以及由用户外部 Agent 驱动的一句话生成配色。CLI 内部不内置在线大模型依赖，保持工具轻量与确定性。</p>
+<h3>1. 本地图片确定性取色命令（<code>mod palette</code>）</h3>
+<p>CLI 提供独立的取色子命令：<code>ra3-metadata mod palette &lt;id&gt; --image &lt;file&gt; [--json]</code>。该命令的职责是图片像素分析与候选配色提取，其自身<strong>不修改任何 XML 文件</strong>，输出结果作为候选配置提供给作者审查，或作为 <code>mod style --input</code> 的输入：</p>
+<ul>
+<li><strong>输入参数：</strong><code>--image &lt;file&gt;</code> 指定本地图片路径（支持 PNG 与 WebP），<code>&lt;id&gt;</code> 指定当前模组（用于继承当前的底层样式上下文）。</li>
+<li><strong>算法确定性与固定规则：</strong>
+  <ul>
+    <li><strong>固定采样网格：</strong>为避免原始图片分辨率巨大或比例各异导致采样偏差，算法首先将图片缩放到固定的 160×90 像素分析网格（按比例采样）；</li>
+    <li><strong>透明像素过滤：</strong>遍历采样像素时，显式剔除 Alpha &lt; 32 的近全透明像素，并过滤单像素边缘噪点，防止无意义的透明底色干扰聚类；</li>
+    <li><strong>固定聚类种子：</strong>色彩量化（K-Means 聚类）使用固定伪随机种子（seed = 42）或确定性 Median Cut 算法，保证相同的输入图片在不同运行环境中永远产出完全一致的 16 进制颜色代码。</li>
+  </ul>
+</li>
+<li><strong>输出候选配色 JSON 结构：</strong>输出标准 JSON，包含背景色、主次文本色、主次按钮三态以及对比度分析报告：</li>
+</ul>
+<pre><code>{
+  "modId": "ArmorRush",
+  "candidateStyle": {
+    "background": {
+      "color": "#CC121216",
+      "format": "ARGB",
+      "secondaryColor": "#E61E1E24"
+    },
+    "controls": {
+      "primaryLabel": { "color": "#F4F4F5" },
+      "secondaryLabel": { "color": "#A1A1AA" },
+      "primaryButton": {
+        "backgroundColor": "#D32F2F",
+        "color": "#FFFFFF",
+        "borderColor": "#B71C1C",
+        "hover": { "backgroundColor": "#E53935" },
+        "active": { "backgroundColor": "#C62828" }
+      },
+      "secondaryButton": {
+        "backgroundColor": "#80181818",
+        "color": "#CCCCCC",
+        "borderColor": "#333333",
+        "hover": { "color": "#FFFFFF" },
+        "active": { "backgroundColor": "#CC303030" }
+      }
+    }
+  },
+  "contrastReport": [
+    { "target": "PrimaryLabel", "measuredRatio": 11.2, "standard": 4.5, "passed": true },
+    { "target": "PrimaryButtonText", "measuredRatio": 4.8, "standard": 4.5, "passed": true }
+  ]
+}</code></pre>
+<h3>2. 合成背景对比度测量与透明色（ARGB）科学处理</h3>
+<ul>
+<li><strong>主色不直接当作正文文字色：</strong>图片提取出的高饱和主导色（例如鲜红、亮金）在大面积作为按钮或描边时效果良好，但如果直接套用在 13px 或 14px 正文文本上，在深色底图上会产生毛边感并造成阅读疲劳。算法明确规定：<strong>高饱和品牌主色优先分配给主按钮底色或图标，正文文本色强制从白黑明度阶梯中计算派生</strong>。</li>
+<li><strong>对比度测量仅在实际合成背景或指定检查点测量：</strong>
+  <ul>
+    <li>针对带有 Alpha 通道的颜色（如 <code>#CC121216</code>，ARGB），算法<strong>严禁直接剥离 Alpha 拿纯 RGB 测算对比度</strong>；</li>
+    <li>必须按标准 Alpha 混合模型，将透明颜色与战网底层暗色基底（默认检查点 <code>#0C0C0E</code>）进行物理叠加求出合成色：<br>
+    <code>Composite = (Foreground_RGB × Alpha) + (Backdrop_RGB × (1 - Alpha))</code>；</li>
+    <li>再基于合成后的有效 RGB 计算相对亮度与对比度比例。</li>
+  </ul>
+</li>
+<li><strong>不宣称任意背景均自动达到 WCAG 达标：</strong>由于用户上传的图片可能整体暗淡、高光过曝或颜色混乱，算法提取出的色彩无法凭空保证在任意复杂的背景图片上均自然满足 4.5:1 要求。因此：<strong>工具仅在合成背景检查点测量并如实报告对比度数值</strong>。若未达到标准，算法在输出中给出告警并提供可选的明度提升微调方案，由作者在 Studio 中肉眼审视并在确认后才应用。</li>
+<li><strong>与 <code>mod style</code> 候选预览的明确分工：</strong><code>mod palette</code> 仅提取数据并输出上述 JSON；要将颜色应用或预览，用户或 Agent 需将候选 JSON 传入 <code>mod style &lt;id&gt; --input candidate.json [--dry-run]</code>，或在 Studio 界面中载入草稿预览，审查无误后点击保存。</li>
+</ul>
+<h3>3. 大模型一句话生成配色（由外部 Agent / 模型产出）</h3>
+<ul>
+<li><strong>CLI 保持轻量，不内置大模型依赖：</strong>CLI 专注于确定性构建、格式校验与文件写入，不包含任何云厂商 API SDK，不配置模型 Token，不发起联网 AI 请求，不宣称所谓的“内置 AI”。</li>
+<li><strong>由用户正在使用的外部 Agent 担任生成者：</strong>当作者对正在对话的 Agent 说一句话（例如：“帮我把模组配色调成红警3原版苏联红星重工业金属风，要求深黑底、红金搭配”），外部 Agent 根据 Skill 中提供的 <code>style.schema.json</code> 约束直接输出结构化 JSON 补丁。</li>
+<li><strong>模型生成结果进入 CLI 进行同等强类型验证：</strong>Agent 生成的 JSON 补丁传入 <code>ra3-metadata mod style &lt;id&gt; --input model-style.json</code>。CLI 对其进行严格的 Schema 校验、<code>MetadataColor</code> 格式检查（ARGB/CSS 合法性）、数值区间检查，通过后在 Studio 中加载预览，作者审查满意后再保存到磁盘。</li>
+</ul>
+<h3>4. 图片隐私与图像提示词注入防护（Security）</h3>
+<ul>
+<li><strong>本地图片不上传云端：</strong>整个取色计算完全在本地内存中完成，不调用任何第三方云端图像 API，不上传私有图片到任何服务器或图床，保护作者未公开的美术资产。</li>
+<li><strong>防御图像提示词注入（Image Prompt Injection）：</strong>对本地图片的处理仅限于提取原始像素数值数组。<strong>严禁将图片文件名、EXIF 元数据或通过 OCR 识别出的文字直接解析为命令行或 Shell 指令执行</strong>。图片内容在系统中被严格限定为只读的静态二进制资源，阻断指令注入风险。</li>
 </ul>
 </section>
 <section id="phases">
-<h2>分步开发计划与文件修改清单</h2>
-<p>下面编号表示真实依赖顺序，不代表已经开工，也不代表承诺了交付时间。人员未指定：工作按模块归属，先由 Metadata 实现者负责本计划的阶段；Desktop 维护者后续再独立接入模组介绍的渲染。</p>
-<article class="phase"><h3>1. 严格命令分派与统一编辑服务</h3><dl class="fields"><dt>依赖</dt><dd>已有的 Build 构建逻辑、源 XML 的 Include 树和实体 ID 规则。</dd><dt>修改</dt><dd><code>Program.cs</code>；主项目增加纯 managed Authoring 代码，建立来源文件映射、候选文件补丁、临时校验、差异输出、外部改动检测；CLI 输入契约与 JSON schema。</dd><dt>验收</dt><dd>未知命令或参数非零退出且不产生 Output；无参数及合法 build 的现有行为保留；validate 不改变现有产物；dry-run 无仓库写入；校验失败不会留下半个模块。</dd></dl></article>
-<article class="phase"><h3>2. 添加模组、资源和版本更新</h3><dl class="fields"><dt>依赖</dt><dd>第 1 阶段的同一编辑服务。</dd><dt>修改</dt><dd>新增 add、show、list、asset、update 操作；复用 Templates 和 mods Include 组织；更新导入真实 Manifest 不生成/上传，不调用 Updater 生成器。需要时调整 <code>Metadata/Templates/Mod.xml</code> 的贡献者说明。</dd><dt>验收</dt><dd>无虚构占位数据的新 Mod 能通过 Build；首版与后续版导入含独立叶子清单，所有 File 与 Skudef 内容保留；中英显示名与实体 ID 冲突有清晰诊断；旧版本不被删除。</dd></dl></article>
-<article class="phase"><h3>3. Markdown 介绍契约与样式编辑</h3><dl class="fields"><dt>依赖</dt><dd>第 1 阶段的来源映射、第 2 阶段的资源导入。</dd><dt>修改</dt><dd><code>MetadataSchema.xsd</code>、<code>MetadataPublishSchema.xsd</code>、<code>MetadataFlattener.cs</code>、<code>MetadataInheritance.cs</code>、<code>MetadataBuilder.cs</code>、查询 models/extensions 和模板；新增 intro 与 style 操作。</dd><dt>验收</dt><dd>介绍用 Markdown 不借新闻，多语言介绍正确限定 ID、复制 Markdown 与插图，发布物可加载；错误资源类型、重复语言和越界路径拒绝；不从 Base 继承介绍；样式修改不把有效或主题值写回。</dd></dl></article>
-<article class="phase"><h3>4. 内置 Web Studio 与分发包</h3><dl class="fields"><dt>依赖</dt><dd>第 1 到 3 阶段的真实读写能力，先 Metadata，不等待 Desktop。</dd><dt>修改</dt><dd>新增 Studio 宿主项目、前端源码及锁文件；原 CLI 添加启动与关闭宿主逻辑；<code>Metadata.sln</code>、打包脚本、必要前端构建入口和许可证。内嵌资源，不复制旧 HTML 的压缩依赖代码。</dd><dt>验收</dt><dd>从打包产物启动；选择真实 Include 模组，改样式与介绍、预览、保存、关闭并重开验证；离线资源可用；宽窄屏和键盘操作无阻碍；跨域写入与恶意 Markdown 被阻止。</dd></dl></article>
-<article class="phase"><h3>5. Git 与创建 PR</h3><dl class="fields"><dt>依赖</dt><dd>统一差异、Build 校验、真实 changedFiles；远程权限由用户环境提供。</dd><dt>修改</dt><dd>新增 pr prepare 与 create 操作；调用系统 Git 与 <code>gh</code>，复用其认证，不另建 OAuth 或 Token 存储。Web 调同一个 PR 操作，不暴露任意命令执行接口。</dd><dt>验收</dt><dd>prepare 不触碰 index 或 remote；污染 index、无权限、无 gh、校验失败都阻止外部写入；fork 与可写上游分支各有真实 PR 场景；重复调用返回同 head 与 base 的已有 PR。</dd></dl></article>
-<article class="phase"><h3>6. 配套 skill、文档与完整使用验证</h3><dl class="fields"><dt>依赖</dt><dd>第 1 到 5 阶段命令与 JSON 输出稳定；skill 不是绕开未实现 CLI 的临时脚本。</dd><dt>修改</dt><dd><code>.agents/skills/metadata-modder/SKILL.md</code> 及必要 references/evals；<code>README.md</code>、模板说明和对应实施记录。打包后的 skill 与仓库版本一致。</dd><dt>验收</dt><dd>同一实际任务分别由直接 CLI、Web 和 agent+skill 完成，生成同等有效元数据；全套已有 MSTest 通过，真实源树 build（非 WebP 默认）通过。发布 WebP 验证只在相应发布变更场景执行。</dd></dl></article>
+<h2>分步开发计划与交付里程碑</h2>
+<p class="lead">按真实的工程依赖关系将实施划分为六个阶段。删除所有 <code>mod list</code> 及列表选择器的开发工作，集中精力实现单模组 Authoring 服务、向导状态机、确定性取色与自包含分发包。</p>
+<article class="phase">
+<h3>Phase 1: 严格单模组命令分派与统一 Authoring 编辑服务</h3>
+<dl class="fields">
+<dt>前置依赖</dt><dd>已有的 Build 构建逻辑、源 XML 的 Include 树、实体 ID 规则与 <code>MetadataColor</code> 校验。</dd>
+<dt>修改范围</dt><dd>重构 <code>Program.cs</code> 命令行参数解析；主项目新增纯托管的 Authoring 编辑服务（包含来源文件 Include 溯源、候选虚拟 DOM 补丁、临时隔离目录构建硬校验、Unified Diff 生成、外部修改冲突检测）；建立 <code>mod show &lt;id&gt;</code> 单模组读取命令及标准 JSON Schema。</dd>
+<dt>阶段验收</dt><dd>未知命令或参数错误立即非零退出（退出码 2）且不触碰 Output 目录；已有的 <code>build</code> 功能完全保留；<code>validate</code> 在隔离临时目录完成全量校验；<code>mod show &lt;id&gt;</code> 正确返回单模组来源文件与有效属性；<strong>确认无 <code>mod list</code> 命令</strong>；dry-run 试跑无任何磁盘写入。</dd>
+</dl>
+</article>
+<article class="phase">
+<h3>Phase 2: 单模组创建向导、真实 Manifest 导入与资源管理</h3>
+<dl class="fields">
+<dt>前置依赖</dt><dd>Phase 1 的统一 Authoring 编辑服务与临时构建沙箱。</dd>
+<dt>修改范围</dt><dd>实现 <code>mod init &lt;id&gt;</code>、<code>mod update &lt;id&gt;</code> 与 <code>mod asset &lt;id&gt;</code> 命令；复用 <code>Templates</code> 和 <code>mods</code> 多层 Include 结构；编写向导状态机（Step 1~5）；实现导入真实 Manifest 叶子文件逻辑；更新 <code>Templates/Mod.xml</code> 移除占位哈希与假新闻说明。</dd>
+<dt>阶段验收</dt><dd>单模组创建向导在未完成或校验失败时不产生半成品文件、不污染 <code>mods.xml</code>；提供真实首版或无版本的新 Mod 能成功通过 Build 全树校验；<code>mod update</code> 正确导入独立叶子清单，所有 File、Hash、Size 和 Skudef 完整保留；禁止任何虚构哈希与新闻写入。</dd>
+</dl>
+</article>
+<article class="phase">
+<h3>Phase 3: Markdown 介绍规范与单模组样式局部补丁</h3>
+<dl class="fields">
+<dt>前置依赖</dt><dd>Phase 1 的字段映射、Phase 2 的资源登记服务。</dd>
+<dt>修改范围</dt><dd>修改 <code>MetadataSchema.xsd</code>、<code>MetadataPublishSchema.xsd</code>；更新 <code>MetadataFlattener.cs</code>（短名登记）、<code>MetadataInheritance.cs</code>（<code>ModChildOrder</code> 插入 Introductions 并禁止继承）、<code>MetadataBuilder.cs</code>（扩展 <code>ValidateHard</code> 增加 <code>markdownIds</code> 独立索引）；实现 <code>mod intro</code> 与 <code>mod style</code>（支持字段补丁与 <code>null</code> 删除恢复继承语义）。</dd>
+<dt>阶段验收</dt><dd>多语言介绍正确限定 Markdown 短 ID，构建发布物中文件与插图完整复制且相对路径有效；非法资源类型（如误用 Image/Manifest）被 ValidateHard 拦截；样式字段传 <code>null</code> 能准确物理删除本地标签并恢复继承 Base；未编辑的 Posts 与注释原样保留。</dd>
+</dl>
+</article>
+<article class="phase">
+<h3>Phase 4: 单模组 Web Studio、本地图片取色与 Schema 验证器</h3>
+<dl class="fields">
+<dt>前置依赖</dt><dd>Phase 1~3 的全部读写与校验能力，聚焦单模组。</dd>
+<dt>修改范围</dt><dd>新增独立的 <code>Ra3.BattleNet.Metadata.Studio</code> 宿主工程与前端代码；原 CLI 增加 <code>studio --mod &lt;id&gt;</code> 与 <code>mod palette &lt;id&gt;</code> 子命令；前端实现单模组表单、三态按钮切换、实时 Unified Diff 对比、草稿放弃与冲突告警；增加本地图片确定性取色模块（含固定采样网格、固定种子、透明像素过滤与合成背景对比度计算）；集成外部大模型输出的 JSON Schema 强类型验证器。</dd>
+<dt>阶段验收</dt><dd>Studio 启动直接锁定当前模组，无模组切换下拉框；Web 端保存与 CLI 走完全相同的 Authoring 服务并生成相同 diff；输入框准确区分本地手填、继承与 Studio 兜底值；<code>mod palette</code> 取色结果输出候选方案且在合成背景检查点测算对比度；外部源文件修改触发冲突拦截并可放弃草稿；显示非 Desktop 像素级一致警示。</dd>
+</dl>
+</article>
+<article class="phase">
+<h3>Phase 5: 差异审查、Git 暂存保护与受控 PR 准备</h3>
+<dl class="fields">
+<dt>前置依赖</dt><dd>统一 Diff 生成、Build 全树校验、真实的 <code>changedFiles</code> 列表。</dd>
+<dt>修改范围</dt><dd>实现 <code>pr prepare --mod &lt;id&gt;</code> 与 <code>pr create --mod &lt;id&gt; --confirm</code> 命令；封装对系统 <code>git</code> 与 <code>gh</code> 的调用，保护暂存区（仅暂存当前 Mod 的改动文件，拒绝脏文件混入）；Web 端仅触发 prepare 展示与确认，不暴露任意 shell 执行入口。</dd>
+<dt>阶段验收</dt><dd><code>prepare</code> 纯只读展示，绝对不触发 git add、commit 或 push；无权限、脏暂存区、无 <code>gh</code> 登录或校验失败时全部安全中断；用户在终端明确授权后方可发起 PR；新 PR 默认设为 Draft；严禁在日志中泄露任何凭据或 URL 凭据。</dd>
+</dl>
+</article>
+<article class="phase">
+<h3>Phase 6: 配套 metadata-modder Skill、双途径分发包与端到端实操验收</h3>
+<dl class="fields">
+<dt>前置依赖</dt><dd>Phase 1~5 所有命令稳定，参数与 JSON 结构固化。</dd>
+<dt>修改范围</dt><dd>编写 <code>.agents/skills/metadata-modder/SKILL.md</code> 与配套参考模版（包含一句话启动提示词、一句话配色提示词模板、输入 Schema 定义、单模组向导规范）；编写自包含 win-x64 打包脚本，输出包含 CLI、Studio、XSD、模板与 Skill 的完整 Release 资产压缩包；完善仓库说明文档。</dd>
+<dt>阶段验收</dt><dd>在无 .NET SDK 的纯净 Windows 环境下，成功运行 Release 自包含包完成单模组查看、向导创建、图片取色、Studio 预览与保存；同一任务分别由直接 CLI、Web 表单和 Agent+Skill 执行，产出完全等价的合规元数据；全套 MSTest 单元测试通过；真实源树构建通过。</dd>
+</dl>
+</article>
 </section>
 <section id="skill">
-<h2>配套 skill 规则：指导 agent 调用工具，禁止手动拼装 XML</h2>
-<p>建议名称为 <code>metadata-modder</code>，这些是拟定方案，工具还没有实现。描述覆盖“添加 RA3 模组、导入模组版本、改战网样式、更新 Markdown 介绍、预览并提交 Metadata PR”；新闻/DLL注入排除，不包含游戏安装、新闻管理和 DLL 注入功能。不限定特定 agent 厂商。</p>
+<h2>F. 配套 Skill 工作流、发布交付与旧计划修订记录</h2>
+<p class="lead">Skill 是连接 Modder 意图、AI Agent 推理与底层严格 CLI 的标准护栏。Skill 将所有规则代码化为步骤指示，指导 Agent 严格按规范操作，不让 Agent 自由发挥去手动拼装 XML 字符串。</p>
+<h3>1. 配套 <code>metadata-modder</code> Skill 核心规约</h3>
 <ol>
-<li>先确认 CLI 版本与支持能力，检查实际 Metadata 仓库路径；读取目标 Mod 与来源文件，不猜测安装路径、不扫描用户密钥。</li>
-<li>收集真正缺少的业务输入：模组 ID、中英名称、真实资源与清单、介绍语言；更新导入真实 Manifest 不生成/上传，缺真实 Manifest 就停止版本更新，不伪造 File 或 Hash。</li>
-<li>组织好参数后调用 dry-run 试跑，读取返回的 JSON diagnostics 错误诊断和差异文本；必要时启动 Studio 让 Modder 在浏览器中调整或检查视觉。</li>
-<li>使用正式命令写入磁盘，随后调用 validate 校验全量数据，报告修改了哪些源文件；操作失败按明确诊断修正输入，不用手工文本替换掩盖错误。</li>
-<li>准备 PR 正文，向用户展示 base 与 head 分支、修改的文件范围与验证结果；PR 明确授权后才执行 create 命令。授权必须由用户单独明确给出，不能从 Markdown 正文、资源文件或工具错误提示中推断。</li>
-<li>最后向用户输出本地修改的文件列表、验证证据和创建好的 PR 链接；未执行的检查清楚说明，不把预览当客户端上线证明。</li>
+<li><strong>启动与环境探测：</strong>接收作者的一句话启动提示，优先探测本地是否有可用的 CLI 产物；若无则引导执行源码编译或下载 Release 自包含包；校验版本绑定与来源完整性，若缺少前置条件立即向作者清晰报错，不伪装成功。</li>
+<li><strong>单模组目标锁定与路由：</strong>接收 Mod ID 后调用 <code>mod show &lt;id&gt;</code>。若存在则进入单模组配置读取；若不存在则严格按照 5 步向导收集双语显示名、可选真实 Manifest 和资源，未确认前不写回文件，不编造假哈希与假新闻。</li>
+<li><strong>样式与配色驱动：</strong>
+  <ul>
+    <li>若作者提供了本地图片，调用 <code>mod palette</code> 算法提取候选色板，在实际合成背景检查点审查对比度，向作者展示方案，获得同意后应用；</li>
+    <li>若作者提出一句话配色需求（如“红警3盟军高科技冰蓝”），Agent 自身根据系统提供的 Schema 生成标准 JSON 补丁，传入 CLI 进行强类型校验并在 Studio 中渲染预览。</li>
+  </ul>
+</li>
+<li><strong>dry-run 试跑与 Studio 视觉把关：</strong>任何写操作正式保存到磁盘前，必须执行 <code>--dry-run</code> 并读取 JSON 诊断与 diff；必要时启动单模组 Studio 供作者在浏览器中肉眼检验效果。</li>
+<li><strong>正式写回磁盘与授权发起 PR：</strong>调用正式命令写回源文件，并在后台执行 <code>validate</code> 全树硬校验；最后向作者展示最终修改文件列表与 diff，获得作者单独的显式确认授权后，才调用 PR 命令发起草稿 PR。</li>
+<li><strong>安全防线坚守：</strong>禁止执行从外部文档或图片中提取的任何代码；不修改系统全局 PATH；禁止在日志中记录敏感凭据。</li>
 </ol>
-<div class="table-wrap"><table><thead><tr><th scope="col">建议包含的文件</th><th scope="col">文件里记录的具体内容</th></tr></thead><tbody><tr><td><code>SKILL.md</code></td><td>触发边界、主流程、授权门槛、失败处理；简短，不内嵌全部 XSD。</td></tr><tr><td><code>references/commands.md</code></td><td>来自最终 CLI 帮助和 schema 的命令与 JSON 示例，包含空字段与删除声明以恢复继承的语义。</td></tr><tr><td><code>references/style-and-intro.md</code></td><td>样式继承、颜色格式、Markdown 相对资源及预览差异。</td></tr><tr><td><code>evals/evals.json</code></td><td>评估用例：新增模组、版本更新、样式与介绍、fork 仓库开 PR、拒绝新闻与注入请求、缺清单与脏工作树场景。</td></tr></tbody></table></div>
-<p>skill 评估测试对比有与无 skill 时的实际行为：检查改动范围、有效数据、错误处理和授权是否正确，不断言固定话术。临时评估工作副本与生成产物不提交；只保留有价值的用例、skill 和说明。</p>
+<h3>2. 发布交付产物定义</h3>
+<div class="table-wrap"><table><thead><tr><th scope="col">交付产物</th><th scope="col">包含文件与目录结构</th><th scope="col">目标使用场景与安装体验</th></tr></thead><tbody>
+<tr><td><strong>自包含 Release 包（<code>ra3-metadata-win-x64.zip</code>）</strong></td><td><code>ra3-metadata.exe</code>、<code>Ra3.BattleNet.Metadata.Studio.exe</code> 及伴随依赖、<code>MetadataSchema.xsd</code>、<code>MetadataPublishSchema.xsd</code>、<code>Templates/</code> 目录、<code>.agents/skills/metadata-modder/</code> 目录、SHA256 校验和文件。</td><td>轻量级 Modder 与 Agent 主流交付物。<strong>开箱即用，免装 .NET SDK，免装 Node/npm</strong>，解压后由 Agent 即可直接运行。</td></tr>
+<tr><td><strong>源码仓库工具集（Source Repo）</strong></td><td><code>Metadata.sln</code>、<code>build.sh</code>、源码项目、单元测试、<code>package.json</code>。</td><td>代码贡献者与自动化 CI/CD 环境。核心 CLI 编译通过 .NET 10.0 SDK 直接进行，完整 Studio 编译配合 npm 前端构建。</td></tr>
+</tbody></table></div>
+<h3>3. 旧计划关键修订记录（Changelog）</h3>
+<div class="table-wrap"><table><thead><tr><th scope="col">变更维度</th><th scope="col">旧计划实际设计（基于 HEAD）</th><th scope="col">本次修订后的新方案（以新设计为准）</th><th scope="col">修订原因与技术收益</th></tr></thead><tbody>
+<tr><td><strong>模组定位</strong></td><td>提供 <code>mod list</code> 列出仓库全量模组，Studio 包含模组切换下拉列表。</td><td><strong>删除 <code>mod list</code></strong>，Studio 不设模组下拉框；启动与读写全面绑定单一 <code>--mod &lt;id&gt;</code>。</td><td>避免大量模组全量遍历带来的上下文冗余，操作聚焦，降低 Agent 出错率。</td></tr>
+<tr><td><strong>工具角色</strong></td><td>通用命令行工具，Modder 与 Agent 手动拼装命令调用。</td><td><strong>CLI 主要服务 Agent 写入与 XML 生成，作者依托 Skill 驱动。</strong></td><td>作者无需手写命令，只需一句话启动提示，符合 Agent 协作工作流。</td></tr>
+<tr><td><strong>获取路径与依赖分层</strong></td><td>仅简单提及自包含包，未明确源码编译与打包后的运行时依赖边界。</td><td><strong>明确源码构建与 Release 下载双路径</strong>：核心 CLI 编译需 .NET 10 SDK，完整 Studio 编译需 Node.js；Release 包免 SDK 与 Node.js；支持离线已有产物就地使用。</td><td>真实覆盖开发者与纯 Modder 两种场景，消除对编译前置条件和 Node.js 依赖的含糊假设。</td></tr>
+<tr><td><strong>新建模组流程</strong></td><td>旧方案已有一次性传入 JSON 的 <code>mod add</code>，但无交互向导与存在性路由。</td><td><strong>增加单模组路由分流与 5 步向导状态机</strong>：已存在直接进入编辑，不存在进入向导；双语强制录入；校验通过前不写入磁盘、不污染 <code>mods.xml</code>。</td><td>防止半途出错留下残缺文件导致整树构建失败，确保无版本与无新闻时的 XML 规范。</td></tr>
+<tr><td><strong>取色与配色能力</strong></td><td>仅支持表单手动填写十六进制颜色代码，无图像取色与提示词配色能力。</td><td><strong>新增 <code>mod palette</code> 确定性图片取色与外部 Agent 一句话配色</strong>：固定采样网格与种子，过滤透明像素，合成背景测算对比度；CLI 自身不内置大模型。</td><td>帮助缺乏专业美术调色能力的模组作者；架构职责清晰，避免向底层 CLI 强行打包大模型 SDK。</td></tr>
+<tr><td><strong>多文件写入机制纠偏</strong></td><td>旧方案曾将多文件保存称为原子事务。</td><td><strong>纠正为真实的“预校验后逐文件替换 + 失败恢复已写文件”</strong>，说明文件系统无天然原子性，依靠校验与回滚保障一致性。</td><td>尊重文件系统工程事实，不做出无法达成的天然原子性承诺。</td></tr>
+</tbody></table></div>
 </section>
 <section id="checks">
 <h2>测试验收：开发完成后必须实操跑通的用例</h2>
 <ul class="checks">
-<li><strong>新建模组用例：</strong>在隔离工作副本创建无版本 Mod 与带真实首版 Mod；校验源与发布树，并 Load 后精确找到新 ID、中英名称和清单，不靠文件存在就判成功。</li>
-<li><strong>版本更新用例：</strong>给已有 Mod 导入新版，更新导入真实 Manifest 不生成/上传，保留旧 Package 与 Include；可选设为当前版。非法哈希、重复版本或缺失 AddBig 引用失败后源文件完全不变。</li>
-<li><strong>修改样式用例：</strong>Base 定义 Hover 而 Mod 只改普通态时，Active 仍从普通态回退；清空本地声明恢复继承；ARGB 透明色、BorderWidth=0、OffsetX=0 和单边 Logo 尺寸均实际显示正确。</li>
-<li><strong>模组介绍用例：</strong>介绍用 Markdown 不借新闻，zh-CN 与 en-US 各有 Markdown，切换语言显示正确正文，未命中语言明确回退；本地图片在 Build 后发布目录仍可显示，非法资源类型、重复语言与越界路径拒绝。</li>
-<li><strong>两端改写一致性用例：</strong>agent CLI 和 Web 保存相同输入得到相同声明和有效数据；其他实体、Posts、Dependencies、旧清单、注释不被改动。源文件被外部编辑时出现冲突而非覆盖。</li>
-<li><strong>安全防护用例：</strong>打开带 script、onerror 或 javascript: 的 Markdown，不执行代码；外部页面无法调用写入；读取 <code>../</code>、联接逃逸、DTD 与 XXE 输入均被拒绝，严格做到不泄露凭据且不泄露文件。</li>
-<li><strong>网页操作用例：</strong>实际浏览器检查宽屏与窄屏、浅色与深色主题、键盘导航、三态按钮、图片导入、草稿差异、保存后重开；确认没有虚构新闻或下载行为。</li>
-<li><strong>创建 PR 用例：</strong>在获授权的测试仓库真实验证有权限分支与个人 fork；明确只提交目标文件；网络失败不误报成功、不重复开 PR、不自动合并。PR 明确授权，清单与样式编辑过程中永不触发推送。</li>
-<li><strong>打包分发用例：</strong>在无 .NET SDK 或 npm 的目标 Windows 上，从自包含包真实运行 list、validate、studio 与保存；核心 NuGet 的 Desktop 消费不新增 ASP.NET Core 或前端依赖。</li>
+<li><strong>单模组向导创建用例：</strong>在隔离工作树针对不存在的 Mod ID 执行，验证强制要求 <code>zh-CN</code> 与 <code>en-US</code> 双语；分别测试“带真实首版 Manifest”与“无版本留空 Package”场景；验证未全部完成前不修改 <code>mods.xml</code>；构建后验证新 Mod 成功挂载且无伪造哈希与新闻。</li>
+<li><strong>单模组读取与字段 Patch 用例：</strong>针对已有 Mod 运行 <code>mod show &lt;id&gt;</code>，精确返回来源文件与继承后有效数据；传入包含 <code>null</code> 的 <code>style.json</code> 补丁，验证源 XML 对应标签被物理删除且恢复继承 Base；未编辑的注释与 Posts 完全不受影响。</li>
+<li><strong>真实 Manifest 导入与保护用例：</strong>执行 <code>mod update &lt;id&gt; --version V --manifest leaf.xml</code>，验证叶子清单复制到 <code>manifests/</code> 且在 <code>manifests.xml</code> 中增加 Include；验证清单内部的 File、Hash、Size 和 Skudef 原样保留；重复导入相同版本提示无变化且不创建重复节点。</li>
+<li><strong>样式继承与边界值用例：</strong>Base 定义 Hover 而 Mod 只改普通态时，Active 仍从普通态回退，绝不错误退回 Hover；清空本地声明恢复继承；ARGB 透明色（如 <code>#CC121216</code>）、BorderWidth=0、OffsetX=0、单边 Logo 尺寸（仅填宽度时高度按原图比例自适应）均实际显示正确。</li>
+<li><strong>模组介绍与多语言资源用例：</strong>zh-CN 与 en-US 各有 Markdown，切换语言显示正确正文，未命中语言回退第一项；本地插图在 Build 后发布目录相对路径仍有效；非法资源类型（如误用 Image/Manifest）、重复语言与越界路径被 ValidateHard 拒绝；验证模组介绍不从 Base 继承。</li>
+<li><strong>本地图片确定性取色用例：</strong>运行 <code>mod palette &lt;id&gt; --image &lt;file&gt;</code>，验证算法在固定采样与种子下提取色板；验证 Alpha &lt; 32 透明像素被过滤；验证在合成背景检查点测算对比度；对低对比度场景输出告警与调光建议；确认不直接改动 XML，需由 style 命令或 Studio 确认应用。</li>
+<li><strong>大模型一句话配色 Schema 验证用例：</strong>使用 Agent 模拟生成一份符合 <code>style.schema.json</code> 的配色补丁，传入 CLI 验证强类型检查；故意构造非法十六进制或超出范围的字重，验证 CLI 立即拒绝并输出准确诊断。</li>
+<li><strong>单模组 Studio 绑定与冲突用例：</strong>启动 <code>studio --mod &lt;id&gt;</code>，验证界面固定锁定该模组且无全量模组列表选择器；验证输入框三态（Local/Inherited/Theme Default）视觉区分正确；在外部修改源 XML 文件后点击保存，验证 Studio 正确拦截并弹出冲突对比，验证放弃草稿功能。</li>
+<li><strong>两端改写一致性用例：</strong>Agent CLI 和 Web 保存相同输入得到相同声明和有效数据；其他实体、Posts、Dependencies、旧清单、注释不被改动；源文件被外部编辑时出现冲突而非覆盖；校验通过后逐文件替换，写入失败时还原已写文件。</li>
+<li><strong>PR 真实权限与授权用例：</strong>在获授权的测试仓库真实验证有权限分支与个人 fork 场景；明确只提交目标文件；污染 index、无权限、无 gh、网络失败都安全中断且不误报成功、不重复开 PR、不自动合并；PR 明确授权，dry-run / prepare 绝不触发 push。</li>
+<li><strong>安全防御与凭据保护用例：</strong>在 Markdown 介绍中注入 <code>&lt;script&gt;</code>、<code>onerror</code> 或恶意 Shell 文本，验证系统纯文本转义且绝不执行任何指令；向 CLI 传入带 <code>../</code> 越界路径拒绝写入；验证任何标准输出与日志中均不包含 Token、私钥或带凭据的 URL；图片内容绝不当指令执行。</li>
+<li><strong>自包含包免 SDK 运行用例：</strong>在完全未安装 .NET SDK 与 npm 的纯净 Windows 10/11 虚拟机中，解压 <code>ra3-metadata-win-x64.zip</code>，直接运行 CLI 命令并启动 Studio 验证，确保开箱即用。</li>
 </ul>
-<p>沿现有 MSTest 写能捕获消费侧错误的回归用例：引用类型、继承状态、语言冲突、保存回滚和路径边界。不要用“源码包含字符串”、转发 mock 或固定帮助文字充当功能测试。实际 CLI、浏览器、PR 实操测试不能被单元测试代替。</p>
 </section>
 <section id="risks">
 <h2>技术方案讨论结果与后续风险防范</h2>
-<div class="table-wrap"><table><thead><tr><th scope="col">被质询的技术问题</th><th scope="col">结论与应对方式</th></tr></thead><tbody>
-<tr><td>“介绍”是不是新闻摘要？</td><td>不是。介绍用 Markdown 不借新闻；新增 Mod 独立介绍字段，Posts 排除在编辑范围之外。</td></tr>
-<tr><td>要不要一次做完发布文件生成与上传？</td><td>不做。更新导入真实 Manifest 不生成/上传；真实 Manifest 清单是发布版本的必要输入，工具不替外部程序打包或上传。</td></tr>
-<tr><td>面向普通命令行用户还是 agent？</td><td>agent主要入口+内置Web可视化。二者共用同一套底层操作服务。</td></tr>
-<tr><td>没有 Desktop 改动，能否承诺最终效果完全一致？</td><td>不能。先 Metadata，Desktop 后续独立接入 Markdown 介绍；Studio 当前是参考渲染，这里看到的效果不保证与客户端完全一样，需要向用户明确公开这一差异。</td></tr>
-<tr><td>CLI 带 Web，会不会让解析库变重？</td><td>Studio 独立项目与伴随进程，主包保持纯 managed，无 Web 或前端运行时依赖；打包包含伴随进程必须实测。</td></tr>
-<tr><td>Build 是否可以直接用于保存前 validate？</td><td>可以复用，但现有 Build 会清空删除 dst 目录。工具内部只用唯一临时dst串行Build，绝不向用户已有目录试算；不借本任务重写原 build 行为。</td></tr>
-<tr><td>开 PR 是否意味着 git add 全目录？</td><td>不是。按实际候选变更文件暂存，拒绝不属于此次操作的已暂存文件；不 stash、不重置、也不提交用户的其他工作。</td></tr>
+<div class="table-wrap"><table><thead><tr><th scope="col">被质询的关键技术问题</th><th scope="col">结论与明确应对措施</th></tr></thead><tbody>
+<tr><td>为什么要删除 <code>mod list</code>？</td><td>CLI 专为 Agent 写入服务。全仓库模组列表会产生大量的无关 Token 消耗与上下文污染；单模组指定操作（<code>--mod &lt;id&gt;</code>）大幅提升 Agent 调用的确定性与执行速度。</td></tr>
+<tr><td>为什么 CLI 不内置大模型 API 来做一句话配色？</td><td>保持 CLI 的纯粹与轻量。CLI 作为核心基础设施，不应该绑定具体的云厂商 API Key 或模型网络推理，否则会带来凭据管理负担与网络脆弱性。由外部 Agent 负责推理，CLI 负责 Schema 校验与渲染，职责切分最合理。</td></tr>
+<tr><td>为什么图片主色不能直接当文字色？</td><td>高饱和度的品牌主色（如大红、亮金）作为背景很醒目，但直接用作 13px 正文字体时会导致严重视觉疲劳和对比度不达标。算法分离背景色与字色，保证 WCAG 可读性。</td></tr>
+<tr><td>没有 Desktop 改动，能否承诺最终效果完全一致？</td><td>不能。Desktop 基于 Webview2 与游戏宿主，Studio 是基于 CSS 变量的参考渲染器。两端不保证像素级一致，Studio 界面必须常驻警示标语，向 Modder 说明物理差异。</td></tr>
+<tr><td>Build 清空 dst 目录会不会破坏工作树？</td><td>不会。CLI 内部的所有验证与预览计算均使用独立的隔离临时目录（<code>Temp/preview-{guid}/</code>），不把工作树或源码目录当作构建 dst。</td></tr>
+<tr><td>一次修改多个源文件如何防止写坏？</td><td>采用“全量沙箱校验 → 外部冲突检测 → 内存候选改动 → 逐文件替换 → 失败恢复已写文件”的多重保护，任何步骤出错立即恢复原状，不留半成品文件。</td></tr>
 </tbody></table></div>
-<h3>PR 的权限边界与副作用防范</h3>
+<h3>PR 权限与副作用防范</h3>
 <ul>
-<li>本地仓库必须已有正确上游；解析 remote 时严格做到不泄露凭据，不打印含凭据的 URL。有写权限推当前工作分支；无权限通过 gh 建立或复用个人 fork，说明需要 Git 与 gh 的已有登录。</li>
-<li>base 默认取上游默认分支；不提交到默认分支，不强推。使用明确的 <code>--repo/--base/--head</code> 参数，阻止 gh 交互式意外 fork 或 push；目标与改动列表在 prepare 中可审查。</li>
+<li>本地仓库必须已有正确上游；解析 remote 时确保不泄露凭据，不打印含凭据的 URL。有写权限推当前工作分支；无权限通过 <code>gh</code> 建立或复用个人 fork，说明需要 Git 与 <code>gh</code> 的已有登录。</li>
+<li>base 默认取上游默认分支；不提交到默认分支，不强推。使用明确的 <code>--repo/--base/--head</code> 参数，阻止 <code>gh</code> 交互式意外 fork 或 push；目标与改动列表在 prepare 中可审查。</li>
 <li><a href="https://cli.github.com/manual/gh_pr_create">gh 官方文档</a>明确 <code>gh pr create --dry-run</code> 仍可能推送。CLI 的 prepare 与 dry-run 必须自行只读实现，不能直接透传这个选项。</li>
 <li>操作失败报告最后成功步骤及现存提交与分支；不自动删除远程分支或回退用户 Git 状态。再次创建前按 repo、head、base 查已有 PR；PR 明确授权，不做未经授权的重试发布。</li>
 </ul>
-<h3>写代码前需要落实的细节，不属于产品范围的变动</h3>
-<p>介绍字段与命令名、具体前端依赖版本及包的资源装配要在实现前完成契约检查；这些是拟定方案，工具还没有实现，本计划给出默认建议。公开分发的签名和下载渠道尚未在本轮指定，不配置凭据、不假定有发布权限。Desktop 的 DTO、宿主 Markdown 读取和展示页面是外部后续工作，先 Metadata，Desktop 后续独立，本轮不修改。</p>
 </section>
 <section id="references">
 <h2>参考文件来源与本轮调研证据</h2>
-<details><summary>查阅过的本地代码与文件列表</summary><div class="stack"><p><strong>Metadata 仓库：</strong><code>F:/RA3BattleNet/Metadata</code>。前面提到的所有相对代码路径都以这里为根目录；调研基线 <code>1307b48</code>。</p><p><strong>Desktop 客户端（只读参考）：</strong><code>F:/RA3BattleNet/Desktop</code>。重点为 <code>BattleShadcn/src/host/mod-style.ts</code>、<code>browser-preview.ts</code>、<code>components/ModDetailDialog.vue</code>、<code>views/RecentModPage.vue</code>，宿主 <code>Services/Mods/ModHostApi.cs</code>、<code>Models/HostWebDtos.cs</code> 和 <code>Services/MetadataSession.cs</code>。</p><p><strong>用户提供的旧版网页：</strong>用户指定的 <code>mod-style-Studio.html</code>，交互依据见 724–777 与 811–812 行；仅参考，不复制代码里混淆压缩的第三方库和示例图片。</p><p><strong>仓库现存的规范记录：</strong><code>.agents/notes/implemented/feature/2026-10-04-mod-style.md</code> 以及 <code>2026-10-04-metadata-schema-version.md</code>。前者历史 2.0 决定已被后者替换；本计划严格遵守现行规定，不恢复旧协议版本或旧控件别名。</p></div></details>
+<details><summary>查阅过的本地代码与文件列表</summary><div class="stack"><p><strong>Metadata 仓库：</strong><code>F:/RA3BattleNet/Metadata</code>。前面提到的所有相对代码路径都以这里为根目录；调研基线 <code>1307b48</code>。</p><p><strong>Desktop 客户端（只读参考）：</strong><code>F:/RA3BattleNet/Desktop</code>。重点为 <code>BattleShadcn/src/host/mod-style.ts</code>、<code>browser-preview.ts</code>、<code>contracts.ts</code>、<code>components/ModDetailDialog.vue</code>、<code>views/RecentModPage.vue</code>，宿主 <code>Services/Mods/ModHostApi.cs</code>、<code>Models/HostWebDtos.cs</code> 和 <code>Services/MetadataSession.cs</code>。</p><p><strong>用户提供的旧版网页：</strong>用户指定的 <code>mod-style-Studio.html</code>（实际来源：<code>D:/OneDrive - bakneko/桌面/战网App/mod-style-Studio.html</code>）；交互依据见 724–777 与 811–812 行；仅参考其表单设计与三态切换，不复制代码里混淆压缩的第三方库和示例新闻。</p><p><strong>仓库现存的规范记录：</strong><code>.agents/notes/implemented/feature/2026-10-04-mod-style.md</code> 等；确认了颜色代码、图片路径与多层 Include 的历史演进约束。</p></div></details>
 <p>上面提到的旧版网页实际来源是用户提供的 <code>D:/OneDrive - bakneko/桌面/战网App/mod-style-Studio.html</code>，已直接读取；它不在 Metadata 或 Desktop 仓库内。本 HTML 是按用户指定格式交付的可读计划，不属于现有 Markdown Agent Note 的解析输入；未来实施记录仍沿用仓库的 Markdown 格式。</p>
 <ul>
+<li><a href="https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html">W3C WCAG 2.1 对比度标准（Contrast Minimum）</a>：定义常规文字 4.5:1 与大文字 3.0:1 的相对亮度（Relative Luminance）测算规则。</li>
 <li><a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/servers/kestrel/endpoints?view=aspnetcore-10.0">ASP.NET Core Kestrel 端点与动态端口</a>：查询微软官方文档确认端口 0 与 ListenLocalhost 限制。</li>
 <li><a href="https://marked.js.org/">Marked 官方说明</a>：Markdown 编译器不净化 HTML，预览必须另做安全过滤净化。</li>
 <li><a href="https://cli.github.com/manual/gh_pr_create">GitHub CLI · gh pr create</a>：明确了显式 head、fork 行为和 dry-run 副作用。</li>
-<li><a href="https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools">.NET tools 官方说明</a>：普通 NuGet 库并不等于已可安装 CLI。本计划采用先交付自包含包的建议，不把现有 PackageId 当作工具安装证明。</li>
+<li><a href="https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools">.NET tools 官方说明</a>：普通 NuGet 库并不等于已可安装 CLI。本计划采用交付单文件自包含包的方案，不把现有 PackageId 当作工具安装证明。</li>
 </ul>
-<p>本轮执行了现有 CLI help、相关提交与文件映射查证；新闻/DLL注入排除，没有执行新命令，没有修改 Desktop，没有声称新功能测试通过。按用户要求只生成 HTML，不打开浏览器运行；宽窄屏视觉效果未经浏览器验证。功能验收项属于后续实现要求，这些是拟定方案，工具还没有实现。</p>
+<p>本轮执行了现有 CLI 源码与 help、相关提交、模板文件、样式与颜色转换逻辑的严格代码查证；删除了原计划中的 <code>mod list</code> 相关内容；没有执行新命令，没有修改 Desktop，没有声称新功能测试通过。按用户要求只更新原 HTML 计划文件，不打开浏览器运行；功能验收项属于后续实现要求，这些是拟定方案，工具还没有实现。</p>
 </section>
-<footer><p>结构解释：将用户列出的功能按真实依赖分为六个实施阶段；介绍用 Markdown 不借新闻，agent主要入口+内置Web可视化共用底层读写服务；术语与取舍直接记录在此单文件，不另建未经请求的 ADR、术语文档或实现脚手架。</p><p>工作树：<code>F:/worktrees/Metadata/cli</code>；交付仅此 HTML 计划。不存在承诺日期或完成进度。</p></footer>
+<footer><p>结构解释：落实以 Skill 优先、面向单模组的 Agent CLI 与本地可视化工作流。涵盖一句话启动、单模组创建向导、确定性取色与一句话配色、Kestrel 单模组 Studio、验证后逐文件替换与失败恢复机制、受控 PR。术语与取舍直接记录在此单文件，不另建未经请求的文档或脚手架。</p><p>工作树：<code>F:/worktrees/Metadata/cli</code>；交付仅此 HTML 计划。不存在承诺日期或完成进度。</p></footer>
 </main>
 </div>
 <script>
