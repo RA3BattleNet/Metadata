@@ -89,7 +89,9 @@
 &lt;/Metadata&gt;</code></pre>
 <p class="muted">上面是介绍字段的最小合法结构示意，不是可安装版本示例；不包含占位 Manifest。</p>
 <ul>
-<li>同步更新源/发布 XSD、<code>IsTextReference</code>、Build 的 Markdown 引用校验、继承字段顺序、模板与用法文档。拒绝重复语言（大小写不敏感）、空语言/引用、不存在的 ID、Image/Manifest 类型误用。</li>
+<li>同步更新源/发布 XSD 与 <code>IsTextReference</code>。在 <code>ValidateHard</code> 新增仅包含 Markdown 登记的 <code>markdownIds</code> 索引校验 Introduction，不能使用混合 Image/Markdown/Manifest 的 <code>idIndex</code>。空语言/引用、不存在的 ID、Image/Manifest 类型误用必须失败。</li>
+<li>XSD 表达结构与“容器出现则至少一项”；大小写不敏感的语言去重在 <code>ValidateHard</code> 实现，不能只依赖大小写敏感的 <code>xs:unique</code>。将 Introductions 明确加入 <code>MetadataInheritance.ModChildOrder</code> 的 DisplayName 与 Style 之间，并保证只取当前 Mod 的介绍；否则继承合并可能把节点追加到错误位置。</li>
+<li>介绍契约同步更新模板、<code>README.md</code> 和作为贡献者入口的 <code>AGENTS.md</code>；这些是未来实施改动，本轮不修改。</li>
 <li>沿用 <code>SchemaVersion=1.0</code> 的现有政策，明确旧客户端忽略介绍不等于已支持介绍。Library 提供 Mod 介绍枚举/精确语言查询；预览精确匹配，未命中取 XML 第一项，并显示所选语言。Desktop 后续消费应明确采用同一规则。</li>
 <li>无介绍就不写该节点；不强制制造英译，不从正文自动截取简介。现有 Mod 无需批量填空介绍。</li>
 <li>Markdown 的相对图片路径以该 Markdown 文件目录为基准。资源图片登记为 Image，Build 扩充介绍资源复制/路径校验：本地引用必须命中登记资源且在模块内；复制后路径保持可解析。避免源文件里能看、发布目录里丢图。HTTP/HTTPS 外链不自动下载；预览默认提示并由用户允许加载。</li>
@@ -119,7 +121,7 @@
 </tbody></table></div>
 <div class="note"><strong>agent 的机器契约</strong><p>JSON 单个响应建议包含 <code>ok</code>、<code>command</code>、<code>modId</code>、<code>changedFiles</code>、<code>diff</code>、<code>diagnostics</code>；诊断有 <code>code/file/node/message</code>，可获得时补 line/column。stdout 只放 JSON，日志走 stderr。帮助与输入 JSON schema 随工具发布。</p><p>退出码建议：0 成功；2 命令/输入错误；3 数据校验失败；4 外部改动冲突；5 Git/GitHub 操作失败。非交互场景缺信息立即报错，不挂起等输入。dry-run 给出相同候选差异和完整校验结果，但不修改仓库、Git index 或远程。</p></div>
 <h3>版本导入的具体边界</h3>
-<p>先完整校验清单 HashAlgorithm、真实文件哈希、Source 与 Skudef 挂载引用，不重算、不重命名内部 FileName，不改变加载顺序。相同版本/目标路径已存在时拒绝覆盖；重复执行同样导入可报告无变化，但不能创建重复 Package 或 Include。默认每次导入保留历史；更改 CurrentVersion 必须指向现存的有效版本，版本字符串不擅自按 SemVer 排序。</p>
+<p>先完整校验清单 HashAlgorithm、真实文件哈希、Source 与 Skudef 挂载引用，不重算、不重命名内部 FileName，不改变加载顺序。导入前检查该 Mod 的 Include 作用域内 Manifest 短 ID 唯一，重名时列出冲突叶子文件；避免 Package 的短引用变得歧义。相同版本/目标路径已存在时拒绝覆盖；重复执行同样导入可报告无变化，但不能创建重复 Package 或 Include。默认每次导入保留历史；更改 CurrentVersion 必须指向现存的有效版本，版本字符串不擅自按 SemVer 排序。</p>
 </section>
 <section id="studio">
 <h2>内置 Web Studio</h2>
@@ -134,11 +136,12 @@
 </tbody></table></div>
 <h3>渲染真实性</h3>
 <ul>
-<li>有效数据由 C# Build/Load 得到；颜色转换复用 <code>MetadataColor.ToCss</code>，后端不补主题值。Web 使用 Desktop 当前样式映射规则作参考，保留来源版本记录，不直接导入 Desktop 工程。</li>
+<li>有效数据由 C# Build/Load 得到；颜色只在服务端经 <code>MetadataColor.ToCss</code> 转换一次，Web 不另做 ARGB 转换，后端不补主题值。布局/状态映射是 Studio 自有实现，语义基线为 Desktop <code>mod-style.ts:13–47</code>；记录来源版本，以相同状态/布局场景检查漂移，不直接导入 Desktop 工程。</li>
 <li>预览明确显示“Metadata Studio 参考渲染；Desktop 的介绍渲染尚未接入”。当前页框架、磨砂、卡片间距属于 Studio 主题，不能成为 XML 配置字段。</li>
 <li>提供浅/深主题、桌面/窄宽、按钮真实交互/强制三态、背景切换；以真实名称和介绍检查，不从旧 Studio 拷贝演示文章。</li>
 <li>本地资源通过专用 asset route 使用资源 ID 映射到许可文件，不开放任意路径读取。外链默认不加载；点击链接在用户确认后打开 HTTP/HTTPS 外部浏览器。</li>
 </ul>
+<p>预览构建使用每次请求唯一的临时 dst，同一会话串行 Build；成功后才替换当前预览快照。Build 校验整棵源树，无关 Mod 的错误也会阻塞预览，必须展示真实失败文件，不能绕过该校验。Markdown 引用与文件校验明确扩展 <code>ValidateHard</code>，不将未参与 Build 的旧校验辅助代码当作现成入口。</p>
 <h3>宿主、依赖与安全</h3>
 <p>建议增加独立 <code>Ra3.BattleNet.Metadata.Studio</code> 可执行项目：引用主项目中的纯 managed 编辑服务，使用 ASP.NET Core/Kestrel 承载内嵌构建后的 Web 资源。原 NuGet 解析包不引用 ASP.NET Core、Vue 或 SkiaSharp；原 CLI 的 <code>studio</code> 子命令启动随安装包交付的 Studio 进程。开发环境用 .NET 10，前端建议 Vue 3，与参考工具/客户端一致；具体依赖版本在实施时按锁文件和官方文档确定。</p>
 <ul>
@@ -212,6 +215,7 @@
 <section id="references">
 <h2>参考来源与本轮证据</h2>
 <details><summary>仓库与本地参考清单</summary><div class="stack"><p><strong>Metadata：</strong><code>F:/RA3BattleNet/Metadata</code>。上文引用路径以此为根；调研基线 <code>1307b48</code>。</p><p><strong>Desktop（只读参考）：</strong><code>F:/RA3BattleNet/Desktop</code>。重点为 <code>BattleShadcn/src/host/mod-style.ts</code>、<code>browser-preview.ts</code>、<code>components/ModDetailDialog.vue</code>、<code>views/RecentModPage.vue</code>，宿主 <code>Services/Mods/ModHostApi.cs</code>、<code>Models/HostWebDtos.cs</code> 和 <code>Services/MetadataSession.cs</code>。</p><p><strong>旧工具：</strong>用户指定的 <code>mod-style-Studio.html</code>，交互依据见 724–777 / 811–812 行；仅参考，不复制依赖与示例图片。</p><p><strong>现有规范：</strong><code>.agents/notes/implemented/feature/2026-10-04-mod-style.md</code> 以及 <code>2026-10-04-metadata-schema-version.md</code>。前者历史 2.0 决定已被后者替换；本计划不恢复旧协议版本或旧控件别名。</p></div></details>
+<p>旧 Studio 的实际来源是用户提供的 <code>D:/OneDrive - bakneko/桌面/战网App/mod-style-Studio.html</code>，已直接读取；它不在 Metadata 或 Desktop 仓库内。本 HTML 是按用户指定格式交付的可读计划，不属于现有 Markdown Agent Note 的解析输入；未来实施记录仍沿用仓库的 Markdown 格式。</p>
 <ul>
 <li><a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/servers/kestrel/endpoints?view=aspnetcore-10.0">ASP.NET Core Kestrel 端点与动态端口</a>：Context7 官方文档查询确认端口 0 与 ListenLocalhost 限制。</li>
 <li><a href="https://marked.js.org/">Marked 官方说明</a>：Markdown 编译器不净化 HTML，预览必须另做净化。</li>
