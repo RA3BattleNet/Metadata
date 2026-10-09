@@ -21,8 +21,8 @@
     <Mod ID="Corona">
         <CurrentVersion>3.258</CurrentVersion>
         <Icon>corona-icon-128px</Icon>
-        <DisplayName Language="zh-CN">日冕</DisplayName>
-        <DisplayName Language="en-US">Corona</DisplayName>
+        <DisplayName Language="zh">日冕</DisplayName>
+        <DisplayName Language="en">Corona</DisplayName>
         <Style>
             <Logo Width="400" Position="Center" OffsetX="0" OffsetY="0">corona-banner</Logo>
             <Controls>
@@ -78,38 +78,38 @@
         <Posts>
             <Post DateTime="2026-07-12T00:00:00+08:00">
                 <Titles>
-                    <Title Language="zh-CN">3.256 版本更新说明</Title>
+                    <Title Language="zh">3.256 版本更新说明</Title>
                 </Titles>
                 <Descriptions>
-                    <Description Language="zh-CN">作为对3.255版本的补充更新，我们进行了多项BUG修复。</Description>
+                    <Description Language="zh">作为对3.255版本的补充更新，我们进行了多项BUG修复。</Description>
                 </Descriptions>
                 <HeadImage>headimg-325x</HeadImage>
                 <Contents>
-                    <Content Language="zh-CN">news-zh-3.256</Content>
+                    <Content Language="zh">news-zh-3.256</Content>
                 </Contents>
             </Post>
             <Post DateTime="2026-06-22T00:00:00+08:00">
                 <Titles>
-                    <Title Language="zh-CN">3.255 版本更新说明</Title>
+                    <Title Language="zh">3.255 版本更新说明</Title>
                 </Titles>
                 <Descriptions>
-                    <Description Language="zh-CN">我们进行了多项拓展模式更新、BUG修复和平衡改动。</Description>
+                    <Description Language="zh">我们进行了多项拓展模式更新、BUG修复和平衡改动。</Description>
                 </Descriptions>
                 <HeadImage>headimg-325x</HeadImage>
                 <Contents>
-                    <Content Language="zh-CN">news-zh-3.255</Content>
+                    <Content Language="zh">news-zh-3.255</Content>
                 </Contents>
             </Post>
             <Post DateTime="2026-06-08T00:00:00+08:00">
                 <Titles>
-                    <Title Language="zh-CN">3.253 版本更新说明</Title>
+                    <Title Language="zh">3.253 版本更新说明</Title>
                 </Titles>
                 <Descriptions>
-                    <Description Language="zh-CN">作为对3.252版本的补充更新，我们进行了多项BUG修复和平衡改动。</Description>
+                    <Description Language="zh">作为对3.252版本的补充更新，我们进行了多项BUG修复和平衡改动。</Description>
                 </Descriptions>
                 <HeadImage>headimg-325x</HeadImage>
                 <Contents>
-                    <Content Language="zh-CN">news-zh-3.253</Content>
+                    <Content Language="zh">news-zh-3.253</Content>
                 </Contents>
             </Post>
         </Posts>

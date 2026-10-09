@@ -450,10 +450,8 @@ public static class MetadataBuilder
     }
 
     /// <summary>
-    /// 实体显示名硬校验：Mod 与 Application 都必须声明 <c>zh-CN</c> 与 <c>en-US</c> 两条显示名
-    /// （完整语言标签精确匹配，比较不区分大小写，大小写变体如 <c>Zh-Cn</c> 也算），
-    /// 完整语言标签不许重复（不区分大小写），语言与文本都不能为空白；允许再声明其它语言。
-    /// 显示名属于实体自身，不从 Base 继承——校验针对合并后的节点。
+    /// 检查实体显示名：Mod 和 Application 必须写齐 zh 和 en 两个显示名（不区分大小写，像 Zh 也认）。
+    /// 不能写重复的语言，语言和名字都不能留空。自己有就用自己的，不从 Base 继承。
     /// </summary>
     private static void ValidateEntityDisplayNames(Metadata entity, List<string> errors)
     {
@@ -476,10 +474,10 @@ public static class MetadataBuilder
                 errors.Add($"{name}: DisplayName（{language ?? "?"}）文本不能为空");
         }
 
-        if (!languages.Contains("zh-CN"))
-            errors.Add($"{name}: 缺少 zh-CN DisplayName");
-        if (!languages.Contains("en-US"))
-            errors.Add($"{name}: 缺少 en-US DisplayName");
+        if (!languages.Contains("zh"))
+            errors.Add($"{name}: 缺少 zh DisplayName");
+        if (!languages.Contains("en"))
+            errors.Add($"{name}: 缺少 en DisplayName");
     }
 
     private static void ValidateIdRef(string? id, string kind, HashSet<string> idIndex, List<string> errors)

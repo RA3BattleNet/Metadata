@@ -111,62 +111,62 @@ public class QueryApiTests
   <Markdown ID="bare-en" Source="bare-en.md"/>
   <Mod ID="PackageOnly">
     <CurrentVersion>9.0</CurrentVersion>
-    <DisplayName Language="zh-CN">仅版本包</DisplayName>
-    <DisplayName Language="en-US">Package Only</DisplayName>
+    <DisplayName Language="zh">仅版本包</DisplayName>
+    <DisplayName Language="en">Package Only</DisplayName>
     <Packages>
       <Package Version="9.0" />
     </Packages>
   </Mod>
   <Application ID="NewsOnly">
-    <DisplayName Language="zh-CN">仅新闻</DisplayName>
-    <DisplayName Language="en-US">News Only</DisplayName>
+    <DisplayName Language="zh">仅新闻</DisplayName>
+    <DisplayName Language="en">News Only</DisplayName>
     <Posts>
       <Post DateTime="2026-10-02T00:00:00+08:00">
         <Titles>
-          <Title Language="zh-CN">独立新闻</Title>
-          <Title Language="en-US">Standalone news</Title>
+          <Title Language="zh">独立新闻</Title>
+          <Title Language="en">Standalone news</Title>
         </Titles>
         <Descriptions>
-          <Description Language="zh-CN">中文简介。</Description>
-          <Description Language="en-US">English blurb.</Description>
+          <Description Language="zh">中文简介。</Description>
+          <Description Language="en">English blurb.</Description>
         </Descriptions>
         <Contents>
-          <Content Language="zh-CN">news-only-zh</Content>
-          <Content Language="en-US">news-only-en</Content>
+          <Content Language="zh">news-only-zh</Content>
+          <Content Language="en">news-only-en</Content>
         </Contents>
       </Post>
     </Posts>
   </Application>
   <Application ID="Mixed">
     <Version>9.0</Version>
-    <DisplayName Language="zh-CN">混合</DisplayName>
-    <DisplayName Language="en-US">Mixed</DisplayName>
+    <DisplayName Language="zh">混合</DisplayName>
+    <DisplayName Language="en">Mixed</DisplayName>
     <Packages>
       <Package Version="9.0" />
     </Packages>
     <Posts>
       <Post DateTime="2026-01-01T00:00:00+08:00">
         <Titles>
-          <Title Language="zh-CN">版本说明</Title>
-          <Title Language="en-US">Update 1.0</Title>
+          <Title Language="zh">版本说明</Title>
+          <Title Language="en">Update 1.0</Title>
         </Titles>
         <Descriptions>
-          <Description Language="zh-CN">有简介。</Description>
-          <Description Language="en-US">Has a blurb.</Description>
+          <Description Language="zh">有简介。</Description>
+          <Description Language="en">Has a blurb.</Description>
         </Descriptions>
         <Contents>
-          <Content Language="zh-CN">mixed-zh</Content>
-          <Content Language="en-US">mixed-en</Content>
+          <Content Language="zh">mixed-zh</Content>
+          <Content Language="en">mixed-en</Content>
         </Contents>
       </Post>
       <Post DateTime="2026-02-02T00:00:00+08:00">
         <Titles>
-          <Title Language="zh-CN">无简介</Title>
-          <Title Language="en-US">No blurb</Title>
+          <Title Language="zh">无简介</Title>
+          <Title Language="en">No blurb</Title>
         </Titles>
         <Contents>
-          <Content Language="zh-CN">bare-zh</Content>
-          <Content Language="en-US">bare-en</Content>
+          <Content Language="zh">bare-zh</Content>
+          <Content Language="en">bare-en</Content>
         </Contents>
       </Post>
     </Posts>
@@ -190,8 +190,8 @@ public class QueryApiTests
             newsOnly.Packages.Should().BeEmpty();
             var newsPost = newsOnly.Raw.Find("Posts")!.Children.Where(c => c.Name == "Post").Should().ContainSingle().Which;
             newsPost.GetAllElements("Description").Select(d => d.Value).Should().Equal("中文简介。", "English blurb.");
-            AssertPublishedBody(loaded, dst, ContentId(newsPost, "zh-CN"), newsZh);
-            AssertPublishedBody(loaded, dst, ContentId(newsPost, "en-US"), newsEn);
+            AssertPublishedBody(loaded, dst, ContentId(newsPost, "zh"), newsZh);
+            AssertPublishedBody(loaded, dst, ContentId(newsPost, "en"), newsEn);
 
             var mixed = loaded.Catalog().Application("Mixed")!;
             mixed.Version.Should().Be("9.0");
@@ -203,10 +203,10 @@ public class QueryApiTests
             described.Find("Descriptions").Should().NotBeNull();
             var bare = posts.Single(p => p.Find("Descriptions") == null);
             bare.GetAllElements("Description").Should().BeEmpty();
-            AssertPublishedBody(loaded, dst, ContentId(described, "zh-CN"), mixedZh);
-            AssertPublishedBody(loaded, dst, ContentId(described, "en-US"), mixedEn);
-            AssertPublishedBody(loaded, dst, ContentId(bare, "zh-CN"), bareZh);
-            AssertPublishedBody(loaded, dst, ContentId(bare, "en-US"), bareEn);
+            AssertPublishedBody(loaded, dst, ContentId(described, "zh"), mixedZh);
+            AssertPublishedBody(loaded, dst, ContentId(described, "en"), mixedEn);
+            AssertPublishedBody(loaded, dst, ContentId(bare, "zh"), bareZh);
+            AssertPublishedBody(loaded, dst, ContentId(bare, "en"), bareEn);
         }
         finally
         {

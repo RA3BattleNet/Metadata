@@ -10,8 +10,8 @@
 
     <Application ID="RA3BattleNet">
         <Version>1.9.9.12</Version>
-        <DisplayName Language="zh-CN">红色警戒3战网服务</DisplayName>
-        <DisplayName Language="en-US">Ra3BattleNet</DisplayName>
+        <DisplayName Language="zh">红色警戒3战网服务</DisplayName>
+        <DisplayName Language="en">Ra3BattleNet</DisplayName>
         <TransferAd>true</TransferAd>
         <Packages>
             <Package Version="1.9.9.12">
@@ -26,16 +26,16 @@
         <Posts>
             <Post DateTime="2026-10-02T00:00:00+08:00">
                 <Titles>
-                    <Title Language="zh-CN">版本更新 1.9.9.11</Title>
-                    <Title Language="en-US">Update 1.9.9.11</Title>
+                    <Title Language="zh">版本更新 1.9.9.11</Title>
+                    <Title Language="en">Update 1.9.9.11</Title>
                 </Titles>
                 <Descriptions>
-                    <Description Language="zh-CN">初版测试。</Description>
-                    <Description Language="en-US">Initial test.</Description>
+                    <Description Language="zh">初版测试。</Description>
+                    <Description Language="en">Initial test.</Description>
                 </Descriptions>
                 <Contents>
-                    <Content Language="zh-CN">news-zh-1.9.9.11</Content>
-                    <Content Language="en-US">news-en-1.9.9.11</Content>
+                    <Content Language="zh">news-zh-1.9.9.11</Content>
+                    <Content Language="en">news-en-1.9.9.11</Content>
                 </Contents>
             </Post>
         </Posts>

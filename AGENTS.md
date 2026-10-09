@@ -39,7 +39,7 @@ bash build.sh --webp
    `<Include Source="<你的Mod英文名>/<你的Mod英文名>.xml" />`
 5. 运行自检命令（见下文「提交前自检」），检查有没有格式错误。
 
-如果要添加 Application（比如战网客户端自身或者游戏运行资源），流程完全一样，只是把目录换成 `apps/<应用名>/`，并挂载到 `apps/apps.xml` 里。无论 Mod 还是 Application，都别忘了把模板里 `zh-CN` 与 `en-US` 两条显示名改成真实产品名（详见下文说明）。
+如果要添加 Application（比如战网客户端自身或者游戏运行资源），流程完全一样，只是把目录换成 `apps/<应用名>/`，并挂载到 `apps/apps.xml` 里。无论 Mod 还是 Application，都别忘了把模板里 `zh` 与 `en` 两条显示名改成真实产品名（详见下文说明）。
 
 ## 必须遵守的三条铁律（剩下的繁琐杂活全部交给构建器处理）
 
@@ -77,8 +77,8 @@ Metadata/
   <Mod ID="Corona">                              <!-- 实体 ID：在整个仓库里必须是唯一的 -->
     <CurrentVersion>3.229</CurrentVersion>
     <Icon>icon-64px</Icon>                       <!-- 引用上面登记的资源，直接写短名 -->
-    <DisplayName Language="zh-CN">日冕</DisplayName>   <!-- 必填：zh-CN 与 en-US 两条都要写，可再补其它语言 -->
-    <DisplayName Language="en-US">Corona</DisplayName>
+    <DisplayName Language="zh">日冕</DisplayName>   <!-- 必填：zh 与 en 两条都要写，可再补其它语言 -->
+    <DisplayName Language="en">Corona</DisplayName>
     <Style>
       <Logo Width="400" Height="80">icon-64px</Logo>
       <Controls>
@@ -101,17 +101,17 @@ Metadata/
     <Posts>                                    <!-- 新闻属于本 Mod，不挂在 Package 上，也不从 Base 继承 -->
       <Post DateTime="2025-04-01T00:00:00+08:00">
         <Titles>
-          <Title Language="zh-CN">版本更新 3.229</Title>
-          <Title Language="en-US">Update 3.229</Title>
+          <Title Language="zh">版本更新 3.229</Title>
+          <Title Language="en">Update 3.229</Title>
         </Titles>
         <Descriptions>                         <!-- 可选；没有简介就省略整个 Descriptions，不要写空标签 -->
-          <Description Language="zh-CN">简短介绍。</Description>
-          <Description Language="en-US">Short summary.</Description>
+          <Description Language="zh">简短介绍。</Description>
+          <Description Language="en">Short summary.</Description>
         </Descriptions>
         <HeadImage>icon-64px</HeadImage>       <!-- 可选：已登记图片的短 ID，作为新闻封面；没有就省略整个 HeadImage -->
         <Contents>
-          <Content Language="zh-CN">news-zh-3229</Content>
-          <Content Language="en-US">news-en-3229</Content>
+          <Content Language="zh">news-zh-3229</Content>
+          <Content Language="en">news-en-3229</Content>
         </Contents>
       </Post>
     </Posts>
@@ -138,8 +138,8 @@ Metadata/
 
 - 版本包只保留 `Version`、可选 `ReleaseDate` 和可选 `Manifest`。不要再写 `Changelogs`；更新说明全部放进该实体自己的 `Posts`。Application 同样只在自身节点写 `Posts`，不能写 `Links`。Base 不能定义 `Posts` 或 `Links`，新闻和友情链接都不继承。没有文章时写 `<Posts/>`，不要编造新闻，也不要做跨实体公共列表。
 - `Post` 顺序固定为 `Titles`、可选 `Descriptions`、可选 `HeadImage`、`Contents`。正文继续引用已登记的 Markdown 短 ID，外跳链接写在 Markdown 里，不要给 Post 加 `Url` 或 `Version`。介绍可省略，构建器不会从正文截取。`HeadImage` 是新闻可选封面，填已登记图片短 ID（引用 Markdown／Manifest 或写不存在的 ID 都会被构建器硬失败拦截），省略即无封面。
-- `Link@Url` 只能是 HTTP／HTTPS，必须有非空主机且不能含空白。`Languages` 省略表示所有语言可见；写成空白分隔列表（如 `zh en-US`），不能是空字符串。比较不区分大小写：`zh`／`en` 匹配该语言族及所有地区变体，`zh-CN` 只精确匹配 `zh-CN`，`en` 不会匹配到 `english`。展示名优先取与客户端语言精确匹配的 `DisplayName`，否则取 XML 里的第一条，不按语言族回退名称。同一条链接内不要重复同一语言标签。省略 `Icon` 时客户端用通用外链图标。
-- `Mod` 与 `Application` 都必须有显示名：重复的 `<DisplayName Language="…">文本</DisplayName>`，其中 `zh-CN` 与 `en-US` 两条必须各写一条（完整语言标签精确匹配，比较不区分大小写），完整语言标签不区分大小写且同实体不能重复，文本不能为空，可再补其它语言。显示名属于实体自身，不从 `Base` 继承（Base 也不允许写 `DisplayName`）。
+- `Link@Url` 只能是 HTTP／HTTPS，必须有非空主机且不能含空白。`Languages` 省略表示所有语言可见；写成空白分隔列表（如 `zh en`），不能是空字符串。比较走 `LanguageTag.Matches`，不区分大小写：数据侧只写 `zh`／`en`，查询带地区时按语言族比（`zh-CN` 按 `zh`，`en-US` 按 `en`），`en` 不会匹配到 `english`；反向不成立，查询 `zh` 不会命中 `zh-CN`。展示名由客户端用 `LanguageTag.Select` 取该语言下的第一条。同一条链接内不要重复同一语言标签。省略 `Icon` 时客户端用通用外链图标。
+- `Mod` 与 `Application` 都必须有显示名：重复的 `<DisplayName Language="…">文本</DisplayName>`，其中 `zh` 与 `en` 两条必须各写一条（完整语言标签精确匹配，比较不区分大小写），完整语言标签不区分大小写且同实体不能重复，文本不能为空，可再补其它语言。显示名属于实体自身，不从 `Base` 继承（Base 也不允许写 `DisplayName`）。
 - 元数据协议版本保持 `1.0`。这不表示旧的 `Package.Changelogs` 或 `ChangelogSource` 仍可用：二者已从模式和解析库删除，没有兼容包装。客户端用实体的 `Raw.Find("Posts")` 读取新闻，用 Mod 的 `Raw.Find("Links")` 读取友情链接；库不提供这两类节点的强类型查询，也不负责执行语言筛选。
 
 ## 安装清单（Manifest）的两种写法（两种都合法，文件表都不会塞进大总表里）
@@ -196,6 +196,6 @@ dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Ou
 
 错误: Image 资源不存在: images/nope.png (ID: ...)
 
-错误: Mod 'Demo': 缺少 en-US DisplayName
-错误: Application 'RA3BattleNet': DisplayName Language 重复: zh-CN
+错误: Mod 'Demo': 缺少 en DisplayName
+错误: Application 'RA3BattleNet': DisplayName Language 重复: zh
 ```

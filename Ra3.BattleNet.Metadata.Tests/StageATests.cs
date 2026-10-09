@@ -72,7 +72,7 @@ public class StageATests
                 .Single(a => a.Attribute("ID")!.Value == "RA3BattleNet")
                 .Element("Posts")!
                 .Elements("Post").Elements("Contents").Elements("Content")
-                .Single(c => string.Equals((string?)c.Attribute("Language"), "zh-CN", StringComparison.OrdinalIgnoreCase))
+                .Single(c => string.Equals((string?)c.Attribute("Language"), "zh", StringComparison.OrdinalIgnoreCase))
                 .Value.Trim();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var pending = new Queue<string>();
@@ -106,7 +106,7 @@ public class StageATests
                 registration!.Attribute("Source")!.Value)));
             var publishedContentId = app.Raw.Find("Posts")!
                 .GetAllElements("Content")
-                .Single(c => string.Equals(c.Get("Language"), "zh-CN", StringComparison.OrdinalIgnoreCase))
+                .Single(c => string.Equals(c.Get("Language"), "zh", StringComparison.OrdinalIgnoreCase))
                 .Value!;
             MetadataFlattener.LocalId(publishedContentId).Should().Be(localContentId);
             var markdown = loaded.Markdowns().Single(m => m.Id == publishedContentId);
@@ -203,8 +203,8 @@ public class StageATests
   <Markdown ID="ok-md" Source="note.md"/>
   <Application ID="App">
     <Version>1.0</Version>
-    <DisplayName Language="zh-CN">应用</DisplayName>
-    <DisplayName Language="en-US">App</DisplayName>
+    <DisplayName Language="zh">应用</DisplayName>
+    <DisplayName Language="en">App</DisplayName>
     <Packages>
       <Package Version="1.0">
         <Manifest>no-such-manifest</Manifest>

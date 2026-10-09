@@ -70,8 +70,8 @@ public class StyleResourceTests
   </Includes>
   <Mod ID="Demo" InheritFrom="Theme">
     <CurrentVersion>1</CurrentVersion>
-    <DisplayName Language="zh-CN">演示</DisplayName>
-    <DisplayName Language="en-US">Demo</DisplayName>
+    <DisplayName Language="zh">演示</DisplayName>
+    <DisplayName Language="en">Demo</DisplayName>
   </Mod>
 </Metadata>
 """);
@@ -178,10 +178,10 @@ public class StyleResourceTests
     <Posts>
       <Post DateTime="2026-01-01T00:00:00">
         <Titles>
-          <Title Language="zh-CN">公告</Title>
+          <Title Language="zh">公告</Title>
         </Titles>
         <Contents>
-          <Content Language="zh-CN">decoy</Content>
+          <Content Language="zh">decoy</Content>
         </Contents>
       </Post>
     </Posts>
@@ -197,8 +197,8 @@ public class StyleResourceTests
   <Image ID="decoy" Url="https://example.com/decoy.png" />
   <Mod ID="Demo">
     <CurrentVersion>1.0</CurrentVersion>
-    <DisplayName Language="zh-CN">演示</DisplayName>
-    <DisplayName Language="en-US">Demo</DisplayName>
+    <DisplayName Language="zh">演示</DisplayName>
+    <DisplayName Language="en">Demo</DisplayName>
     <Style>
       <Logo Width="400" Height="80">{logoRef}</Logo>
       <Background Random="false">

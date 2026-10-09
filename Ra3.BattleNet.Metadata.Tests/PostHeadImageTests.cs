@@ -104,15 +104,15 @@ public class PostHeadImageTests
   <Markdown ID="news" Source="news.md" />
   <Mod ID="Demo">
     <CurrentVersion>1.0</CurrentVersion>
-    <DisplayName Language="zh-CN">演示模组</DisplayName>
-    <DisplayName Language="en-US">Demo</DisplayName>
+    <DisplayName Language="zh">演示模组</DisplayName>
+    <DisplayName Language="en">Demo</DisplayName>
     <Posts>
       <Post DateTime="2026-01-01T00:00:00">
         <Titles>
-          <Title Language="zh-CN">公告</Title>
+          <Title Language="zh">公告</Title>
         </Titles>
 {before}        <Contents>
-          <Content Language="zh-CN">news</Content>
+          <Content Language="zh">news</Content>
         </Contents>
 {after}      </Post>
     </Posts>
