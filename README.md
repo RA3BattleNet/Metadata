@@ -96,7 +96,7 @@ var plan = ManifestMountPlanner.Build(
 <cacheDir>/.sources/<scheme>/<host_port>/<path>     其他发布基的正文（小写 host；非默认端口写成 host_port）
 ```
 
-同目录还有 `.etag`（ETag、Last-Modified、规范化 URI、正文 SHA256）、`.uri`（该磁盘路径一次成型的归属地址）和写入过程中的 `.tmp`。`.tmp` 不当缓存读。校验器缺失或与正文摘要不一致时，正文仍可离线使用，下一次读取是无条件 GET；但同一磁盘路径一旦被另一个地址占用（`Apps/x.xml` 与 `apps/x.xml` 在 Windows 上就是这种情况），正文既不会被误读，也不会被覆盖——即使 `.etag` 被删掉，`.uri` 仍保留归属。`SchemaVersion` 与 `MetadataSchema.IsCompatible` 不一致时不覆盖已有正文。
+同目录还有 `.etag`（ETag、Last-Modified、规范化 URI、正文 SHA256）、`.uri`（该磁盘路径一次成型的归属地址）和写入过程中的 `.tmp`。`.tmp` 不当缓存读。校验器缺失或与正文摘要不一致时，正文仍可离线使用；下一次显式 XML 刷新才是无条件 GET。同一磁盘路径一旦被另一个地址占用（`Apps/x.xml` 与 `apps/x.xml` 在 Windows 上就是这种情况），正文既不会被误读，也不会被覆盖——即使 `.etag` 被删掉，`.uri` 仍保留归属。`SchemaVersion` 与 `MetadataSchema.IsCompatible` 不一致时不覆盖已有正文。
 
 只接受静态发布文件树：带查询串、含跳转段或空段、含编码的斜杠/反斜杠、Windows 保留设备名、结尾空格或点、正文文件名带 `.etag`/`.tmp`/`.uri` 后缀、带用户信息或非 DNS/IPv4 主机的地址，以及会占用保留名（`origin.json`、`.sources`）的主发布基相对路径，都在写入前直接抛出 `ArgumentException`。本地路径与 `file://` 开发入口和线上地址走同一套映射；主发布基绑定写不进磁盘时直接失败，不会在没有绑定文件的情况下继续写正文。
 
@@ -107,12 +107,22 @@ var client = new MetadataClient(cacheDirectory, TimeSpan.FromSeconds(30));
 var root = await client.RefreshRootAsync(metadataUrl, cancellationToken);
 var leafUri = MetadataResourceUri.Resolve(root.OriginUri!.AbsoluteUri, relativeSource);
 var leaf = await client.GetLeafAsync(root, version, leafUri, cancellationToken);
+var cachedLeaf = await client.GetCachedLeafAsync(root, version, leafUri, cancellationToken);
 var retried = await client.RefreshLeafAsync(root, version, leafUri, cancellationToken);
 await client.PreloadLeavesAsync(root, cancellationToken);
 var offline = await client.OpenSnapshotAsync(metadataUrl, cancellationToken);
+var image = await client.GetImageAsync(root, imageId, cancellationToken);
+var refreshedImage = await client.RefreshImageAsync(root, imageId, cancellationToken);
+var revision = client.ImageRevision(root, imageId);
 ```
 
 `OpenSnapshotAsync` 只读磁盘，状态是 `Stale` 或 `Unavailable`，不会是 `Fresh`。`RefreshRootAsync` 对 http(s) 做条件 GET，对 file:// 和本地路径读取源文件，成功才是 `Fresh`。`ApplicationEntry.ResolveUpdaterEndpoint(originUri)` 取第一个直接子级 `UpdateKind`，再在它的直接子级里等值匹配 `Current`。
+
+`GetCachedLeafAsync` 是普通展示用的只读投影：只取这份快照当时已有的内存或有效磁盘叶子，不发 HTTP，也不等待别人正在进行的请求。缺失返回 `Unavailable`。它不会把结果标成 `Fresh`。`GetLeafAsync` 和 `RefreshLeafAsync` 仍按原语义读取或强制刷新。关闭磁盘缓存时，file:// 每次读取当前源文件并返回 `Stale`，不落盘、也不加读取间隔；http(s) 在这个模式下仍不主动请求。
+
+已登记图片使用同一条传输和同一套磁盘布局，不另建目录。`GetImageAsync` 在磁盘正文完整时直接返回，不发 HTTP，也不做后台校验。冷缓存只共享一次下载；失败后十分钟内普通读取不再请求。缓存写不进去时返回错误并进入同样的抑制，不把这次下载假装成已缓存成功。`RefreshImageAsync` 不受这十分钟限制，与冷下载共享同一 URI 的在途请求，并发送条件请求。首次可展示，或正文被不同字节替换，才触发一次 `ImageUpdated`；304 或字节未变不通知。回调里再读同一张图命中刚提交的缓存，不会另开传输。刷新失败且仍有旧图时保留旧字节，`Error` 说明本次失败。调用方取消只取消等待，`Dispose` 才取消共享传输。
+
+`ImageRevision` 供宿主把登记 ID 编进虚拟地址。它使用旁挂摘要，不在列清单时重读图片正文。已登记图片返回规范化 URI 与该摘要的稳定混合值：Source 或摘要变化后这个值会变，从而减少网页复用旧图。混合结果只有 32 位，碰撞时仍可能得到相同地址，不能当成绝无复用的证明。登记无法解析时返回 0。Markdown 正文里没有登记成 `Image` 的内嵌图片不重写、不缓存，也不进入这套版本。禁用磁盘缓存时，图片每次读取当前来源，不做十分钟抑制，也不发条件请求。
 
 核心编译打包命令（供贡献者、CI 机器人或桌面端本地调试调用）：
 

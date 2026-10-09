@@ -1,5 +1,7 @@
+using System.Buffers.Binary;
 using System.Globalization;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
 using Ra3.BattleNet.Metadata;
@@ -9,13 +11,17 @@ namespace Ra3.BattleNet.Metadata.Cache;
 /// <summary>
 /// 根清单、包叶子与登记图片的共享加载器。叶子与图片身份只来自调用方传入的快照。
 /// 相同 Source 的正文只拉一次，每个调用再按自己的 Manifest ID 投影。
+/// 已有缓存的展示读取不发 HTTP；<c>GetLeafAsync</c> 和冷图片读取仍会访问来源。
 /// </summary>
 public sealed class MetadataClient : IDisposable
 {
+    private static readonly TimeSpan ImageReadCooldown = TimeSpan.FromMinutes(10);
+
     private readonly MetadataDiskCache? _disk;
     private readonly HttpClient _http;
     private readonly bool _ownsHttp;
     private readonly TimeSpan _requestTimeout;
+    private readonly TimeProvider _clock;
     private readonly SemaphoreSlim _leafSlots;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly object _gate = new();
@@ -24,8 +30,8 @@ public sealed class MetadataClient : IDisposable
     private readonly Dictionary<string, Task<LeafDoc>> _leafFlights = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Task<LeafDoc>> _leafReads = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Task<ImageResult>> _imageFlights = new(StringComparer.Ordinal);
-    private readonly HashSet<string> _imageValidations = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, int> _imageRevisions = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, DateTimeOffset> _imageReadBlockedUntil = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _liveImageDigests = new(StringComparer.Ordinal);
     private readonly Dictionary<string, RootMemory> _rootDocs = new(StringComparer.Ordinal);
     private readonly Dictionary<string, LeafDoc> _leaves = new(StringComparer.Ordinal);
     private bool _disposed;
@@ -39,12 +45,14 @@ public sealed class MetadataClient : IDisposable
     /// 不发送由缓存产生的条件请求，也不把生产缓存当作失败回退。本地与测试来源用这个模式，
     /// 保证改完本地源立刻能看到新内容。
     /// </param>
+    /// <param name="clock">冷图片失败抑制使用的时钟。省略时用系统 UTC，测试可注入以免等待墙钟。</param>
     public MetadataClient(
         string cacheDirectory,
         TimeSpan requestTimeout,
         int maxLeafConcurrency = 4,
         HttpClient? httpClient = null,
-        bool enableDiskCache = true)
+        bool enableDiskCache = true,
+        TimeProvider? clock = null)
     {
         if (enableDiskCache && string.IsNullOrWhiteSpace(cacheDirectory))
             throw new ArgumentException("缓存目录不能为空", nameof(cacheDirectory));
@@ -52,6 +60,7 @@ public sealed class MetadataClient : IDisposable
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxLeafConcurrency);
 
         _requestTimeout = requestTimeout;
+        _clock = clock ?? TimeProvider.System;
         if (enableDiskCache)
         {
             _disk = new MetadataDiskCache(cacheDirectory);
@@ -64,8 +73,9 @@ public sealed class MetadataClient : IDisposable
     }
 
     /// <summary>
-    /// 后台条件请求发现同地址图片字节变化后触发。订阅方拿到的是地址，不是登记 ID；
-    /// 同一次替换只触发一次，304、失败和字节未变都不触发。
+    /// 图片从不可用变为可展示，或已有正文被不同字节替换后触发。订阅方拿到的是地址，不是登记 ID。
+    /// 同一次变化只触发一次。304、失败和字节未变都不触发。
+    /// 通知发生在正文已经提交之后；回调里再读同一张图只命中缓存，不会另开传输。
     /// </summary>
     public event EventHandler<ImageUpdatedEventArgs>? ImageUpdated;
 
@@ -101,6 +111,20 @@ public sealed class MetadataClient : IDisposable
         if (!TrySelect(snapshot, version, leafSourceUri, out var leaf, out var manifestId, out var error))
             return LeafUnavailable(leaf, error);
         return Project(await EnsureLeafAsync(leaf, force: true, ct).ConfigureAwait(false), manifestId);
+    }
+
+    /// <summary>
+    /// 只读这份快照已有的内存或磁盘叶子，不发 HTTP，也不等待别人正在进行的网络请求。
+    /// 缺失返回 Unavailable。关闭磁盘缓存时，file:// 读取当前源文件并投影为 Stale，不落盘。
+    /// </summary>
+    public Task<LeafResult> GetCachedLeafAsync(RootSnapshotResult snapshot, string version, Uri leafSourceUri, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!TrySelect(snapshot, version, leafSourceUri, out var leaf, out var manifestId, out var error))
+            return Task.FromResult(LeafUnavailable(leaf, error));
+        if (TryMemoryLeaf(leaf) is { } memory && (_disk is not null || !leaf.IsFile))
+            return Task.FromResult(ProjectCached(memory, manifestId));
+        return LoadCachedLeafAsync(leaf, manifestId, ct);
     }
 
     /// <summary>
@@ -144,9 +168,9 @@ public sealed class MetadataClient : IDisposable
     }
 
     /// <summary>
-    /// 按已捕获快照读取一张已登记图片。启用磁盘缓存时，只要本地正文完整就先返回缓存（Stale），
-    /// 再在后台用 ETag 做条件请求；字节变化会触发 <see cref="ImageUpdated"/>。
-    /// 本地没有正文、正文损坏或禁用缓存时才等这次读取完成。完全不读取 XML 的 Image Hash。
+    /// 按已捕获快照读取一张已登记图片。启用磁盘缓存且正文完整时直接返回，不发 HTTP，也不做后台校验。
+    /// 冷缓存只允许一次共享下载；失败后十分钟内普通读取不再请求。禁用磁盘缓存时每次都读当前来源。
+    /// 不缓存 Markdown 正文里未登记的图片，也不读取 XML 的 Image Hash。
     /// </summary>
     /// <param name="snapshot">提供登记身份与来源基地址的快照。</param>
     /// <param name="imageId">已登记的图片 ID（大小写不敏感）。</param>
@@ -158,33 +182,49 @@ public sealed class MetadataClient : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (!TryResolveImage(snapshot, imageId, out var uri, out var error))
             return ImageResult.Unavailable(error);
+        if (TryCachedImage(uri) is { } cached)
+            return cached;
 
-        if (_disk is not null)
+        var key = uri.AbsoluteUri;
+        Task<ImageResult> flight;
+        lock (_gate)
         {
-            var cached = _disk.TryReadImage(uri);
-            var contentType = cached?.Stamp?.ContentType;
-            if (cached is not null && string.IsNullOrWhiteSpace(contentType) && uri.IsFile)
-                contentType = MediaTypeForExtension(uri.LocalPath);
-            if (cached is not null && !string.IsNullOrWhiteSpace(contentType))
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (!_imageFlights.TryGetValue(key, out flight!))
             {
-                StartImageValidation(uri, cached);
-                return new ImageResult(cached.Bytes, contentType, MetadataFreshness.Stale, null);
+                if (IsImageReadBlocked(key))
+                    return ImageReadBlocked();
+                flight = StartShared(_imageFlights, key, token => FetchImageAsync(uri, token));
             }
         }
 
-        return await Share(_imageFlights, uri.AbsoluteUri, token => FetchImageAsync(uri, token), ct).ConfigureAwait(false);
+        return await Observe(flight, ct).ConfigureAwait(false);
     }
 
     /// <summary>
-    /// 图片的本地内容版本：后台校验用不同字节替换缓存后递增，同一地址共享一个版本。
-    /// 前台把它写进图片地址，内容变化后浏览器才会重新取图。不可解析时返回 0。
+    /// 显式条件刷新一张已登记图片。与冷读取共享同一 URI 传输；不受冷失败抑制。
+    /// 调用方取消只取消等待。首次可展示或正文被替换时触发 <see cref="ImageUpdated"/>；304 或字节未变不通知。
+    /// </summary>
+    public Task<ImageResult> RefreshImageAsync(RootSnapshotResult snapshot, string imageId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (!TryResolveImage(snapshot, imageId, out var uri, out var error))
+            return Task.FromResult(ImageResult.Unavailable(error));
+        return Share(_imageFlights, uri.AbsoluteUri, token => RefreshImageCore(uri, token), ct);
+    }
+
+    /// <summary>
+    /// 前端缓存破坏版本。已登记图片用规范化 URI 与已记录摘要做稳定混合。
+    /// Source 或摘要变化会改变这个值。混合结果是 32 位，碰撞时仍可能复用地址，不能当成唯一证明。
+    /// 不可解析时返回 0。摘要未变则版本不变。
     /// </summary>
     public int ImageRevision(RootSnapshotResult snapshot, string imageId)
     {
         if (snapshot is null || !TryResolveImage(snapshot, imageId, out var uri, out _))
             return 0;
-        lock (_gate)
-            return _imageRevisions.TryGetValue(uri.AbsoluteUri, out var version) ? version : 0;
+        return StableRevision(uri.AbsoluteUri, ServedImageDigest(uri));
     }
 
     /// <summary>
@@ -292,6 +332,94 @@ public sealed class MetadataClient : IDisposable
             doc.Status == MetadataFreshness.Fresh ? null : doc.Error);
     }
 
+    private LeafDoc? TryMemoryLeaf(Uri leaf)
+    {
+        lock (_gate)
+        {
+            return _leaves.TryGetValue(leaf.AbsoluteUri, out var memory) && memory.Document is not null
+                ? memory
+                : null;
+        }
+    }
+
+    private static LeafResult ProjectCached(LeafDoc doc, string manifestId)
+    {
+        var projected = Project(doc, manifestId);
+        return projected.Status == MetadataFreshness.Fresh
+            ? projected with { Status = MetadataFreshness.Stale }
+            : projected;
+    }
+
+    private async Task<LeafResult> LoadCachedLeafAsync(Uri leaf, string manifestId, CancellationToken ct)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_disk is null)
+        {
+            if (!leaf.IsFile)
+                return LeafUnavailable(leaf, "本地没有可用的叶子清单缓存");
+            var live = await ReadLiveFileLeafAsync(leaf, ct).ConfigureAwait(false);
+            return live is null
+                ? LeafUnavailable(leaf, "本地没有可用的叶子清单缓存")
+                : ProjectCached(live, manifestId);
+        }
+
+        var disk = _disk.TryReadLeaf(leaf);
+        if (disk is null)
+            return LeafUnavailable(leaf, "本地没有可用的叶子清单缓存");
+        var loaded = RememberCachedLeaf(leaf, disk.Bytes, disk.Digest);
+        return loaded is null
+            ? LeafUnavailable(leaf, "本地叶子清单缓存无法解析")
+            : ProjectCached(loaded, manifestId);
+    }
+
+    private async Task<LeafDoc?> ReadLiveFileLeafAsync(Uri leaf, CancellationToken ct)
+    {
+        var transfer = await ReadFileAsync(leaf, ct).ConfigureAwait(false);
+        if (!transfer.Ok || transfer.Bytes is null)
+            return null;
+        return ParseLeafDocument(leaf, transfer.Bytes, MetadataDiskCache.Sha256Hex(transfer.Bytes));
+    }
+
+    private LeafDoc? RememberCachedLeaf(Uri leaf, byte[] bytes, string digest)
+    {
+        if (TryMemoryLeaf(leaf) is { } existing)
+            return existing;
+
+        var parsed = ParseLeafDocument(leaf, bytes, digest);
+        if (parsed is null)
+            return null;
+
+        lock (_gate)
+        {
+            if (_leaves.TryGetValue(leaf.AbsoluteUri, out var current) && current.Document is not null)
+                return current;
+            _leaves[leaf.AbsoluteUri] = parsed;
+            return parsed;
+        }
+    }
+
+    private static LeafDoc? ParseLeafDocument(Uri leaf, byte[] bytes, string digest)
+    {
+        try
+        {
+            var document = ParseBytes(bytes);
+            if (!TryAcceptLeaf(document, out _))
+                return null;
+            return new LeafDoc
+            {
+                Source = leaf,
+                Document = document,
+                Digest = digest,
+                Status = MetadataFreshness.Stale,
+                Error = null,
+            };
+        }
+        catch (Exception ex) when (ex is XmlException or InvalidOperationException or IOException)
+        {
+            return null;
+        }
+    }
+
     private Task<RootSnapshotResult> OpenCore(Uri origin, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
@@ -347,124 +475,271 @@ public sealed class MetadataClient : IDisposable
 
     private async Task<ImageResult> FetchImageAsync(Uri uri, CancellationToken ct)
     {
-        var transfer = await TransferAsync(uri, validators: null, ct).ConfigureAwait(false);
-        if (!transfer.Ok || transfer.Bytes is null)
-            return ImageResult.Unavailable(transfer.Error ?? "读取图片失败");
-        if (!TryImageContentType(uri, transfer.ContentType, out var contentType))
-            return ImageResult.Unavailable("响应不是图片类型");
+        if (TryCachedImage(uri) is { } ready)
+            return ready;
 
-        if (_disk is not null)
+        try
         {
-            var path = _disk.ImageBodyPath(uri);
-            try
-            {
-                await _disk.StageAsync(path, uri.AbsoluteUri, transfer.Bytes, ct).ConfigureAwait(false);
-                _disk.Commit(path, new CacheStamp
-                {
-                    Uri = uri.AbsoluteUri,
-                    ETag = transfer.ETag,
-                    LastModified = transfer.LastModified,
-                    Sha256 = MetadataDiskCache.Sha256Hex(transfer.Bytes),
-                    ContentType = contentType,
-                });
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                // 写不进缓存不改变这次读取的结果。
-                _disk.Discard(path);
-            }
-        }
+            var transfer = await TransferAsync(uri, validators: null, ct).ConfigureAwait(false);
+            if (!transfer.Ok || transfer.Bytes is null)
+                return ColdImageFailure(uri, transfer.Error ?? "读取图片失败");
+            if (!TryImageContentType(uri, transfer.ContentType, out var contentType))
+                return ColdImageFailure(uri, "响应不是图片类型");
 
-        return new ImageResult(transfer.Bytes, contentType, MetadataFreshness.Fresh, null);
+            var digest = MetadataDiskCache.Sha256Hex(transfer.Bytes);
+            if (_disk is not null
+                && !await TryCommitImageAsync(uri, transfer.Bytes, digest, contentType, transfer.ETag, transfer.LastModified, ct).ConfigureAwait(false))
+                return ColdImageFailure(uri, "图片缓存无法写入");
+
+            ClearImageReadBlock(uri.AbsoluteUri);
+            RememberLiveDigest(uri, digest);
+            if (_disk is not null)
+                RaiseImageUpdated(uri);
+            return new ImageResult(transfer.Bytes, contentType, MetadataFreshness.Fresh, null);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException)
+        {
+            return ColdImageFailure(uri, ex.Message);
+        }
     }
 
-    /// <summary>
-    /// 命中缓存后的后台校验：同一地址同一时刻只跑一次，不随根刷新重置，也不做定时轮询或失败重试。
-    /// 失败、超时与断联都保留旧图，不影响前台。
-    /// </summary>
-    private void StartImageValidation(Uri uri, DiskBody cached)
+    private async Task<ImageResult> RefreshImageCore(Uri uri, CancellationToken ct)
     {
-        var key = uri.AbsoluteUri;
-        lock (_gate)
-        {
-            if (_disposed || !_imageValidations.Add(key))
-                return;
-        }
+        if (_disk is null)
+            return await FetchImageAsync(uri, ct).ConfigureAwait(false);
 
-        _ = Task.Run(
-            async () =>
+        var hasCache = TryReadUsableImage(uri, out var cached, out var cachedType);
+        var validators = hasCache && cached.Verified ? cached.Stamp : null;
+        try
+        {
+            var transfer = await TransferAsync(uri, validators, ct).ConfigureAwait(false);
+            if (transfer.NotModified)
             {
-                try
-                {
-                    await ValidateImageAsync(uri, cached, _lifetime.Token).ConfigureAwait(false);
-                }
-                catch (Exception)
-                {
-                    // 后台校验只做尽力而为，异常不改变前台已返回的结果。
-                }
-                finally
-                {
-                    lock (_gate)
-                        _imageValidations.Remove(key);
-                }
-            },
-            CancellationToken.None);
+                if (hasCache)
+                    return new ImageResult(cached.Bytes, cachedType, MetadataFreshness.Stale, null);
+                transfer = await TransferAsync(uri, validators: null, ct).ConfigureAwait(false);
+            }
+
+            if (!transfer.Ok || transfer.Bytes is null)
+            {
+                return hasCache
+                    ? CachedImage(cached, cachedType, transfer.Error ?? "读取图片失败")
+                    : ColdImageFailure(uri, transfer.Error ?? "读取图片失败");
+            }
+
+            if (!TryImageContentType(uri, transfer.ContentType, out var contentType))
+            {
+                return hasCache
+                    ? CachedImage(cached, cachedType, "响应不是图片类型")
+                    : ColdImageFailure(uri, "响应不是图片类型");
+            }
+
+            var digest = MetadataDiskCache.Sha256Hex(transfer.Bytes);
+            var same = hasCache && string.Equals(cached.Digest, digest, StringComparison.OrdinalIgnoreCase);
+            if (!await TryCommitImageAsync(uri, transfer.Bytes, digest, contentType, transfer.ETag, transfer.LastModified, ct).ConfigureAwait(false))
+            {
+                if (hasCache && same)
+                    return new ImageResult(cached.Bytes, cachedType, MetadataFreshness.Stale, null);
+                return hasCache
+                    ? CachedImage(cached, cachedType, "图片缓存无法写入")
+                    : ColdImageFailure(uri, "图片缓存无法写入");
+            }
+
+            ClearImageReadBlock(uri.AbsoluteUri);
+            if (!same)
+                RaiseImageUpdated(uri);
+            return new ImageResult(
+                transfer.Bytes,
+                contentType,
+                same ? MetadataFreshness.Stale : MetadataFreshness.Fresh,
+                null);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException)
+        {
+            return hasCache
+                ? CachedImage(cached, cachedType, ex.Message)
+                : ColdImageFailure(uri, ex.Message);
+        }
     }
 
-    private async Task ValidateImageAsync(Uri uri, DiskBody cached, CancellationToken ct)
+    private async Task<bool> TryCommitImageAsync(
+        Uri uri,
+        byte[] bytes,
+        string digest,
+        string contentType,
+        string? etag,
+        string? lastModified,
+        CancellationToken ct)
     {
-        var transfer = await TransferAsync(uri, cached.Stamp, ct).ConfigureAwait(false);
-        if (transfer.NotModified || !transfer.Ok || transfer.Bytes is null)
-            return;
-        if (!TryImageContentType(uri, transfer.ContentType, out var contentType))
-            return;
+        if (_disk is null)
+            return true;
 
-        var digest = MetadataDiskCache.Sha256Hex(transfer.Bytes);
-        var previous = _disk!.TryReadImage(uri)?.Digest;
         var path = _disk.ImageBodyPath(uri);
         try
         {
-            await _disk.StageAsync(path, uri.AbsoluteUri, transfer.Bytes, ct).ConfigureAwait(false);
+            await _disk.StageAsync(path, uri.AbsoluteUri, bytes, ct).ConfigureAwait(false);
             _disk.Commit(path, new CacheStamp
             {
                 Uri = uri.AbsoluteUri,
-                ETag = transfer.ETag,
-                LastModified = transfer.LastModified,
+                ETag = etag,
+                LastModified = lastModified,
                 Sha256 = digest,
                 ContentType = contentType,
             });
+            return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             _disk.Discard(path);
+            return false;
+        }
+    }
+
+    private ImageResult? TryCachedImage(Uri uri)
+    {
+        if (!TryReadUsableImage(uri, out var cached, out var contentType))
+            return null;
+        return new ImageResult(cached.Bytes, contentType, MetadataFreshness.Stale, null);
+    }
+
+    private bool TryReadUsableImage(Uri uri, out DiskBody cached, out string contentType)
+    {
+        cached = null!;
+        contentType = "";
+        if (_disk is null)
+            return false;
+
+        var body = _disk.TryReadImage(uri);
+        if (body is null)
+            return false;
+        var type = body.Stamp?.ContentType;
+        if (string.IsNullOrWhiteSpace(type) && uri.IsFile)
+            type = MediaTypeForExtension(uri.LocalPath);
+        if (string.IsNullOrWhiteSpace(type))
+            return false;
+
+        cached = body;
+        contentType = type;
+        return true;
+    }
+
+    private static ImageResult CachedImage(DiskBody cached, string contentType, string error) =>
+        new(cached.Bytes, contentType, MetadataFreshness.Stale, error);
+
+    private ImageResult ColdImageFailure(Uri uri, string error)
+    {
+        BlockImageRead(uri.AbsoluteUri);
+        return ImageResult.Unavailable(error);
+    }
+
+    private static ImageResult ImageReadBlocked() =>
+        ImageResult.Unavailable("图片暂时不可用，等待下一次显式刷新");
+
+    private bool IsImageReadBlocked(string key)
+    {
+        if (_disk is null || !_imageReadBlockedUntil.TryGetValue(key, out var until))
+            return false;
+        if (_clock.GetUtcNow() < until)
+            return true;
+        _imageReadBlockedUntil.Remove(key);
+        return false;
+    }
+
+    private void BlockImageRead(string key)
+    {
+        if (_disk is null)
             return;
+        lock (_gate)
+            _imageReadBlockedUntil[key] = _clock.GetUtcNow() + ImageReadCooldown;
+    }
+
+    private void ClearImageReadBlock(string key)
+    {
+        lock (_gate)
+            _imageReadBlockedUntil.Remove(key);
+    }
+
+    private void RememberLiveDigest(Uri uri, string digest)
+    {
+        if (_disk is not null)
+            return;
+
+        string? previous;
+        lock (_gate)
+        {
+            _liveImageDigests.TryGetValue(uri.AbsoluteUri, out previous);
+            _liveImageDigests[uri.AbsoluteUri] = digest;
         }
 
-        if (previous is null || !string.Equals(previous, digest, StringComparison.OrdinalIgnoreCase))
+        if (previous is not null && !string.Equals(previous, digest, StringComparison.OrdinalIgnoreCase))
             RaiseImageUpdated(uri);
+    }
+
+    private string? ServedImageDigest(Uri uri)
+    {
+        if (_disk is not null)
+            return StampDigest(uri);
+        if (uri.IsFile)
+            return FileDigest(uri);
+        lock (_gate)
+            return _liveImageDigests.TryGetValue(uri.AbsoluteUri, out var digest) ? digest : null;
+    }
+
+    private string? StampDigest(Uri uri)
+    {
+        if (!_disk!.TryReadImageDigest(uri, out var digest, out var contentType))
+            return null;
+        if (string.IsNullOrWhiteSpace(contentType) && uri.IsFile)
+            contentType = MediaTypeForExtension(uri.LocalPath);
+        return string.IsNullOrWhiteSpace(contentType) ? null : digest;
+    }
+
+    private static string? FileDigest(Uri uri)
+    {
+        try
+        {
+            return File.Exists(uri.LocalPath)
+                ? MetadataDiskCache.Sha256Hex(File.ReadAllBytes(uri.LocalPath))
+                : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private static int StableRevision(string canonicalUri, string? digest)
+    {
+        var payload = Encoding.UTF8.GetBytes(canonicalUri + "\n" + (digest ?? ""));
+        Span<byte> hash = stackalloc byte[32];
+        SHA256.HashData(payload, hash);
+        var value = BinaryPrimitives.ReadInt32LittleEndian(hash);
+        return value == 0 ? 1 : value;
     }
 
     private void RaiseImageUpdated(Uri uri)
     {
-        var key = uri.AbsoluteUri;
-        lock (_gate)
-        {
-            _imageRevisions.TryGetValue(key, out var version);
-            _imageRevisions[key] = version + 1;
-        }
-
         var handler = ImageUpdated;
         if (handler is null)
             return;
+        var args = new ImageUpdatedEventArgs(uri.AbsoluteUri);
         foreach (var item in handler.GetInvocationList())
         {
             try
             {
-                ((EventHandler<ImageUpdatedEventArgs>)item).Invoke(this, new ImageUpdatedEventArgs(key));
+                ((EventHandler<ImageUpdatedEventArgs>)item).Invoke(this, args);
             }
             catch (Exception)
             {
-                // 订阅方失败不能把后台校验变成异常。
+                // 订阅方失败不能中断刷新结果。
             }
         }
     }

@@ -518,6 +518,216 @@ public class MetadataClientTests
     }
 
     [TestMethod]
+    public async Task GetCachedLeaf_Missing_IsUnavailableAndDoesNotFetch()
+    {
+        using var fixture = Fixture.Create();
+        fixture.Handler.Next = (request, _) => Task.FromResult(Xml(
+            request.RequestUri!.AbsoluteUri == RootUrl ? RootXml() : LeafXml("app-leaf")));
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+        var before = fixture.Calls.Count;
+        var leafUri = MetadataResourceUri.Resolve(RootUrl, "apps/leaf.xml");
+
+        var cached = await fixture.Client.GetCachedLeafAsync(root, "1.0.0", leafUri);
+
+        cached.Status.Should().Be(MetadataFreshness.Unavailable);
+        cached.Document.Should().BeNull();
+        cached.ManifestNode.Should().BeNull();
+        cached.Entry.Should().BeNull();
+        cached.Error.Should().NotBeNullOrWhiteSpace();
+        fixture.Calls.Should().HaveCount(before);
+    }
+
+    [TestMethod]
+    public async Task GetCachedLeaf_MemoryAndDisk_DoNotFetchAndStayStale()
+    {
+        using var fixture = Fixture.Create();
+        fixture.Handler.Next = (request, _) => Task.FromResult(Xml(
+            request.RequestUri!.AbsoluteUri == RootUrl ? RootXml() : LeafXml("app-leaf")));
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+        var leafUri = MetadataResourceUri.Resolve(RootUrl, "apps/leaf.xml");
+        var fresh = await fixture.Client.RefreshLeafAsync(root, "1.0.0", leafUri);
+        var before = fixture.Calls.Count;
+
+        var memory = await fixture.Client.GetCachedLeafAsync(root, "1.0.0", leafUri);
+
+        memory.Status.Should().Be(MetadataFreshness.Stale);
+        memory.Error.Should().BeNull();
+        memory.Document.Should().BeSameAs(fresh.Document);
+        memory.Entry.Should().BeSameAs(fresh.Entry);
+        memory.ManifestNode.Should().BeSameAs(fresh.ManifestNode);
+        fixture.Calls.Should().HaveCount(before);
+    }
+
+    [TestMethod]
+    public async Task GetCachedLeaf_NewProcess_ReadsDiskWithoutHttp()
+    {
+        var cache = NewCache();
+        var handler = new ScriptedHandler((request, _) => Task.FromResult(Xml(
+            request.RequestUri!.AbsoluteUri == RootUrl ? RootXml() : LeafXml("app-leaf"))));
+        using var http = new HttpClient(handler);
+        var leafUri = MetadataResourceUri.Resolve(RootUrl, "apps/leaf.xml");
+        using (var first = Client(cache, http))
+        {
+            var root = await first.RefreshRootAsync(RootUrl);
+            (await first.RefreshLeafAsync(root, "1.0.0", leafUri)).Status.Should().Be(MetadataFreshness.Fresh);
+        }
+
+        handler.Calls.Clear();
+        using var second = Client(cache, http);
+        var opened = await second.OpenSnapshotAsync(RootUrl);
+        var reads = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ =>
+            second.GetCachedLeafAsync(opened, "1.0.0", leafUri)));
+
+        reads.Should().OnlyContain(item => item.Status == MetadataFreshness.Stale && item.Entry!.Id == "app-leaf");
+        reads.Select(item => item.Document).Distinct().Should().ContainSingle();
+        handler.Calls.Should().BeEmpty();
+        TryDelete(cache);
+    }
+
+    [TestMethod]
+    public async Task GetCachedLeaf_SameUriDifferentSnapshots_KeepOwnManifest()
+    {
+        using var fixture = Fixture.Create();
+        var generation = 0;
+        fixture.Handler.Next = (request, _) => Task.FromResult(Xml(
+            request.RequestUri!.AbsoluteUri == RootUrl
+                ? IdRoot(generation == 0 ? "id-a" : "id-b")
+                : BothIdsLeafXml()));
+        var rootA = await fixture.Client.RefreshRootAsync(RootUrl);
+        var uri = MetadataResourceUri.Resolve(RootUrl, "apps/leaf.xml");
+        (await fixture.Client.GetLeafAsync(rootA, "1.0.0", uri)).Entry!.Id.Should().Be("id-a");
+        generation = 1;
+        var rootB = await fixture.Client.RefreshRootAsync(RootUrl);
+        var before = fixture.Calls.Count;
+
+        var fromA = await fixture.Client.GetCachedLeafAsync(rootA, "1.0.0", uri);
+        var fromB = await fixture.Client.GetCachedLeafAsync(rootB, "1.0.0", uri);
+
+        fromA.Entry!.Id.Should().Be("id-a");
+        fromB.Entry!.Id.Should().Be("id-b");
+        fromB.Document.Should().BeSameAs(fromA.Document);
+        fromB.Entry.Should().NotBeSameAs(fromA.Entry);
+        fromA.Status.Should().Be(MetadataFreshness.Stale);
+        fixture.Calls.Should().HaveCount(before);
+    }
+
+    [TestMethod]
+    public async Task GetCachedLeaf_DoesNotWaitForInFlightFetch()
+    {
+        using var fixture = Fixture.Create();
+        fixture.Handler.Next = (request, _) => Task.FromResult(Xml(RootXml()));
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+        var leafUri = MetadataResourceUri.Resolve(RootUrl, "apps/leaf.xml");
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        fixture.Handler.Next = async (request, token) =>
+        {
+            if (request.RequestUri!.AbsoluteUri == RootUrl)
+                return Xml(RootXml());
+            entered.TrySetResult();
+            await release.Task.WaitAsync(token);
+            return Xml(LeafXml("app-leaf"));
+        };
+        var inflight = fixture.Client.GetLeafAsync(root, "1.0.0", leafUri);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var before = fixture.Calls.Count;
+
+        var cached = await fixture.Client.GetCachedLeafAsync(root, "1.0.0", leafUri);
+
+        cached.Status.Should().Be(MetadataFreshness.Unavailable);
+        fixture.Calls.Should().HaveCount(before);
+        release.TrySetResult();
+        (await inflight).Status.Should().Be(MetadataFreshness.Fresh);
+    }
+
+    [TestMethod]
+    public async Task GetCachedLeaf_NoDiskCache_FileSourceReadsCurrentFile()
+    {
+        var source = Path.Combine(Path.GetTempPath(), "metadata-cached-leaf-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(source, "apps"));
+        var metadataPath = Path.Combine(source, "metadata.xml");
+        var leafPath = Path.Combine(source, "apps", "leaf.xml");
+        File.WriteAllText(metadataPath, RootXml(), new UTF8Encoding(false));
+        File.WriteAllText(leafPath, LeafXml("app-leaf", "a.bin"), new UTF8Encoding(false));
+        var handler = new ScriptedHandler((_, _) => throw new InvalidOperationException("file 缓存读取不应走 HTTP"));
+        using var http = new HttpClient(handler);
+        using var client = new MetadataClient("", TimeSpan.FromSeconds(5), httpClient: http, enableDiskCache: false);
+        try
+        {
+            var root = await client.RefreshRootAsync(metadataPath);
+            var leafUri = MetadataResourceUri.Resolve(root.OriginUri!.AbsoluteUri, "apps/leaf.xml");
+
+            var first = await client.GetCachedLeafAsync(root, "1.0.0", leafUri);
+            File.WriteAllText(leafPath, LeafXml("app-leaf", "b.bin"), new UTF8Encoding(false));
+            var second = await client.GetCachedLeafAsync(root, "1.0.0", leafUri);
+
+            first.Status.Should().Be(MetadataFreshness.Stale);
+            first.Entry!.Files[0].FileName.Should().Be("a.bin");
+            second.Entry!.Files[0].FileName.Should().Be("b.bin");
+            second.Status.Should().Be(MetadataFreshness.Stale);
+            handler.Calls.Should().BeEmpty();
+        }
+        finally
+        {
+            TryDelete(source);
+        }
+    }
+
+    [TestMethod]
+    public async Task GetCachedLeaf_NoDiskCache_HttpDoesNotFetch()
+    {
+        var handler = new ScriptedHandler((request, _) => Task.FromResult(Xml(
+            request.RequestUri!.AbsoluteUri == RootUrl ? RootXml() : LeafXml("app-leaf"))));
+        using var http = new HttpClient(handler);
+        using var client = new MetadataClient("", TimeSpan.FromSeconds(5), httpClient: http, enableDiskCache: false);
+        var root = await client.RefreshRootAsync(RootUrl);
+        var leafUri = MetadataResourceUri.Resolve(RootUrl, "apps/leaf.xml");
+        var before = handler.Calls.Count;
+
+        var missing = await client.GetCachedLeafAsync(root, "1.0.0", leafUri);
+        missing.Status.Should().Be(MetadataFreshness.Unavailable);
+        handler.Calls.Should().HaveCount(before);
+
+        var loaded = await client.GetLeafAsync(root, "1.0.0", leafUri);
+        var afterLoad = handler.Calls.Count;
+        var cached = await client.GetCachedLeafAsync(root, "1.0.0", leafUri);
+
+        loaded.Status.Should().Be(MetadataFreshness.Fresh);
+        cached.Status.Should().Be(MetadataFreshness.Stale);
+        cached.Entry!.Id.Should().Be("app-leaf");
+        cached.Document.Should().BeSameAs(loaded.Document);
+        handler.Calls.Should().HaveCount(afterLoad);
+    }
+
+    [TestMethod]
+    public async Task GetCachedLeaf_DiskCache_DoesNotReadUncachedFileSource()
+    {
+        var source = Path.Combine(Path.GetTempPath(), "metadata-cached-miss-" + Guid.NewGuid().ToString("N"));
+        var cache = NewCache();
+        Directory.CreateDirectory(Path.Combine(source, "apps"));
+        var metadataPath = Path.Combine(source, "metadata.xml");
+        File.WriteAllText(metadataPath, RootXml(), new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(source, "apps", "leaf.xml"), LeafXml("app-leaf"), new UTF8Encoding(false));
+        var handler = new ScriptedHandler((_, _) => throw new InvalidOperationException("file 入口不应走 HTTP"));
+        using var http = new HttpClient(handler);
+        using var client = Client(cache, http);
+        try
+        {
+            var root = await client.RefreshRootAsync(metadataPath);
+            var leafUri = MetadataResourceUri.Resolve(root.OriginUri!.AbsoluteUri, "apps/leaf.xml");
+
+            var cached = await client.GetCachedLeafAsync(root, "1.0.0", leafUri);
+
+            cached.Status.Should().Be(MetadataFreshness.Unavailable);
+            handler.Calls.Should().BeEmpty();
+        }
+        finally
+        {
+            TryDelete(source);
+            TryDelete(cache);
+        }
+    }
+    [TestMethod]
     public async Task RefreshRoot_MapsPublishedTreeDirectlyUnderCache()
     {
         var cache = NewCache();

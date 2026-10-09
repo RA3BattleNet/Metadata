@@ -69,3 +69,5 @@ HTTP 失败和单个叶子解析失败返回状态，不阻止其他叶子完成
 - `dotnet build Ra3.BattleNet.Desktop/Ra3.BattleNet.Desktop.csproj -c Debug /p:MetadataProjectPath=<Metadata worktree csproj>`：0 警告，0 错误。
 - `dotnet test Ra3.BattleNet.Desktop.Tests/Ra3.BattleNet.Desktop.Tests.csproj -c Debug /p:MetadataProjectPath=<Metadata worktree csproj>`：139 通过，0 失败。
 - Desktop 服务和独立 Applier 冒烟仍覆盖离线固定版本、更新 Fresh 门禁和本地暂存应用。
+
+已登记图片的读取节奏和只读叶子投影见 [2026-10-09-registered-resource-cache-cadence.md](2026-10-09-registered-resource-cache-cadence.md)。XML 的 Fresh 门禁和显式叶子刷新没有被图片周期替换。
