@@ -59,8 +59,8 @@
                      ReleaseDate="2026-08-14" />
             <Updater Version="1.5.5.2"
                      Source="https://update.ra3battle.net/app/contents2/manifests/manifest-1.5.5.2.xml"
-                     Hash="7B5141B20964EB9858625A7D66FB0C56"
-                     Size="137807"
+                     Hash="280121E638958C1EB27C0762C5B08FC1"
+                     Size="147838"
                      ReleaseDate="2026-08-14" />
         </UpdateKind>
 
