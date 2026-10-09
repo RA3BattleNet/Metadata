@@ -217,6 +217,51 @@ internal sealed class MetadataDiskCache
         return TryReadBody(ImageBodyPath(canonical), canonical.AbsoluteUri, requireValidators: false);
     }
 
+    /// <summary>
+    /// 仅读取随文件保存的校验摘要，不重新读取或计算大图的哈希值。没有摘要或地址不匹配时返回 false。
+    /// 专门供计算版本号使用，避免每次刷新版本号都重新哈希大图片导致卡顿。
+    /// </summary>
+    public bool TryReadImageDigest(Uri image, out string digest, out string? contentType)
+    {
+        digest = "";
+        contentType = null;
+        var canonical = CanonicalizeImage(image);
+        var path = ImageBodyPath(canonical);
+        if (!File.Exists(path))
+            return false;
+
+        try
+        {
+            if (new FileInfo(path).Length == 0)
+                return false;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+
+        var stamp = ReadStamp(path + ".etag");
+        if (stamp is null || string.IsNullOrWhiteSpace(stamp.Sha256))
+            return false;
+
+        var stampUri = string.IsNullOrEmpty(stamp.Uri) ? null : stamp.Uri;
+        var ownerKnown = stampUri is not null;
+        var owner = stampUri;
+        if (!ownerKnown)
+        {
+            var (ownerExists, ownerUri) = ReadOwner(path + ".uri");
+            ownerKnown = ownerExists;
+            owner = ownerUri;
+        }
+
+        if (!ownerKnown || !string.Equals(owner, canonical.AbsoluteUri, StringComparison.Ordinal))
+            return false;
+
+        digest = stamp.Sha256;
+        contentType = stamp.ContentType;
+        return true;
+    }
+
     public async Task StageAsync(string bodyPath, string canonicalUri, byte[] bytes, CancellationToken ct)
     {
         var directory = Path.GetDirectoryName(bodyPath);

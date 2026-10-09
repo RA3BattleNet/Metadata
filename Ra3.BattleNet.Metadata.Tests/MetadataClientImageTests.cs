@@ -8,8 +8,8 @@ using Ra3.BattleNet.Metadata.Cache;
 namespace Ra3.BattleNet.Metadata.Tests;
 
 /// <summary>
-/// 图片读取、ETag 后台校验与会话级磁盘缓存开关的对外契约。
-/// 这些行为决定客户端能否在断网/慢网下先显示旧图、再悄悄换成新图，因此在这里断言。
+/// 已登记图片的缓存读取、显式条件刷新和冷失败抑制。
+/// 普通读取不得发 HTTP；只有 RefreshImageAsync 才做条件请求。
 /// </summary>
 [TestClass]
 public class MetadataClientImageTests
@@ -72,12 +72,36 @@ public class MetadataClientImageTests
     }
 
     [TestMethod]
-    public async Task Image_CacheHit_ReturnsImmediatelyThenValidatesWithETag()
+    public async Task Image_WarmReads_DoNotValidate()
     {
         using var fixture = Fixture.Create();
         var root = await RootAsync(fixture, IconBytes, "\"icon-1\"");
         await fixture.Client.GetImageAsync(root, "icon");
+        var revision = fixture.Client.ImageRevision(root, "icon");
+        var calls = fixture.Calls.Count(call => call.Uri == IconUrl);
 
+        fixture.Handler.Next = (_, _) => throw new HttpRequestException("warm read must not touch the network");
+        for (var i = 0; i < 5; i++)
+        {
+            var cached = await fixture.Client.GetImageAsync(root, "icon");
+            cached.Status.Should().Be(MetadataFreshness.Stale);
+            cached.Bytes.Should().Equal(IconBytes);
+            cached.Error.Should().BeNull();
+            await Task.Delay(150);
+        }
+
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(calls);
+        fixture.Client.ImageRevision(root, "icon").Should().Be(revision);
+        revision.Should().NotBe(0);
+    }
+
+    [TestMethod]
+    public async Task Image_ExplicitRefresh_NotModified_KeepsBytesAndRevision()
+    {
+        using var fixture = Fixture.Create();
+        var root = await RootAsync(fixture, IconBytes, "\"icon-1\"");
+        await fixture.Client.GetImageAsync(root, "icon");
+        var revision = fixture.Client.ImageRevision(root, "icon");
         var updated = 0;
         fixture.Client.ImageUpdated += (_, _) => Interlocked.Increment(ref updated);
         fixture.Handler.Next = (request, _) =>
@@ -86,64 +110,317 @@ public class MetadataClientImageTests
             return Task.FromResult(NotModified());
         };
 
-        var cached = await fixture.Client.GetImageAsync(root, "icon");
+        var refreshed = await fixture.Client.RefreshImageAsync(root, "icon");
 
-        cached.Status.Should().Be(MetadataFreshness.Stale);
-        cached.Bytes.Should().Equal(IconBytes);
-        (await WaitUntilAsync(() => fixture.Calls.Count(call => call.Uri == IconUrl) >= 2)).Should().BeTrue();
+        refreshed.Status.Should().Be(MetadataFreshness.Stale);
+        refreshed.Error.Should().BeNull();
+        refreshed.Bytes.Should().Equal(IconBytes);
         fixture.Calls.Last().Conditional.Should().BeTrue();
-        Interlocked.CompareExchange(ref updated, 0, 0).Should().Be(0, "304 不产生内容更新");
+        fixture.Client.ImageRevision(root, "icon").Should().Be(revision);
+        Interlocked.CompareExchange(ref updated, 0, 0).Should().Be(0);
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(2);
+        (await fixture.Client.GetImageAsync(root, "icon")).Bytes.Should().Equal(IconBytes);
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(2, "刷新之后的普通读取不再请求");
     }
 
     [TestMethod]
-    public async Task Image_BackgroundChangedBytes_UpdatesCacheAndRaisesOnce()
+    public async Task Image_ExplicitRefresh_ChangedBytes_UpdatesCacheAndRaisesOnce()
     {
         using var fixture = Fixture.Create();
         var root = await RootAsync(fixture, IconBytes, "\"icon-1\"");
         await fixture.Client.GetImageAsync(root, "icon");
-
+        var revision = fixture.Client.ImageRevision(root, "icon");
         var changed = new byte[] { 9, 9, 9, 9 };
         var raised = 0;
-        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         fixture.Client.ImageUpdated += (_, args) =>
         {
             args.ImageUri.Should().Be(IconUrl);
-            if (Interlocked.Increment(ref raised) == 1)
-                done.TrySetResult();
+            Interlocked.Increment(ref raised);
         };
-        fixture.Handler.Next = (_, _) => Task.FromResult(Png(changed, "\"icon-2\""));
+        fixture.Handler.Next = (request, _) =>
+        {
+            request.Headers.IfNoneMatch.ToString().Should().Be("\"icon-1\"");
+            return Task.FromResult(Png(changed, "\"icon-2\""));
+        };
 
-        var cached = await fixture.Client.GetImageAsync(root, "icon");
-        cached.Status.Should().Be(MetadataFreshness.Stale);
-        cached.Bytes.Should().Equal(IconBytes, "前台先拿到旧图");
+        var refreshed = await fixture.Client.RefreshImageAsync(root, "icon");
 
-        await done.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fixture.Client.ImageRevision(root, "icon").Should().Be(1);
+        refreshed.Status.Should().Be(MetadataFreshness.Fresh);
+        refreshed.Error.Should().BeNull();
+        refreshed.Bytes.Should().Equal(changed);
+        raised.Should().Be(1);
+        fixture.Client.ImageRevision(root, "icon").Should().NotBe(revision);
+        var updatedRevision = fixture.Client.ImageRevision(root, "icon");
         var body = Directory.EnumerateFiles(fixture.Cache, "icon.png", SearchOption.AllDirectories).Single();
         File.ReadAllBytes(body).Should().Equal(changed);
 
-        // 内容已经是最新的，再访问一次只应拿到 304，不再发内容更新。
         fixture.Handler.Next = (_, _) => Task.FromResult(NotModified());
-        (await fixture.Client.GetImageAsync(root, "icon")).Bytes.Should().Equal(changed);
-        (await WaitUntilAsync(() => fixture.Calls.Count(call => call.Uri == IconUrl) >= 3)).Should().BeTrue();
-        await Task.Delay(150);
-        Interlocked.CompareExchange(ref raised, 0, 0).Should().Be(1);
+        var again = await fixture.Client.RefreshImageAsync(root, "icon");
+        again.Bytes.Should().Equal(changed);
+        again.Error.Should().BeNull();
+        raised.Should().Be(1);
+        fixture.Client.ImageRevision(root, "icon").Should().Be(updatedRevision);
     }
 
     [TestMethod]
-    public async Task Image_OfflineWithCache_KeepsLastImageAndDoesNotBlock()
+    public async Task Image_RefreshFailure_KeepsOldBytesWithoutAnotherRead()
     {
         using var fixture = Fixture.Create();
         var root = await RootAsync(fixture, IconBytes, "\"icon-1\"");
         await fixture.Client.GetImageAsync(root, "icon");
+        var revision = fixture.Client.ImageRevision(root, "icon");
+        var raised = 0;
+        fixture.Client.ImageUpdated += (_, _) => Interlocked.Increment(ref raised);
+        fixture.Handler.Next = (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
 
-        fixture.Handler.Next = (_, _) => throw new HttpRequestException("down");
-        var cached = await fixture.Client.GetImageAsync(root, "icon");
+        var failed = await fixture.Client.RefreshImageAsync(root, "icon");
+        var calls = fixture.Calls.Count(call => call.Uri == IconUrl);
 
-        cached.Status.Should().Be(MetadataFreshness.Stale);
-        cached.Bytes.Should().Equal(IconBytes);
-        (await WaitUntilAsync(() => fixture.Calls.Count(call => call.Uri == IconUrl) >= 2)).Should().BeTrue();
-        fixture.Client.ImageRevision(root, "icon").Should().Be(0);
+        failed.Ok.Should().BeTrue();
+        failed.Status.Should().Be(MetadataFreshness.Stale);
+        failed.Bytes.Should().Equal(IconBytes);
+        failed.Error.Should().Contain("503");
+        raised.Should().Be(0);
+        fixture.Client.ImageRevision(root, "icon").Should().Be(revision);
+        fixture.Handler.Next = (_, _) => throw new HttpRequestException("ordinary read must not retry");
+        (await fixture.Client.GetImageAsync(root, "icon")).Bytes.Should().Equal(IconBytes);
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(calls);
+    }
+
+    [TestMethod]
+    public async Task Image_ExplicitRefresh_AfterColdFailure_NotifiesWithoutAnotherRequest()
+    {
+        using var fixture = Fixture.Create();
+        fixture.Handler.Next = (request, _) => Task.FromResult(
+            request.RequestUri!.AbsoluteUri == RootUrl
+                ? Xml(RootXml())
+                : new HttpResponseMessage(HttpStatusCode.NotFound));
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+        (await fixture.Client.GetImageAsync(root, "icon")).Status.Should().Be(MetadataFreshness.Unavailable);
+
+        var raised = 0;
+        fixture.Client.ImageUpdated += (_, args) =>
+        {
+            args.ImageUri.Should().Be(IconUrl);
+            Interlocked.Increment(ref raised);
+            var during = fixture.Client.GetImageAsync(root, "icon").GetAwaiter().GetResult();
+            during.Ok.Should().BeTrue();
+            during.Bytes.Should().Equal(IconBytes);
+        };
+        fixture.Handler.Next = (request, _) => Task.FromResult(
+            request.RequestUri!.AbsoluteUri == IconUrl ? Png(IconBytes, "\"icon-1\"") : Xml(RootXml()));
+
+        var refreshed = await fixture.Client.RefreshImageAsync(root, "icon");
+        var calls = fixture.Calls.Count(call => call.Uri == IconUrl);
+
+        refreshed.Ok.Should().BeTrue();
+        refreshed.Status.Should().Be(MetadataFreshness.Fresh);
+        refreshed.Error.Should().BeNull();
+        raised.Should().Be(1);
+        calls.Should().Be(2, "失败一次，显式成功一次；通知回调里的读取不能再发请求");
+        (await fixture.Client.GetImageAsync(root, "icon")).Bytes.Should().Equal(IconBytes);
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(calls);
+    }
+
+    [TestMethod]
+    public async Task Image_ColdFailure_BlocksOrdinaryReadsUntilExplicitRefreshInterval()
+    {
+        var clock = new ManualClock();
+        using var fixture = Fixture.Create(clock: clock);
+        fixture.Handler.Next = (request, _) => Task.FromResult(
+            request.RequestUri!.AbsoluteUri == RootUrl
+                ? Xml(RootXml())
+                : new HttpResponseMessage(HttpStatusCode.NotFound));
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+
+        (await fixture.Client.GetImageAsync(root, "icon")).Status.Should().Be(MetadataFreshness.Unavailable);
+        (await fixture.Client.GetImageAsync(root, "icon")).Error.Should().Contain("显式刷新");
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(1);
+
+        clock.Now += TimeSpan.FromMinutes(9);
+        await fixture.Client.GetImageAsync(root, "icon");
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(1);
+
+        var refreshed = await fixture.Client.RefreshImageAsync(root, "icon");
+        refreshed.Status.Should().Be(MetadataFreshness.Unavailable);
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(2, "显式刷新不受冷失败抑制");
+        await fixture.Client.GetImageAsync(root, "icon");
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(2, "失败的显式刷新之后，普通读取不能再发第二次");
+
+        clock.Now += TimeSpan.FromMinutes(10);
+        await fixture.Client.GetImageAsync(root, "icon");
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(3);
+    }
+
+    [TestMethod]
+    public async Task Image_ColdReadAndRefresh_ShareOneFlightAndThenServeCache()
+    {
+        using var fixture = Fixture.Create();
+        fixture.Handler.Next = (request, _) => Task.FromResult(Xml(RootXml()));
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        fixture.Handler.Next = async (request, token) =>
+        {
+            if (request.RequestUri!.AbsoluteUri != IconUrl)
+                return Xml(RootXml());
+            entered.TrySetResult();
+            await release.Task.WaitAsync(token);
+            return Png(IconBytes, "\"icon-1\"");
+        };
+
+        var cold = fixture.Client.GetImageAsync(root, "icon");
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var refresh = fixture.Client.RefreshImageAsync(root, "icon");
+        release.TrySetResult();
+        var results = await Task.WhenAll(cold, refresh);
+
+        results.Should().OnlyContain(image => image.Ok && image.Bytes!.SequenceEqual(IconBytes));
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(1);
+        (await fixture.Client.GetImageAsync(root, "icon")).Status.Should().Be(MetadataFreshness.Stale);
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(1);
+    }
+
+    [TestMethod]
+    public async Task Image_ConcurrentColdReads_ShareOneInstantRequest()
+    {
+        using var fixture = Fixture.Create();
+        fixture.Handler.Next = (request, _) => Task.FromResult(
+            request.RequestUri!.AbsoluteUri == RootUrl ? Xml(RootXml()) : Png(IconBytes, "\"icon-1\""));
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+
+        var reads = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ => fixture.Client.GetImageAsync(root, "icon")));
+
+        reads.Should().OnlyContain(image => image.Ok && image.Bytes!.SequenceEqual(IconBytes));
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(1);
+        (await fixture.Client.GetImageAsync(root, "icon")).Status.Should().Be(MetadataFreshness.Stale);
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(1);
+    }
+
+    [TestMethod]
+    public async Task Image_SourceChange_ChangesRevisionEvenWhenBytesMatch()
+    {
+        using var fixture = Fixture.Create();
+        var source = "images/a.png";
+        fixture.Handler.Next = (request, _) => Task.FromResult(
+            request.RequestUri!.AbsoluteUri == RootUrl
+                ? Xml(RootXml($"""<Image ID="icon" Source="{source}" />"""))
+                : Png(IconBytes, "\"icon\""));
+        var rootA = await fixture.Client.RefreshRootAsync(RootUrl);
+        await fixture.Client.GetImageAsync(rootA, "icon");
+        var revisionA = fixture.Client.ImageRevision(rootA, "icon");
+
+        source = "images/b.png";
+        var rootB = await fixture.Client.RefreshRootAsync(RootUrl);
+        var beforeDownload = fixture.Client.ImageRevision(rootB, "icon");
+        await fixture.Client.GetImageAsync(rootB, "icon");
+        var revisionB = fixture.Client.ImageRevision(rootB, "icon");
+
+        revisionA.Should().NotBe(0);
+        beforeDownload.Should().NotBe(revisionA);
+        revisionB.Should().NotBe(revisionA);
+        fixture.Client.ImageRevision(rootA, "icon").Should().Be(revisionA);
+    }
+
+    [TestMethod]
+    public async Task Image_Revision_IsStableAcrossProcessAndTracksCachedBytes()
+    {
+        var cache = NewCache();
+        int revision;
+        using (var first = Fixture.Create(cache, keepCache: true))
+        {
+            var root = await RootAsync(first, IconBytes, "\"icon-1\"");
+            await first.Client.GetImageAsync(root, "icon");
+            revision = first.Client.ImageRevision(root, "icon");
+            revision.Should().NotBe(0);
+        }
+
+        using (var second = Fixture.Create(cache, keepCache: true))
+        {
+            second.Handler.Next = (_, _) => throw new HttpRequestException("restart must not refetch unchanged bytes");
+            var opened = await second.Client.OpenSnapshotAsync(RootUrl);
+            second.Client.ImageRevision(opened, "icon").Should().Be(revision);
+            (await second.Client.GetImageAsync(opened, "icon")).Bytes.Should().Equal(IconBytes);
+            second.Calls.Should().BeEmpty();
+        }
+
+        var changed = new byte[] { 4, 4, 4, 4 };
+        ReplaceImageBody(cache, "icon.png", changed);
+        using var third = Fixture.Create(cache);
+        third.Handler.Next = (_, _) => throw new HttpRequestException("changed disk bytes are already cached");
+        var reopened = await third.Client.OpenSnapshotAsync(RootUrl);
+        third.Client.ImageRevision(reopened, "icon").Should().NotBe(revision);
+        (await third.Client.GetImageAsync(reopened, "icon")).Bytes.Should().Equal(changed);
+        third.Calls.Should().BeEmpty();
+    }
+
+    [TestMethod]
+    public async Task Image_CallerCancel_DoesNotCancelSharedDownload()
+    {
+        using var fixture = Fixture.Create();
+        fixture.Handler.Next = (request, _) => Task.FromResult(Xml(RootXml()));
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        fixture.Handler.Next = async (request, token) =>
+        {
+            if (request.RequestUri!.AbsoluteUri != IconUrl)
+                return Xml(RootXml());
+            entered.TrySetResult();
+            await release.Task.WaitAsync(token);
+            return Png(IconBytes, "\"icon-1\"");
+        };
+        using var cts = new CancellationTokenSource();
+        var cancelled = fixture.Client.GetImageAsync(root, "icon", cts.Token);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cts.Cancel();
+
+        var act = async () => await cancelled;
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        var joined = fixture.Client.GetImageAsync(root, "icon");
+        release.TrySetResult();
+
+        (await joined).Bytes.Should().Equal(IconBytes);
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(1);
+    }
+
+    [TestMethod]
+    public async Task Image_Dispose_CancelsOutstandingDownload()
+    {
+        using var fixture = Fixture.Create();
+        fixture.Handler.Next = (request, _) => Task.FromResult(Xml(RootXml()));
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        fixture.Handler.Next = async (request, token) =>
+        {
+            if (request.RequestUri!.AbsoluteUri != IconUrl)
+                return Xml(RootXml());
+            entered.TrySetResult();
+            await Task.Delay(Timeout.Infinite, token);
+            return Png(IconBytes);
+        };
+        var pending = fixture.Client.GetImageAsync(root, "icon");
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        fixture.Client.Dispose();
+
+        var act = async () => await pending;
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [TestMethod]
+    public async Task DisabledDiskCache_RefreshStillReadsLiveSource()
+    {
+        using var fixture = Fixture.Create(NewCache(), enableDiskCache: false);
+        fixture.Handler.Next = (_, _) => Task.FromResult(Xml(RootXml()));
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+        fixture.Handler.Next = (request, _) => Task.FromResult(
+            request.RequestUri!.AbsoluteUri == IconUrl ? Png(IconBytes) : Xml(RootXml()));
+
+        (await fixture.Client.RefreshImageAsync(root, "icon")).Status.Should().Be(MetadataFreshness.Fresh);
+        (await fixture.Client.RefreshImageAsync(root, "icon")).Status.Should().Be(MetadataFreshness.Fresh);
+
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(2);
+        fixture.Calls.Where(call => call.Uri == IconUrl).Should().OnlyContain(call => !call.Conditional);
     }
 
     [TestMethod]
@@ -267,17 +544,21 @@ public class MetadataClientImageTests
         return root;
     }
 
-    private static async Task<bool> WaitUntilAsync(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
-        while (DateTime.UtcNow < deadline)
-        {
-            if (condition())
-                return true;
-            await Task.Delay(20);
-        }
 
-        return condition();
+    private static void ReplaceImageBody(string cache, string fileName, byte[] body)
+    {
+        var path = Directory.EnumerateFiles(cache, fileName, SearchOption.AllDirectories).Single();
+        File.WriteAllBytes(path, body);
+        var stamp = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path + ".etag"))!.AsObject();
+        stamp["Sha256"] = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(body)).ToLowerInvariant();
+        File.WriteAllText(path + ".etag", stamp.ToJsonString());
+    }
+
+    private sealed class ManualClock : TimeProvider
+    {
+        public DateTimeOffset Now { get; set; } = new(2026, 10, 9, 0, 0, 0, TimeSpan.Zero);
+
+        public override DateTimeOffset GetUtcNow() => Now;
     }
 
     private static string RootXml(string images = """<Image ID="icon" Source="images/icon.png" />""") => $$"""
@@ -340,9 +621,10 @@ public class MetadataClientImageTests
 
         public required MetadataClient Client { get; init; }
 
+        public bool KeepCache { get; init; }
         public List<Call> Calls => Handler.Calls;
 
-        public static Fixture Create(string? cache = null, bool enableDiskCache = true)
+        public static Fixture Create(string? cache = null, bool enableDiskCache = true, TimeProvider? clock = null, bool keepCache = false)
         {
             cache ??= NewCache();
             var handler = new ScriptedHandler();
@@ -357,7 +639,9 @@ public class MetadataClientImageTests
                     TimeSpan.FromSeconds(10),
                     maxLeafConcurrency: 4,
                     httpClient: http,
-                    enableDiskCache: enableDiskCache),
+                    enableDiskCache: enableDiskCache,
+                    clock: clock),
+                KeepCache = keepCache,
             };
         }
 
@@ -367,7 +651,7 @@ public class MetadataClientImageTests
             Http.Dispose();
             try
             {
-                if (Directory.Exists(Cache))
+                if (!KeepCache && Directory.Exists(Cache))
                     Directory.Delete(Cache, recursive: true);
             }
             catch (IOException)
