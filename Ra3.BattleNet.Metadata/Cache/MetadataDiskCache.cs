@@ -218,8 +218,8 @@ internal sealed class MetadataDiskCache
     }
 
     /// <summary>
-    /// 只读旁挂摘要，不读取、不重新哈希正文。归属地址对不上或没有摘要时返回 false。
-    /// 正文是否与摘要一致由 <see cref="TryReadImage"/> 负责；这里给版本号复用已记录的摘要。
+    /// 仅读取随文件保存的校验摘要，不重新读取或计算大图的哈希值。没有摘要或地址不匹配时返回 false。
+    /// 专门供计算版本号使用，避免每次刷新版本号都重新哈希大图片导致卡顿。
     /// </summary>
     public bool TryReadImageDigest(Uri image, out string digest, out string? contentType)
     {

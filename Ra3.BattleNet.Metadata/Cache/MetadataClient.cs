@@ -11,7 +11,7 @@ namespace Ra3.BattleNet.Metadata.Cache;
 /// <summary>
 /// 根清单、包叶子与登记图片的共享加载器。叶子与图片身份只来自调用方传入的快照。
 /// 相同 Source 的正文只拉一次，每个调用再按自己的 Manifest ID 投影。
-/// 已有缓存的展示读取不发 HTTP；<c>GetLeafAsync</c> 和冷图片读取仍会访问来源。
+/// 只要本地有缓存，读取展示数据就不走网络；没有缓存（冷启动）或明确调用 <c>GetLeafAsync</c> 时才会请求网络。
 /// </summary>
 public sealed class MetadataClient : IDisposable
 {
@@ -45,7 +45,7 @@ public sealed class MetadataClient : IDisposable
     /// 不发送由缓存产生的条件请求，也不把生产缓存当作失败回退。本地与测试来源用这个模式，
     /// 保证改完本地源立刻能看到新内容。
     /// </param>
-    /// <param name="clock">冷图片失败抑制使用的时钟。省略时用系统 UTC，测试可注入以免等待墙钟。</param>
+    /// <param name="clock">图片下载失败后的冷却倒计时时钟。默认使用系统时间，单元测试可传入模拟时钟。</param>
     public MetadataClient(
         string cacheDirectory,
         TimeSpan requestTimeout,
@@ -73,9 +73,9 @@ public sealed class MetadataClient : IDisposable
     }
 
     /// <summary>
-    /// 图片从不可用变为可展示，或已有正文被不同字节替换后触发。订阅方拿到的是地址，不是登记 ID。
-    /// 同一次变化只触发一次。304、失败和字节未变都不触发。
-    /// 通知发生在正文已经提交之后；回调里再读同一张图只命中缓存，不会另开传输。
+    /// 图片下载完成、或者内容发生真实变化后触发。订阅方收到的是图片完整 URL。
+    /// 每次更新只触发一次；如果服务器返回 304、请求失败或者文件内容没变，都不会触发。
+    /// 触发时新图片已写入本地缓存，事件回调中再次读取会直接命中缓存，不会重复发请求。
     /// </summary>
     public event EventHandler<ImageUpdatedEventArgs>? ImageUpdated;
 
@@ -114,8 +114,8 @@ public sealed class MetadataClient : IDisposable
     }
 
     /// <summary>
-    /// 只读这份快照已有的内存或磁盘叶子，不发 HTTP，也不等待别人正在进行的网络请求。
-    /// 缺失返回 Unavailable。关闭磁盘缓存时，file:// 读取当前源文件并投影为 Stale，不落盘。
+    /// 只从内存或磁盘读取已有的叶子清单，绝对不发 HTTP 请求，也不等待正在进行的网络任务。
+    /// 如果本地没有缓存直接返回 Unavailable；关闭磁盘缓存时，若是本地 file:// 协议则直接读取源文件。
     /// </summary>
     public Task<LeafResult> GetCachedLeafAsync(RootSnapshotResult snapshot, string version, Uri leafSourceUri, CancellationToken ct = default)
     {
@@ -168,9 +168,9 @@ public sealed class MetadataClient : IDisposable
     }
 
     /// <summary>
-    /// 按已捕获快照读取一张已登记图片。启用磁盘缓存且正文完整时直接返回，不发 HTTP，也不做后台校验。
-    /// 冷缓存只允许一次共享下载；失败后十分钟内普通读取不再请求。禁用磁盘缓存时每次都读当前来源。
-    /// 不缓存 Markdown 正文里未登记的图片，也不读取 XML 的 Image Hash。
+    /// 读取模组图片：只要本地有完整缓存就直接返回，绝不发网络请求，也不在后台悄悄查 ETag。
+    /// 如果本地没有缓存，多个并发请求会合并为一次真实下载；下载失败后 10 分钟内不再重复请求，避免卡顿。
+    /// Markdown 文本里的未登记图片不走此缓存，也不检查 XML 里的哈希值。
     /// </summary>
     /// <param name="snapshot">提供登记身份与来源基地址的快照。</param>
     /// <param name="imageId">已登记的图片 ID（大小写不敏感）。</param>
@@ -202,8 +202,8 @@ public sealed class MetadataClient : IDisposable
     }
 
     /// <summary>
-    /// 显式条件刷新一张已登记图片。与冷读取共享同一 URI 传输；不受冷失败抑制。
-    /// 调用方取消只取消等待。首次可展示或正文被替换时触发 <see cref="ImageUpdated"/>；304 或字节未变不通知。
+    /// 后台定时器主动调用的图片刷新：向服务器发条件请求校验更新，如果正在下载同一张图则复用同一任务。
+    /// 取消操作只停止当前等待，不会中断后台下载；图片首次就绪或内容发生改变时触发 <see cref="ImageUpdated"/> 事件。
     /// </summary>
     public Task<ImageResult> RefreshImageAsync(RootSnapshotResult snapshot, string imageId, CancellationToken ct = default)
     {
@@ -216,9 +216,8 @@ public sealed class MetadataClient : IDisposable
     }
 
     /// <summary>
-    /// 前端缓存破坏版本。已登记图片用规范化 URI 与已记录摘要做稳定混合。
-    /// Source 或摘要变化会改变这个值。混合结果是 32 位，碰撞时仍可能复用地址，不能当成唯一证明。
-    /// 不可解析时返回 0。摘要未变则版本不变。
+    /// 计算图片版本号，用于通知前端更新图片。根据规范化的图片 URL 和本地哈希值计算得出。
+    /// 图片 URL 或文件内容发生变化时版本号会变；内容未变时保持不变，避免前端无意义刷新。
     /// </summary>
     public int ImageRevision(RootSnapshotResult snapshot, string imageId)
     {
