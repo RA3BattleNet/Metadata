@@ -71,7 +71,7 @@ public sealed record ModEntry(string Id, string? Version, string? Icon, IReadOnl
 /// <summary>
 /// 分语言的文本（<c>DisplayName</c> / <c>Title</c> / <c>Description</c> 这类带 <c>@Language</c> 的节点）。
 /// </summary>
-/// <param name="Language">语言标记，如 <c>zh-CN</c>。</param>
+/// <param name="Language">语言标记，如 <c>zh</c>。</param>
 /// <param name="Text">该语言下的文本。</param>
 public sealed record LocalizedTextEntry(string Language, string Text);
 

@@ -164,8 +164,8 @@ public class IdScopeTests
   <Image ID="shared-icon" Source="icon.png" />
   <Mod ID="ModA">
     <Icon>shared-icon</Icon>
-    <DisplayName Language="zh-CN">模组 A</DisplayName>
-    <DisplayName Language="en-US">Mod A</DisplayName>
+    <DisplayName Language="zh">模组 A</DisplayName>
+    <DisplayName Language="en">Mod A</DisplayName>
   </Mod>
 </Metadata>
 """);
@@ -175,8 +175,8 @@ public class IdScopeTests
   <Image ID="shared-icon" Source="icon.png" />
   <Mod ID="ModB">
     <Icon>shared-icon</Icon>
-    <DisplayName Language="zh-CN">模组 B</DisplayName>
-    <DisplayName Language="en-US">Mod B</DisplayName>
+    <DisplayName Language="zh">模组 B</DisplayName>
+    <DisplayName Language="en">Mod B</DisplayName>
   </Mod>
 </Metadata>
 """);

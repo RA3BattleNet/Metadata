@@ -9,8 +9,8 @@
 
     <Application ID="content">
         <Version>1.5.5.2</Version>
-        <DisplayName Language="zh-CN">游戏资源</DisplayName>
-        <DisplayName Language="en-US">Game Resources</DisplayName>
+        <DisplayName Language="zh">游戏资源</DisplayName>
+        <DisplayName Language="en">Game Resources</DisplayName>
         <Packages>
             <Package Version="1.5.3.0">
                 <ReleaseDate>2025-05-21</ReleaseDate>

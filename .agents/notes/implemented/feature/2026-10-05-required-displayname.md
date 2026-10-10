@@ -1,5 +1,7 @@
 # Agent Note: Mod 与 Application 的必填显示名
 
+> 语言标签已由 [Metadata#25](https://github.com/RA3BattleNet/Metadata/issues/25) 统一为 `zh`／`en`，见 [语言标签统一为 zh 与 en](2026-10-09-unified-language-tags.md)。下文记录当时的区域标签设计；当前必填规则与示例以 [README 的显示名章节](../../../../README.md#显示名mod-与-application-均必填) 为准。
+
 Status: implemented
 
 ## Problem

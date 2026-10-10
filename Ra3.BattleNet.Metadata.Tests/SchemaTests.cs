@@ -125,10 +125,10 @@ public class SchemaTests
         // true / 1 与整体缺失都必须放行；非法布尔值被源 XSD 硬拦截
         var cases = new (string Name, string App, bool Ok)[]
         {
-            ("true", """<Application ID="A"><Version>1.0</Version><DisplayName Language="zh-CN">甲</DisplayName><DisplayName Language="en-US">A</DisplayName><TransferAd>true</TransferAd></Application>""", true),
-            ("one", """<Application ID="A"><DisplayName Language="zh-CN">甲</DisplayName><DisplayName Language="en-US">A</DisplayName><TransferAd>1</TransferAd></Application>""", true),
-            ("missing", """<Application ID="A"><Version>1.0</Version><DisplayName Language="zh-CN">甲</DisplayName><DisplayName Language="en-US">A</DisplayName></Application>""", true),
-            ("invalid", """<Application ID="A"><DisplayName Language="zh-CN">甲</DisplayName><DisplayName Language="en-US">A</DisplayName><TransferAd>yes</TransferAd></Application>""", false),
+            ("true", """<Application ID="A"><Version>1.0</Version><DisplayName Language="zh">甲</DisplayName><DisplayName Language="en">A</DisplayName><TransferAd>true</TransferAd></Application>""", true),
+            ("one", """<Application ID="A"><DisplayName Language="zh">甲</DisplayName><DisplayName Language="en">A</DisplayName><TransferAd>1</TransferAd></Application>""", true),
+            ("missing", """<Application ID="A"><Version>1.0</Version><DisplayName Language="zh">甲</DisplayName><DisplayName Language="en">A</DisplayName></Application>""", true),
+            ("invalid", """<Application ID="A"><DisplayName Language="zh">甲</DisplayName><DisplayName Language="en">A</DisplayName><TransferAd>yes</TransferAd></Application>""", false),
         };
 
         foreach (var (name, app, ok) in cases)
@@ -162,35 +162,35 @@ public class SchemaTests
     }
 
     [TestMethod]
-    public void Build_EntityDisplayNames_RequiresExactZhCnEnUs_UniqueAndNonBlank()
+    public void Build_EntityDisplayNames_RequiresExactZhEn_UniqueAndNonBlank()
     {
         var cases = new (string DisplayNames, string? Fragment, string[] Expected)[]
         {
             ("""
-<DisplayName Language="zh-CN">甲</DisplayName>
-""", "缺少 en-US", []),
-            ("""
-<DisplayName Language="zh-CN">甲</DisplayName>
-<DisplayName Language="en-US">A</DisplayName>
-<DisplayName Language="zh-CN">乙</DisplayName>
-""", "Language 重复", []),
-            ("""
-<DisplayName Language="zh-CN">甲</DisplayName>
-<DisplayName Language="en-US"> </DisplayName>
-""", "文本不能为空", []),
+<DisplayName Language="zh">甲</DisplayName>
+""", "缺少 en", []),
             ("""
 <DisplayName Language="zh">甲</DisplayName>
 <DisplayName Language="en">A</DisplayName>
-""", "缺少 zh-CN", []),
+<DisplayName Language="ZH">乙</DisplayName>
+""", "Language 重复", []),
+            ("""
+<DisplayName Language="zh">甲</DisplayName>
+<DisplayName Language="en"> </DisplayName>
+""", "文本不能为空", []),
             ("""
 <DisplayName Language="zh-CN">甲</DisplayName>
 <DisplayName Language="en-US">A</DisplayName>
-""", null, ["zh-CN", "en-US"]),
+""", "缺少 zh DisplayName", []),
+            ("""
+<DisplayName Language="zh">甲</DisplayName>
+<DisplayName Language="en">A</DisplayName>
+""", null, ["zh", "en"]),
             // 完整语言标签比较不区分大小写
             ("""
-<DisplayName Language="ZH-cn">甲</DisplayName>
-<DisplayName Language="EN-us">A</DisplayName>
-""", null, ["ZH-cn", "EN-us"]),
+<DisplayName Language="ZH">甲</DisplayName>
+<DisplayName Language="EN">A</DisplayName>
+""", null, ["ZH", "EN"]),
         };
 
         foreach (var (displayNames, fragment, expected) in cases)
