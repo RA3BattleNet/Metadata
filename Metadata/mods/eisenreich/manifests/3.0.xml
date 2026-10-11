@@ -10,7 +10,7 @@
             <AddBig File="EisenreichMW_3.0.lyi" />
             <AddBig File="EisenreichTW_3.0.lyi" />
         </Skudef>
-        <File Hash="82F14051" Size="1501165154" DownloadName="EisenreichMW_3.0.zst" Compression="zstd">
+        <File Hash="5140F182" Size="1501165154" DownloadName="EisenreichMW_3.0.zst" Compression="zstd">
             <FileName>EisenreichMW_3.0.lyi</FileName>
             <RelativePath>/</RelativePath>
             <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
@@ -18,7 +18,7 @@
                 <Source Type="HTTP" Url="http://object.ra3battle.net/mods/eisenreich/EisenreichMW_3.0.zst" />
             </Sources>
         </File>
-        <File Hash="3CDABF35" Size="378038593" DownloadName="EisenreichTW_3.0.zst" Compression="zstd">
+        <File Hash="35BFDA3C" Size="378038593" DownloadName="EisenreichTW_3.0.zst" Compression="zstd">
             <FileName>EisenreichTW_3.0.lyi</FileName>
             <RelativePath>/</RelativePath>
             <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
