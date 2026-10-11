@@ -109,7 +109,7 @@ var leafUri = MetadataResourceUri.Resolve(root.OriginUri!.AbsoluteUri, relativeS
 var leaf = await client.GetLeafAsync(root, version, leafUri, cancellationToken);
 var cachedLeaf = await client.GetCachedLeafAsync(root, version, leafUri, cancellationToken);
 var retried = await client.RefreshLeafAsync(root, version, leafUri, cancellationToken);
-await client.PreloadLeavesAsync(root, cancellationToken);
+var leaves = await client.PreloadLeavesAsync(root, cancellationToken); // Total / Loaded / Failed
 var offline = await client.OpenSnapshotAsync(metadataUrl, cancellationToken);
 var image = await client.GetImageAsync(root, imageId, cancellationToken);
 var refreshedImage = await client.RefreshImageAsync(root, imageId, cancellationToken);
@@ -119,6 +119,8 @@ var revision = client.ImageRevision(root, imageId);
 `OpenSnapshotAsync` 只读磁盘，状态是 `Stale` 或 `Unavailable`，不会是 `Fresh`。`RefreshRootAsync` 对 http(s) 做条件 GET，对 file:// 和本地路径读取源文件，成功才是 `Fresh`。`ApplicationEntry.ResolveUpdaterEndpoint(originUri)` 取第一个直接子级 `UpdateKind`，再在它的直接子级里等值匹配 `Current`。
 
 `GetCachedLeafAsync` 是普通展示用的只读投影：只取这份快照当时已有的内存或有效磁盘叶子，不发 HTTP，也不等待别人正在进行的请求。缺失返回 `Unavailable`。它不会把结果标成 `Fresh`。`GetLeafAsync` 和 `RefreshLeafAsync` 仍按原语义读取或强制刷新。关闭磁盘缓存时，file:// 每次读取当前源文件并返回 `Stale`，不落盘、也不加读取间隔；http(s) 在这个模式下仍不主动请求。
+
+`PreloadLeavesAsync` 返回 `LeafPreloadSummary`，统计叶子总数、可用文档数和缺失文档数；HTTP、超时或解析失败不能再被调用方误报为全部完成。已有缓存回退仍算可用文档，不代表本轮联网确认成功。`HasCachedImage(root, imageId)` 只检查可用磁盘缓存，不发网络请求，宿主可用它在 XML 刷新期间延后冷图片读取。
 
 已登记图片使用同一条传输和同一套磁盘布局，不另建目录。`GetImageAsync` 在磁盘正文完整时直接返回，不发 HTTP，也不做后台校验。冷缓存只共享一次下载；失败后十分钟内普通读取不再请求。缓存写不进去时返回错误并进入同样的抑制，不把这次下载假装成已缓存成功。`RefreshImageAsync` 不受这十分钟限制，与冷下载共享同一 URI 的在途请求，并发送条件请求。首次可展示，或正文被不同字节替换，才触发一次 `ImageUpdated`；304 或字节未变不通知。回调里再读同一张图命中刚提交的缓存，不会另开传输。刷新失败且仍有旧图时保留旧字节，`Error` 说明本次失败。调用方取消只取消等待，`Dispose` 才取消共享传输。
 

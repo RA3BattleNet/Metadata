@@ -189,6 +189,28 @@ public class MetadataClientTests
     }
 
     [TestMethod]
+    public async Task Preload_ReportsLeavesThatEndedWithoutDocument()
+    {
+        using var fixture = Fixture.Create();
+        fixture.Handler.Next = (request, _) =>
+        {
+            var uri = request.RequestUri!.AbsoluteUri;
+            if (uri == RootUrl)
+                return Task.FromResult(Xml(RootXml(), "\"v1\""));
+            return Task.FromResult(uri == "https://metadata.example/apps/leaf.xml"
+                ? Xml(LeafXml("app-leaf"))
+                : new HttpResponseMessage(HttpStatusCode.NotFound));
+        };
+
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+        var summary = await fixture.Client.PreloadLeavesAsync(root);
+
+        summary.Total.Should().Be(4);
+        summary.Loaded.Should().Be(1);
+        summary.Failed.Should().Be(3);
+    }
+
+    [TestMethod]
     public async Task GetLeaf_MemoryHit_DoesNotRefetch_RefreshLeafDoes()
     {
         using var fixture = Fixture.Create();

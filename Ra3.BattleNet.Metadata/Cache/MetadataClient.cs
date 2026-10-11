@@ -128,19 +128,21 @@ public sealed class MetadataClient : IDisposable
     }
 
     /// <summary>
-    /// 刷新快照里全部 Application 与 Mod 的当前和历史包叶子。相同 Source 只拉一次。
-    /// 不读取图片、Markdown 或 Updater 清单。单个叶子的网络失败不影响其余叶子。
+    /// 刷新快照里全部 Application 与 Mod 的当前和历史包叶子，并回报这一轮有几个叶子没拿到可用文档。
+    /// 相同 Source 只拉一次。不读取图片、Markdown 或 Updater 清单。
+    /// 单个叶子的网络失败、超时或解析失败不影响其余叶子，只计进 <see cref="LeafPreloadSummary.Failed"/>；
+    /// 只有取消和客户端已释放才会往外抛。没有摘要的话，调用方看到的永远是"拉完了"，分不清全挂。
     /// </summary>
-    public async Task PreloadLeavesAsync(RootSnapshotResult rootSnapshot, CancellationToken ct = default)
+    public async Task<LeafPreloadSummary> PreloadLeavesAsync(RootSnapshotResult rootSnapshot, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(rootSnapshot);
         ct.ThrowIfCancellationRequested();
         ObjectDisposedException.ThrowIf(_disposed, this);
         var leaves = EnumerateLeaves(rootSnapshot);
         if (leaves.Count == 0)
-            return;
+            return LeafPreloadSummary.Empty;
 
-        var waits = new List<Task>(leaves.Count);
+        var waits = new List<Task<LeafDoc>>(leaves.Count);
         foreach (var leaf in leaves)
         {
             await _leafSlots.WaitAsync(ct).ConfigureAwait(false);
@@ -164,7 +166,9 @@ public sealed class MetadataClient : IDisposable
             waits.Add(flight.WaitAsync(ct));
         }
 
-        await Task.WhenAll(waits).ConfigureAwait(false);
+        var docs = await Task.WhenAll(waits).ConfigureAwait(false);
+        var failed = docs.Count(doc => doc.Document is null);
+        return new LeafPreloadSummary(docs.Length, docs.Length - failed, failed);
     }
 
     /// <summary>
@@ -224,6 +228,20 @@ public sealed class MetadataClient : IDisposable
         if (snapshot is null || !TryResolveImage(snapshot, imageId, out var uri, out _))
             return 0;
         return StableRevision(uri.AbsoluteUri, ServedImageDigest(uri));
+    }
+
+    /// <summary>
+    /// 这张登记图片现在能不能不发网络就拿到正文。只读旁挂摘要和正文文件的存在性，不读正文、不发请求、不写状态。
+    /// 宿主用它判断展示读取要不要让出正在进行的 XML 刷新阶段；探针说"有缓存"而正文随后读不出来（例如正文被外部删掉）
+    /// 只是没让出这一轮，读取本身仍按 <see cref="GetImageAsync"/> 的规则走网络。没有磁盘缓存时一律 false，
+    /// 与 <see cref="GetImageAsync"/> 在非磁盘会话下永远要联网的语义一致。
+    /// </summary>
+    public bool HasCachedImage(RootSnapshotResult snapshot, string imageId)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        if (!TryResolveImage(snapshot, imageId, out var uri, out _))
+            return false;
+        return _disk is not null && StampDigest(uri) is not null;
     }
 
     /// <summary>

@@ -72,6 +72,34 @@ public class MetadataClientImageTests
     }
 
     [TestMethod]
+    public async Task HasCachedImage_OnlyTrueOnceBodyIsUsable()
+    {
+        using var fixture = Fixture.Create();
+        var root = await RootAsync(fixture, IconBytes, "\"icon-1\"");
+
+        fixture.Client.HasCachedImage(root, "icon").Should().BeFalse("还没下载过");
+        fixture.Client.HasCachedImage(root, "没有登记的图").Should().BeFalse();
+
+        await fixture.Client.GetImageAsync(root, "icon");
+
+        fixture.Client.HasCachedImage(root, "icon").Should().BeTrue();
+        fixture.Client.HasCachedImage(root, "ICON").Should().BeTrue("登记 ID 大小写不敏感");
+        fixture.Calls.Count(call => call.Uri == IconUrl).Should().Be(1, "探针本身不发请求");
+    }
+
+    [TestMethod]
+    public async Task HasCachedImage_WithoutDiskCache_IsAlwaysFalse()
+    {
+        using var fixture = Fixture.Create(NewCache(), enableDiskCache: false);
+        fixture.Handler.Next = (request, _) => Task.FromResult(
+            request.RequestUri!.AbsoluteUri == IconUrl ? Png(IconBytes) : Xml(RootXml()));
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+        await fixture.Client.GetImageAsync(root, "icon");
+
+        fixture.Client.HasCachedImage(root, "icon").Should().BeFalse("非磁盘会话的图片读取永远要联网");
+    }
+
+    [TestMethod]
     public async Task Image_WarmReads_DoNotValidate()
     {
         using var fixture = Fixture.Create();
