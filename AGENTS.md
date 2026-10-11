@@ -21,10 +21,14 @@ dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Ou
 npm run build:release
 # 或者在 Linux / Git Bash 下跑：
 bash build.sh --webp
+
+# 算清单 File@Hash 用的 CRC-32C（完整文件、8 位十六进制大写），并给出字节数
+dotnet run --project Ra3.BattleNet.Metadata -- hash ./path/to/Mod_3.0.lyi
 ```
 
 - **千万不要**在代码里再去加老旧的 `RUN_STAGE_B` 或 `StageB` 参数控制面。
 - 本地开发测试时默认**不会**去跑耗时的图片转换（Imaging）；部署到 Cloudflare Pages 线上生产环境时才执行 `bash build.sh --webp`。
+- 清单里的 `File@Hash` 一律用 `hash` 子命令算：完整文件、CRC-32C、8 位十六进制大写，禁止做字节反转；压缩分发时 `Hash` 取解压后的正式文件、`@Size` 取压缩包大小。
 
 ---
 

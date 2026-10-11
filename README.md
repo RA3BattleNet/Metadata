@@ -237,8 +237,12 @@ XML 使用 PascalCase，Vue 对象使用 camelCase，CSS 属性使用 kebab-case
 npm run build           # 核心编译打包（完成展平、自动填充变量并执行校验）→ 输出到 ./Output
 npm run build:release   # 核心打包 + 图片压缩转为 WebP 格式（正式发版用）
 npm run deploy          # 编译打包并直接发布部署到 Cloudflare Pages 线上环境
+
+# 算清单 File@Hash 用的 CRC-32C（完整文件，8 位十六进制大写），并给出字节数
+dotnet run --project Ra3.BattleNet.Metadata -- hash ./EisenreichMW_3.0.lyi
 ```
 
+- **`hash` 子命令**：按清单口径算本地文件的 CRC-32C（完整文件、8 位十六进制大写，不做字节反转）并给出字节数，不写任何文件。不加参数时一行一个文件（路径、CRC32C、字节数），加 `--json` 输出结构化结果；压缩分发时 Hash 取解压后的正式文件、Size 取压缩包大小；
 - **核心构建流程**（纯托管 C# 代码执行）：校验源数据 XSD → 将包含 Include 的树展平合并 → 自动替换宏变量 → 复制被引用的图片与文档资源 → 全面业务语义校验；最终输出的 `Output/` 目录里干净利落，只包含合并后的 `metadata.xml`、被引用的资源文件，以及 Cloudflare 的 `_redirects` 路由跳转规则；
 - **叶子独立清单处理**：`Manifest` 登记节点的源文件，与大总表入口一样会经过展平处理（移除多余 Include、替换完整 ID、解析宏变量）后再输出发布，客户端直接调 `MetadataBuilder.Load` 就能无缝读取；图片和 Markdown 则直接原样拷贝；
 - **图片转换模块（Imaging）**：只负责在发版阶段把大图片转成轻量的 WebP 格式，它不打进面向客户端的 NuGet 主包里；只有在带 `--webp` 参数时才会对图片触发转换；
