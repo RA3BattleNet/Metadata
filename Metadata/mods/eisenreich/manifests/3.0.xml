@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Includes>
+    </Includes>
+    <Manifest ID="manifest-30" HashAlgorithm="CRC32C">
+        <Skudef GameVersion="1.12">
+            <AddBig File="EisenreichMW_3.0.lyi" />
+            <AddBig File="EisenreichTW_3.0.lyi" />
+        </Skudef>
+        <File Hash="82F14051" Size="1501165154" DownloadName="EisenreichMW_3.0.zst" Compression="zstd">
+            <FileName>EisenreichMW_3.0.lyi</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="http://object.ra3battle.net/mods/eisenreich/EisenreichMW_3.0.zst" />
+            </Sources>
+        </File>
+        <File Hash="3CDABF35" Size="378038593" DownloadName="EisenreichTW_3.0.zst" Compression="zstd">
+            <FileName>EisenreichTW_3.0.lyi</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="http://object.ra3battle.net/mods/eisenreich/EisenreichTW_3.0.zst" />
+            </Sources>
+        </File>
+        <Dependencies>
+            <Dll Name="Lyi.dll" KindOf="APPLICATION" Hash="A4A7924F" />
+            <Dll Name="RA3LuaBridge.dll" KindOf="APPLICATION" Hash="0D49B9A0" />
+            <Dll Name="EnhancerCorona.dll" KindOf="APPLICATION" Hash="01C6510C" />
+        </Dependencies>
+    </Manifest>
+</Metadata>
