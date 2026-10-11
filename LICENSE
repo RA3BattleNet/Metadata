@@ -3,7 +3,7 @@
 版权所有 (C) 2024-2026 红色警戒3战网开发组（https://github.com/RA3BattleNet）及全体贡献者。保留所有权利。
 
 
-第一部分：协议基准与最高优先级声明
+第一部分：声明
 
 本仓库包含的所有计算机程序源代码、编译脚本、构建工具、解析库（包括但不限于 Ra3.BattleNet.Metadata、Ra3.BattleNet.Metadata.Imaging 及配套脚本，以下统称“本程序”），以及 ./Metadata 目录（含编译输出的 ./Output 目录）下的所有 XML 元数据、XSD 模式定义、Manifest 安装清单、Markdown 文档、图像与媒体资源（以下统称“附带数据”），均受本协议约束。
 
