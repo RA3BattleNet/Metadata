@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -18,8 +17,9 @@ public sealed class MetadataClient : IDisposable
     private static readonly TimeSpan ImageReadCooldown = TimeSpan.FromMinutes(10);
 
     private readonly MetadataDiskCache? _disk;
-    private readonly HttpClient _http;
-    private readonly bool _ownsHttp;
+    private readonly IMetadataTransfer _transfer;
+    private readonly bool _ownsTransfer;
+    private readonly string _stagingDirectory;
     private readonly TimeSpan _requestTimeout;
     private readonly TimeProvider _clock;
     private readonly SemaphoreSlim _leafSlots;
@@ -46,13 +46,24 @@ public sealed class MetadataClient : IDisposable
     /// 保证改完本地源立刻能看到新内容。
     /// </param>
     /// <param name="clock">图片下载失败后的冷却倒计时时钟。默认使用系统时间，单元测试可传入模拟时钟。</param>
+    /// <param name="transfer">
+    /// 正文传输实现。为 null 时用内置的 <see cref="HttpClient"/> 传输（客户端自己建 HttpClient 并负责释放）；
+    /// 调用方也可以注入自己的实现——正文先落到 <paramref name="stagingDirectory"/> 下的临时文件，
+    /// 校验通过后再搬进缓存。XML、图片与 Markdown 都只有这一条传输路径。
+    /// </param>
+    /// <param name="stagingDirectory">
+    /// 下载临时目录。为 null 时：开磁盘缓存用 &lt;缓存根&gt;/.stage，关磁盘缓存用系统临时目录
+    /// （后者只适合独立使用与测试）。目录在第一次真正需要网络传输时才创建，本地来源不会碰它。
+    /// </param>
     public MetadataClient(
         string cacheDirectory,
         TimeSpan requestTimeout,
         int maxLeafConcurrency = 4,
         HttpClient? httpClient = null,
         bool enableDiskCache = true,
-        TimeProvider? clock = null)
+        TimeProvider? clock = null,
+        IMetadataTransfer? transfer = null,
+        string? stagingDirectory = null)
     {
         if (enableDiskCache && string.IsNullOrWhiteSpace(cacheDirectory))
             throw new ArgumentException("缓存目录不能为空", nameof(cacheDirectory));
@@ -67,9 +78,19 @@ public sealed class MetadataClient : IDisposable
             Directory.CreateDirectory(cacheDirectory);
         }
 
-        _ownsHttp = httpClient is null;
-        _http = httpClient ?? new HttpClient { Timeout = requestTimeout };
+        _ownsTransfer = transfer is null;
+        _transfer = transfer ?? new HttpMetadataTransfer(httpClient, requestTimeout);
+        _stagingDirectory = ResolveStagingDirectory(cacheDirectory, enableDiskCache, stagingDirectory);
         _leafSlots = new SemaphoreSlim(maxLeafConcurrency, maxLeafConcurrency);
+    }
+
+    private static string ResolveStagingDirectory(string cacheDirectory, bool enableDiskCache, string? stagingDirectory)
+    {
+        if (!string.IsNullOrWhiteSpace(stagingDirectory))
+            return Path.GetFullPath(stagingDirectory);
+        if (enableDiskCache)
+            return Path.Combine(Path.GetFullPath(cacheDirectory), ".stage");
+        return Path.Combine(Path.GetTempPath(), "ra3-metadata-stage");
     }
 
     /// <summary>
@@ -269,10 +290,18 @@ public sealed class MetadataClient : IDisposable
         }
 
         var transfer = await TransferAsync(uri, validators: null, ct).ConfigureAwait(false);
-        if (!transfer.Ok || transfer.Bytes is null)
-            return null;
-        var text = Encoding.UTF8.GetString(transfer.Bytes);
-        return string.IsNullOrWhiteSpace(text) ? null : text;
+        try
+        {
+            var bytes = await transfer.ReadBodyAsync(ct).ConfigureAwait(false);
+            if (!transfer.Ok || bytes is null)
+                return null;
+            var text = Encoding.UTF8.GetString(bytes);
+            return string.IsNullOrWhiteSpace(text) ? null : text;
+        }
+        finally
+        {
+            transfer.DiscardStagedFile();
+        }
     }
 
     public void Dispose()
@@ -293,8 +322,8 @@ public sealed class MetadataClient : IDisposable
             // 重复释放时令牌可能已经关掉。
         }
 
-        if (_ownsHttp)
-            _http.Dispose();
+        if (_ownsTransfer)
+            _transfer.Dispose();
     }
 
     private Task<LeafDoc> EnsureLeafAsync(Uri leaf, bool force, CancellationToken ct)
@@ -458,27 +487,35 @@ public sealed class MetadataClient : IDisposable
         {
             var disk = _disk?.TryReadRoot(origin);
             var transfer = await TransferAsync(origin, disk is { Verified: true } ? disk.Stamp : null, ct).ConfigureAwait(false);
-            if (transfer.NotModified)
+            try
             {
-                var again = _disk?.TryReadRoot(origin);
-                var memory = again is { Verified: true }
-                    ? FindRoot(origin, again.Digest) ?? ParseRootBytes(origin, again.Bytes, again.Digest)
-                    : null;
-                if (memory is null)
+                if (transfer.NotModified)
                 {
-                    transfer = await TransferAsync(origin, validators: null, ct).ConfigureAwait(false);
-                    if (transfer.NotModified)
-                        return RootFallback(origin, "HTTP 304 但本地根清单无法解析");
+                    var again = _disk?.TryReadRoot(origin);
+                    var memory = again is { Verified: true }
+                        ? FindRoot(origin, again.Digest) ?? ParseRootBytes(origin, again.Bytes, again.Digest)
+                        : null;
+                    if (memory is null)
+                    {
+                        transfer.DiscardStagedFile();
+                        transfer = await TransferAsync(origin, validators: null, ct).ConfigureAwait(false);
+                        if (transfer.NotModified)
+                            return RootFallback(origin, "HTTP 304 但本地根清单无法解析");
+                    }
+                    else
+                    {
+                        return RootOf(memory, MetadataFreshness.Fresh, error: null);
+                    }
                 }
-                else
-                {
-                    return RootOf(memory, MetadataFreshness.Fresh, error: null);
-                }
-            }
 
-            if (!transfer.Ok || transfer.Bytes is null)
-                return RootFallback(origin, transfer.Error ?? "刷新根清单失败");
-            return await PublishRootAsync(origin, transfer.Bytes, transfer.ETag, transfer.LastModified, ct).ConfigureAwait(false);
+                if (!transfer.Ok || (transfer.Bytes is null && transfer.Path is null))
+                    return RootFallback(origin, transfer.Error ?? "刷新根清单失败");
+                return await PublishRootAsync(origin, transfer, ct).ConfigureAwait(false);
+            }
+            finally
+            {
+                transfer.DiscardStagedFile();
+            }
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -498,21 +535,30 @@ public sealed class MetadataClient : IDisposable
         try
         {
             var transfer = await TransferAsync(uri, validators: null, ct).ConfigureAwait(false);
-            if (!transfer.Ok || transfer.Bytes is null)
-                return ColdImageFailure(uri, transfer.Error ?? "读取图片失败");
-            if (!TryImageContentType(uri, transfer.ContentType, out var contentType))
-                return ColdImageFailure(uri, "响应不是图片类型");
+            try
+            {
+                // 图片要把正文和摘要一起交给调用方，所以这里读一次落盘文件；没有第二个来源。
+                var bytes = await transfer.ReadBodyAsync(ct).ConfigureAwait(false);
+                if (!transfer.Ok || bytes is null)
+                    return ColdImageFailure(uri, transfer.Error ?? "读取图片失败");
+                if (!TryImageContentType(uri, transfer.ContentType, out var contentType))
+                    return ColdImageFailure(uri, "响应不是图片类型");
 
-            var digest = MetadataDiskCache.Sha256Hex(transfer.Bytes);
-            if (_disk is not null
-                && !await TryCommitImageAsync(uri, transfer.Bytes, digest, contentType, transfer.ETag, transfer.LastModified, ct).ConfigureAwait(false))
-                return ColdImageFailure(uri, "图片缓存无法写入");
+                var digest = MetadataDiskCache.Sha256Hex(bytes);
+                if (_disk is not null
+                    && !await TryCommitImageAsync(uri, bytes, digest, contentType, transfer.ETag, transfer.LastModified, ct).ConfigureAwait(false))
+                    return ColdImageFailure(uri, "图片缓存无法写入");
 
-            ClearImageReadBlock(uri.AbsoluteUri);
-            RememberLiveDigest(uri, digest);
-            if (_disk is not null)
-                RaiseImageUpdated(uri);
-            return new ImageResult(transfer.Bytes, contentType, MetadataFreshness.Fresh, null);
+                ClearImageReadBlock(uri.AbsoluteUri);
+                RememberLiveDigest(uri, digest);
+                if (_disk is not null)
+                    RaiseImageUpdated(uri);
+                return new ImageResult(bytes, contentType, MetadataFreshness.Fresh, null);
+            }
+            finally
+            {
+                transfer.DiscardStagedFile();
+            }
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -534,46 +580,55 @@ public sealed class MetadataClient : IDisposable
         try
         {
             var transfer = await TransferAsync(uri, validators, ct).ConfigureAwait(false);
-            if (transfer.NotModified)
+            try
             {
-                if (hasCache)
-                    return new ImageResult(cached.Bytes, cachedType, MetadataFreshness.Stale, null);
-                transfer = await TransferAsync(uri, validators: null, ct).ConfigureAwait(false);
-            }
+                if (transfer.NotModified)
+                {
+                    if (hasCache)
+                        return new ImageResult(cached.Bytes, cachedType, MetadataFreshness.Stale, null);
+                    transfer.DiscardStagedFile();
+                    transfer = await TransferAsync(uri, validators: null, ct).ConfigureAwait(false);
+                }
 
-            if (!transfer.Ok || transfer.Bytes is null)
+                var bytes = await transfer.ReadBodyAsync(ct).ConfigureAwait(false);
+                if (!transfer.Ok || bytes is null)
+                {
+                    return hasCache
+                        ? CachedImage(cached, cachedType, transfer.Error ?? "读取图片失败")
+                        : ColdImageFailure(uri, transfer.Error ?? "读取图片失败");
+                }
+
+                if (!TryImageContentType(uri, transfer.ContentType, out var contentType))
+                {
+                    return hasCache
+                        ? CachedImage(cached, cachedType, "响应不是图片类型")
+                        : ColdImageFailure(uri, "响应不是图片类型");
+                }
+
+                var digest = MetadataDiskCache.Sha256Hex(bytes);
+                var same = hasCache && string.Equals(cached.Digest, digest, StringComparison.OrdinalIgnoreCase);
+                if (!await TryCommitImageAsync(uri, bytes, digest, contentType, transfer.ETag, transfer.LastModified, ct).ConfigureAwait(false))
+                {
+                    if (hasCache && same)
+                        return new ImageResult(cached.Bytes, cachedType, MetadataFreshness.Stale, null);
+                    return hasCache
+                        ? CachedImage(cached, cachedType, "图片缓存无法写入")
+                        : ColdImageFailure(uri, "图片缓存无法写入");
+                }
+
+                ClearImageReadBlock(uri.AbsoluteUri);
+                if (!same)
+                    RaiseImageUpdated(uri);
+                return new ImageResult(
+                    bytes,
+                    contentType,
+                    same ? MetadataFreshness.Stale : MetadataFreshness.Fresh,
+                    null);
+            }
+            finally
             {
-                return hasCache
-                    ? CachedImage(cached, cachedType, transfer.Error ?? "读取图片失败")
-                    : ColdImageFailure(uri, transfer.Error ?? "读取图片失败");
+                transfer.DiscardStagedFile();
             }
-
-            if (!TryImageContentType(uri, transfer.ContentType, out var contentType))
-            {
-                return hasCache
-                    ? CachedImage(cached, cachedType, "响应不是图片类型")
-                    : ColdImageFailure(uri, "响应不是图片类型");
-            }
-
-            var digest = MetadataDiskCache.Sha256Hex(transfer.Bytes);
-            var same = hasCache && string.Equals(cached.Digest, digest, StringComparison.OrdinalIgnoreCase);
-            if (!await TryCommitImageAsync(uri, transfer.Bytes, digest, contentType, transfer.ETag, transfer.LastModified, ct).ConfigureAwait(false))
-            {
-                if (hasCache && same)
-                    return new ImageResult(cached.Bytes, cachedType, MetadataFreshness.Stale, null);
-                return hasCache
-                    ? CachedImage(cached, cachedType, "图片缓存无法写入")
-                    : ColdImageFailure(uri, "图片缓存无法写入");
-            }
-
-            ClearImageReadBlock(uri.AbsoluteUri);
-            if (!same)
-                RaiseImageUpdated(uri);
-            return new ImageResult(
-                transfer.Bytes,
-                contentType,
-                same ? MetadataFreshness.Stale : MetadataFreshness.Fresh,
-                null);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -857,33 +912,41 @@ public sealed class MetadataClient : IDisposable
         {
             var disk = _disk?.TryReadLeaf(leaf);
             var transfer = await TransferAsync(leaf, disk is { Verified: true } ? disk.Stamp : null, ct).ConfigureAwait(false);
-            if (transfer.NotModified)
+            try
             {
-                var again = _disk?.TryReadLeaf(leaf);
-                var reused = again is { Verified: true }
-                    ? FindLeaf(key, again.Digest) ?? StoreParsedLeaf(leaf, again.Bytes, again.Digest, MetadataFreshness.Fresh, null)
-                    : null;
-                if (reused is null)
+                if (transfer.NotModified)
                 {
-                    transfer = await TransferAsync(leaf, validators: null, ct).ConfigureAwait(false);
-                    if (transfer.NotModified)
-                        return LeafDocFallback(leaf, "HTTP 304 但本地叶子清单无法解析");
-                }
-                else
-                {
-                    lock (_gate)
+                    var again = _disk?.TryReadLeaf(leaf);
+                    var reused = again is { Verified: true }
+                        ? FindLeaf(key, again.Digest) ?? StoreParsedLeaf(leaf, again.Bytes, again.Digest, MetadataFreshness.Fresh, null)
+                        : null;
+                    if (reused is null)
                     {
-                        reused.Status = MetadataFreshness.Fresh;
-                        reused.Error = null;
+                        transfer.DiscardStagedFile();
+                        transfer = await TransferAsync(leaf, validators: null, ct).ConfigureAwait(false);
+                        if (transfer.NotModified)
+                            return LeafDocFallback(leaf, "HTTP 304 但本地叶子清单无法解析");
                     }
+                    else
+                    {
+                        lock (_gate)
+                        {
+                            reused.Status = MetadataFreshness.Fresh;
+                            reused.Error = null;
+                        }
 
-                    return reused;
+                        return reused;
+                    }
                 }
-            }
 
-            if (!transfer.Ok || transfer.Bytes is null)
-                return LeafDocFallback(leaf, transfer.Error ?? "读取叶子清单失败");
-            return await PublishLeafDocumentAsync(leaf, transfer.Bytes, transfer.ETag, transfer.LastModified, ct).ConfigureAwait(false);
+                if (!transfer.Ok || (transfer.Bytes is null && transfer.Path is null))
+                    return LeafDocFallback(leaf, transfer.Error ?? "读取叶子清单失败");
+                return await PublishLeafDocumentAsync(leaf, transfer, ct).ConfigureAwait(false);
+            }
+            finally
+            {
+                transfer.DiscardStagedFile();
+            }
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -895,12 +958,13 @@ public sealed class MetadataClient : IDisposable
         }
     }
 
-    private async Task<RootSnapshotResult> PublishRootAsync(Uri origin, byte[] bytes, string? etag, string? lastModified, CancellationToken ct)
+    private async Task<RootSnapshotResult> PublishRootAsync(Uri origin, Transfer transfer, CancellationToken ct)
     {
+        string? stagedPath = transfer.Path;
         Metadata document;
         try
         {
-            document = ParseBytes(bytes);
+            document = stagedPath is not null ? ParseFile(stagedPath) : ParseBytes(transfer.Bytes!);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -911,18 +975,23 @@ public sealed class MetadataClient : IDisposable
         if (catalogError is not null)
             return RootFallback(origin, catalogError);
 
-        var digest = MetadataDiskCache.Sha256Hex(bytes);
+        var digest = stagedPath is not null
+            ? MetadataDiskCache.Sha256FileHex(stagedPath)
+            : MetadataDiskCache.Sha256Hex(transfer.Bytes!);
         if (_disk is not null)
         {
             var bodyPath = _disk.RootBodyPath(origin);
             try
             {
-                await _disk.StageAsync(bodyPath, origin.AbsoluteUri, bytes, ct).ConfigureAwait(false);
+                if (stagedPath is not null)
+                    _disk.StageFile(bodyPath, origin.AbsoluteUri, stagedPath);
+                else
+                    await _disk.StageAsync(bodyPath, origin.AbsoluteUri, transfer.Bytes!, ct).ConfigureAwait(false);
                 _disk.Commit(bodyPath, new CacheStamp
                 {
                     Uri = origin.AbsoluteUri,
-                    ETag = etag,
-                    LastModified = lastModified,
+                    ETag = transfer.ETag,
+                    LastModified = transfer.LastModified,
                     Sha256 = digest,
                 });
             }
@@ -936,12 +1005,13 @@ public sealed class MetadataClient : IDisposable
         return RootOf(RememberRoot(origin, document, digest), MetadataFreshness.Fresh, error: null);
     }
 
-    private async Task<LeafDoc> PublishLeafDocumentAsync(Uri leaf, byte[] bytes, string? etag, string? lastModified, CancellationToken ct)
+    private async Task<LeafDoc> PublishLeafDocumentAsync(Uri leaf, Transfer transfer, CancellationToken ct)
     {
+        string? stagedPath = transfer.Path;
         Metadata document;
         try
         {
-            document = ParseBytes(bytes);
+            document = stagedPath is not null ? ParseFile(stagedPath) : ParseBytes(transfer.Bytes!);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -951,18 +1021,23 @@ public sealed class MetadataClient : IDisposable
         if (!TryAcceptLeaf(document, out var reject))
             return LeafDocFallback(leaf, reject ?? "叶子清单无效");
 
-        var digest = MetadataDiskCache.Sha256Hex(bytes);
+        var digest = stagedPath is not null
+            ? MetadataDiskCache.Sha256FileHex(stagedPath)
+            : MetadataDiskCache.Sha256Hex(transfer.Bytes!);
         if (_disk is not null)
         {
             var bodyPath = _disk.LeafBodyPath(leaf);
             try
             {
-                await _disk.StageAsync(bodyPath, leaf.AbsoluteUri, bytes, ct).ConfigureAwait(false);
+                if (stagedPath is not null)
+                    _disk.StageFile(bodyPath, leaf.AbsoluteUri, stagedPath);
+                else
+                    await _disk.StageAsync(bodyPath, leaf.AbsoluteUri, transfer.Bytes!, ct).ConfigureAwait(false);
                 _disk.Commit(bodyPath, new CacheStamp
                 {
                     Uri = leaf.AbsoluteUri,
-                    ETag = etag,
-                    LastModified = lastModified,
+                    ETag = transfer.ETag,
+                    LastModified = transfer.LastModified,
                     Sha256 = digest,
                 });
             }
@@ -985,22 +1060,25 @@ public sealed class MetadataClient : IDisposable
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(_requestTimeout);
+        var staging = NewStagingPath();
+        var handedOff = false;
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            AddValidators(request, validators);
-            using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
-            if (response.StatusCode == HttpStatusCode.NotModified)
-                return Transfer.NotModifiedResult();
-            if (response.StatusCode != HttpStatusCode.OK)
-                return Transfer.Fail($"HTTP {(int)response.StatusCode}");
+            var result = await _transfer
+                .FetchAsync(new MetadataTransferRequest(uri, staging, validators?.ETag, validators?.LastModified), timeout.Token)
+                .ConfigureAwait(false);
 
-            var bytes = await response.Content.ReadAsByteArrayAsync(timeout.Token).ConfigureAwait(false);
-            return Transfer.Modified(
-                bytes,
-                Header(response, "ETag"),
-                Header(response, "Last-Modified"),
-                response.Content.Headers.ContentType?.MediaType);
+            if (result.StatusCode == (int)HttpStatusCode.NotModified)
+                return Transfer.NotModifiedResult();
+
+            if (result.StatusCode != (int)HttpStatusCode.OK)
+                return Transfer.Fail($"HTTP {result.StatusCode}");
+
+            if (!File.Exists(staging))
+                return Transfer.Fail("传输没有落盘正文");
+
+            handedOff = true;
+            return Transfer.ModifiedFromFile(staging, result.ETag, result.LastModified, result.ContentType);
         }
         catch (ObjectDisposedException) when (ct.IsCancellationRequested)
         {
@@ -1009,6 +1087,36 @@ public sealed class MetadataClient : IDisposable
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
             return Transfer.Fail("请求超时");
+        }
+        finally
+        {
+            // 没有交出去的临时正文一律现在删掉：取消、释放和异常都不能留下半截文件。
+            // 交出去的那份由调用方负责（校验通过搬进缓存，否则在它的 finally 里删掉）。
+            if (!handedOff)
+                TryDeleteFile(staging);
+        }
+    }
+
+    /// <summary>本次传输独占的临时正文路径。目录按需创建：本地来源永远不会碰它。</summary>
+    private string NewStagingPath()
+    {
+        Directory.CreateDirectory(_stagingDirectory);
+        return Path.Combine(_stagingDirectory, Path.GetRandomFileName() + ".part");
+    }
+
+    /// <summary>
+    /// 删掉没有被搬进缓存的临时正文。删不掉不该盖过真正的结果：下次传输用新名字，
+    /// 也不会互相干扰。
+    /// </summary>
+    private static void TryDeleteFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
         }
     }
 
@@ -1433,30 +1541,14 @@ public sealed class MetadataClient : IDisposable
         return MetadataParser.Load(stream);
     }
 
-    private static void AddValidators(HttpRequestMessage request, CacheStamp? validators)
+    /// <summary>
+    /// 从传输方落盘的临时正文解析。与 <see cref="ParseBytes"/> 是同一个解析入口，只是数据直接来自文件：
+    /// 不再把整份正文读回内存。解析与 SHA256 都针对同一个不可变文件，文档与摘要来自同一份快照。
+    /// </summary>
+    private static Metadata ParseFile(string path)
     {
-        if (validators is null)
-            return;
-        if (!string.IsNullOrWhiteSpace(validators.ETag))
-            request.Headers.TryAddWithoutValidation("If-None-Match", validators.ETag);
-        if (!string.IsNullOrWhiteSpace(validators.LastModified)
-            && DateTimeOffset.TryParse(
-                validators.LastModified,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
-                out var modified))
-        {
-            request.Headers.IfModifiedSince = modified;
-        }
-    }
-
-    private static string? Header(HttpResponseMessage response, string name)
-    {
-        if (response.Headers.TryGetValues(name, out var values))
-            return values.FirstOrDefault();
-        if (response.Content.Headers.TryGetValues(name, out values))
-            return values.FirstOrDefault();
-        return null;
+        using var stream = File.OpenRead(path);
+        return MetadataParser.Load(stream);
     }
 
     private static Uri RequireEntry(string metadataUrl)
@@ -1490,14 +1582,37 @@ public sealed class MetadataClient : IDisposable
         Ambiguous,
     }
 
-    private readonly record struct Transfer(bool Ok, bool NotModified, byte[]? Bytes, string? ETag, string? LastModified, string? ContentType, string? Error)
+    private readonly record struct Transfer(
+        bool Ok,
+        bool NotModified,
+        byte[]? Bytes,
+        string? Path,
+        string? ETag,
+        string? LastModified,
+        string? ContentType,
+        string? Error)
     {
         public static Transfer Modified(byte[] bytes, string? etag, string? lastModified, string? contentType = null) =>
-            new(true, false, bytes, etag, lastModified, contentType, null);
+            new(true, false, bytes, null, etag, lastModified, contentType, null);
 
-        public static Transfer NotModifiedResult() => new(true, true, null, null, null, null, null);
+        /// <summary>正文已经在本地临时文件上：校验通过后搬进缓存，否则由调用方删掉。</summary>
+        public static Transfer ModifiedFromFile(string path, string? etag, string? lastModified, string? contentType = null) =>
+            new(true, false, null, path, etag, lastModified, contentType, null);
 
-        public static Transfer Fail(string error) => new(false, false, null, null, null, null, error);
+        public static Transfer NotModifiedResult() => new(true, true, null, null, null, null, null, null);
+
+        public static Transfer Fail(string error) => new(false, false, null, null, null, null, null, error);
+
+        /// <summary>读回正文。内存与落盘两条来源对调用方没有区别（图片与 Markdown 用）。</summary>
+        public async Task<byte[]?> ReadBodyAsync(CancellationToken ct) =>
+            Bytes ?? (Path is null ? null : await File.ReadAllBytesAsync(Path, ct).ConfigureAwait(false));
+
+        /// <summary>删掉这份传输没能搬进缓存的临时正文（304、失败、关了磁盘缓存）。</summary>
+        public void DiscardStagedFile()
+        {
+            if (Path is not null)
+                TryDeleteFile(Path);
+        }
     }
 
     private sealed class RootMemory

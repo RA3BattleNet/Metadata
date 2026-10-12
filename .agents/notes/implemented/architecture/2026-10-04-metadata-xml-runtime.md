@@ -8,7 +8,7 @@ Status: implemented
 
 ## Decision
 
-`Cache/MetadataClient.cs` 提供具体的异步加载器，不依赖 Desktop、UI 或 Updater。调用方传入缓存目录、请求超时、预加载并发数，可选传入 `HttpClient`；默认预加载并发为 4。客户端负责 XML 原文、解析树、按 Manifest ID 的类型投影和同 URI 请求去重。
+`Cache/MetadataClient.cs` 提供具体的异步加载器，不依赖 Desktop、UI 或 Updater。调用方传入缓存目录、请求超时、预加载并发数，可选传入 `HttpClient`（只在库自用默认传输时有效）或注入 `IMetadataTransfer` 传输实现；默认预加载并发为 4。客户端负责 XML 原文、解析树、按 Manifest ID 的类型投影和同 URI 请求去重。
 
 ### 数据范围
 
@@ -42,7 +42,7 @@ Status: implemented
 
 ### 请求和结果的所有权
 
-同 URI 的在途任务共享。完成、失败或取消时，在同一锁内移除任务并发布完成结果；下一次显式刷新不能拿已完成的 Fresh 充数。单个调用者取消只取消自身等待，`Dispose` 才取消客户端的共享请求；外部传入的 HttpClient 不由客户端释放。
+同 URI 的在途任务共享。完成、失败或取消时，在同一锁内移除任务并发布完成结果；下一次显式刷新不能拿已完成的 Fresh 充数。单个调用者取消只取消自身等待，`Dispose` 才取消客户端的共享请求；外部传入的 `HttpClient` 与注入的 `IMetadataTransfer` 都不由客户端释放，只有库自己默认创建的传输才由库释放。
 
 HTTP 失败和单个叶子解析失败返回状态，不阻止其他叶子完成。整个预加载调用被取消时仍遵守调用者取消。库不承诺跨进程共享写入；Desktop 的生产使用依赖单实例约束。
 
@@ -71,3 +71,5 @@ HTTP 失败和单个叶子解析失败返回状态，不阻止其他叶子完成
 - Desktop 服务和独立 Applier 冒烟仍覆盖离线固定版本、更新 Fresh 门禁和本地暂存应用。
 
 已登记图片的读取节奏和只读叶子投影见 [2026-10-09-registered-resource-cache-cadence.md](2026-10-09-registered-resource-cache-cadence.md)。XML 的 Fresh 门禁和显式叶子刷新没有被图片周期替换。
+
+正文的传输边界（`IMetadataTransfer`、正文先落本地文件再解析、临时目录与归属）见 [2026-10-12-metadata-transfer-to-local-file.md](2026-10-12-metadata-transfer-to-local-file.md)。缓存布局、校验器与原子发布结论不变。
