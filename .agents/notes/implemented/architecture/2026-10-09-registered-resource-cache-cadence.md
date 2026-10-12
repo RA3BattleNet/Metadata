@@ -32,3 +32,5 @@ Status: implemented
 - 叶子就绪不代表图片已经可展示。冷图失败后的首次成功会发 `ImageUpdated`，不能只靠叶子完成信号清掉失败图。
 - 旁挂摘要与正文不一致时，revision 仍沿用旁挂值，直到显式刷新或冷读取替换缓存。这是为了避免列表构建重哈希。
 - 32 位 revision 碰撞时，虚拟地址可能相同。宿主不能把它当成内容唯一键。
+
+XML、图片与 Markdown 共用同一条传输路径；这条路径的接口、正文先落本地文件再解析、临时目录与归属见 [2026-10-12-metadata-transfer-to-local-file.md](2026-10-12-metadata-transfer-to-local-file.md)。本文的读取节奏结论不变。

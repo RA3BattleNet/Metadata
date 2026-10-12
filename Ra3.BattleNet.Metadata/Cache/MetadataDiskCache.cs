@@ -272,6 +272,25 @@ internal sealed class MetadataDiskCache
     }
 
     /// <summary>
+    /// 把已经校验通过、已经在本地落盘的正文搬进缓存临时位，不重写字节。
+    /// 调用方（传输方的实现）写好的文件是这一份内容唯一的来源：搬走之后调用方不再拥有它。
+    /// 正式发布仍由 <see cref="Commit"/> 原子完成。
+    /// </summary>
+    public void StageFile(string bodyPath, string canonicalUri, string sourcePath)
+    {
+        if (!File.Exists(sourcePath))
+            throw new IOException($"待发布的正文不存在：{sourcePath}");
+
+        var directory = Path.GetDirectoryName(bodyPath);
+        if (!string.IsNullOrEmpty(directory))
+            Directory.CreateDirectory(directory);
+        EnsureOwner(bodyPath, canonicalUri);
+
+        // Move 自己会处理跨卷（复制加删除），这里不做多余的兜底：失败的语义就是「这次发布失败」。
+        File.Move(sourcePath, bodyPath + ".tmp", overwrite: true);
+    }
+
+    /// <summary>
     /// 每个磁盘路径的归属地址写在一次成型的 <c>.uri</c> 旁挂文件里，先于正文落盘。
     /// 即使之后 <c>.etag</c> 丢失，也能证明这份正文属于哪个地址；别的地址一律不能占用同一路径。
     /// </summary>
@@ -362,6 +381,13 @@ internal sealed class MetadataDiskCache
     }
 
     public static string Sha256Hex(byte[] data) => Convert.ToHexString(SHA256.HashData(data)).ToLowerInvariant();
+
+    /// <summary>按流算落盘正文的 SHA256，避免为了算哈希把整份正文读回内存。</summary>
+    public static string Sha256FileHex(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+    }
 
     private string BodyPath(Uri canonical)
     {
