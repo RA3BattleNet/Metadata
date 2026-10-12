@@ -231,6 +231,152 @@ public class MetadataClientTransferTests
         Directory.EnumerateFiles(staging).Should().BeEmpty("临时目录里不该留下任何正文");
     }
 
+    /// <summary>
+    /// 叶子刷新与多张不同的冷图片共用同一个并发下载限制：上限 3 时同时最多三个正文下载，
+    /// 而不是「XML 有并发上限、冷图片各拉各的」。用信号量等三次同时进入来判定，不靠时间窗口。
+    /// </summary>
+    [TestMethod]
+    public async Task LeafRefreshAndDistinctColdImages_ShareOneTransferGate_AtMostThreeInFlight()
+    {
+        var cache = NewDirectory("metadata-transfer-cache");
+        var staging = NewDirectory("metadata-transfer-stage");
+        var imageIds = Enumerable.Range(0, 5).Select(index => "icon" + index).ToArray();
+        var transfer = new ScriptedTransfer((request, _) =>
+        {
+            File.WriteAllText(request.StagingPath, RootXml(imageIds), Utf8NoBom);
+            return Task.FromResult(new MetadataTransferResult(200, "\"root-1\""));
+        });
+        using var client = Client(cache, transfer, staging);
+        var root = await client.RefreshRootAsync(RootUrl);
+
+        var inFlight = 0;
+        var maxInFlight = 0;
+        var maxGate = new object();
+        var threeInFlight = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        transfer.Next = async (request, ct) =>
+        {
+            var entered = Interlocked.Increment(ref inFlight);
+            lock (maxGate)
+                maxInFlight = Math.Max(maxInFlight, entered);
+            if (entered >= 3)
+                threeInFlight.TrySetResult();
+            try
+            {
+                // 正文下载停在这里，直到真的同时有三个在跑：上限被绕过的话这里会数到更多。
+                await threeInFlight.Task.WaitAsync(ct);
+                var image = request.Source.AbsoluteUri.EndsWith(".png", StringComparison.Ordinal);
+                if (image)
+                    File.WriteAllBytes(request.StagingPath, PngBytes);
+                else
+                    File.WriteAllText(request.StagingPath, LeafXml("app-leaf"), Utf8NoBom);
+                return new MetadataTransferResult(200, null, null, image ? "image/png" : "application/xml");
+            }
+            finally
+            {
+                Interlocked.Decrement(ref inFlight);
+            }
+        };
+
+        var leafUri = MetadataResourceUri.Resolve(RootUrl, LeafSource);
+        var leafTask = client.RefreshLeafAsync(root, "1.0.0", leafUri);
+        var imageTasks = imageIds.Select(id => client.GetImageAsync(root, id)).ToArray();
+        var leaf = await leafTask;
+        var images = await Task.WhenAll(imageTasks);
+
+        leaf.Status.Should().Be(MetadataFreshness.Fresh);
+        images.Should().OnlyContain(image => image.Ok && image.Bytes!.SequenceEqual(PngBytes));
+        maxInFlight.Should().Be(3, "叶子刷新与多张不同的冷图片共用同一个名额，默认上限 3");
+        transfer.Requests.Count(request => request.Source.AbsoluteUri == RootUrl).Should().Be(1);
+        transfer.Requests.Count(request => request.Source.AbsoluteUri.EndsWith(".png", StringComparison.Ordinal)).Should().Be(5);
+        Directory.EnumerateFiles(staging).Should().BeEmpty("搬进缓存后临时目录不留正文");
+    }
+
+    /// <summary>
+    /// 排队等待不消耗单次请求超时：名额只有一个时，第二个请求要排在第一个后面；
+    /// 第一个占名额的时间长于超时上限，第二个仍然从拿到名额那一刻才开始计时，整段正文下载得完。
+    /// </summary>
+    [TestMethod]
+    public async Task QueuedTransfer_DoesNotSpendItsRequestTimeoutWhileWaitingForASlot()
+    {
+        var cache = NewDirectory("metadata-transfer-cache");
+        var staging = NewDirectory("metadata-transfer-stage");
+        var slow = ImageUrl("iconA");
+        var transfer = new ScriptedTransfer((request, _) =>
+        {
+            File.WriteAllText(request.StagingPath, RootXml("iconA", "iconB"), Utf8NoBom);
+            return Task.FromResult(new MetadataTransferResult(200));
+        });
+        using var client = new MetadataClient(
+            cache,
+            TimeSpan.FromSeconds(3),
+            maxLeafConcurrency: 4,
+            transfer: transfer,
+            stagingDirectory: staging,
+            maxTransferConcurrency: 1);
+        var root = await client.RefreshRootAsync(RootUrl);
+
+        var slowEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        transfer.Next = async (request, ct) =>
+        {
+            var isSlow = request.Source.AbsoluteUri == slow;
+            if (isSlow)
+                slowEntered.TrySetResult();
+            await Task.Delay(isSlow ? 2200 : 1500, ct);
+            File.WriteAllBytes(request.StagingPath, PngBytes);
+            return new MetadataTransferResult(200, null, null, "image/png");
+        };
+
+        var first = client.GetImageAsync(root, "iconA");
+        await slowEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var queued = client.GetImageAsync(root, "iconB");
+        var results = await Task.WhenAll(first, queued);
+
+        results.Should().OnlyContain(image => image.Ok && image.Bytes!.SequenceEqual(PngBytes));
+    }
+
+    /// <summary>
+    /// 释放会话时排队等名额的请求必须被放走，而且不能因为名额已经被释放而冒出别的异常：
+    /// 两个调用都应当只看到取消，信号量也不会在还有人要归还时被释放。
+    /// </summary>
+    [TestMethod]
+    public async Task DisposeWhileSlotIsHeld_ReleasesQueuedWaiterWithoutSlotErrors()
+    {
+        var cache = NewDirectory("metadata-transfer-cache");
+        var staging = NewDirectory("metadata-transfer-stage");
+        var transfer = new ScriptedTransfer((request, _) =>
+        {
+            File.WriteAllText(request.StagingPath, RootXml("iconA", "iconB"), Utf8NoBom);
+            return Task.FromResult(new MetadataTransferResult(200));
+        });
+        using var client = new MetadataClient(
+            cache,
+            TimeSpan.FromSeconds(30),
+            maxLeafConcurrency: 4,
+            transfer: transfer,
+            stagingDirectory: staging,
+            maxTransferConcurrency: 1);
+        var root = await client.RefreshRootAsync(RootUrl);
+
+        var holderEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        transfer.Next = async (request, ct) =>
+        {
+            holderEntered.TrySetResult();
+            await Task.Delay(Timeout.Infinite, ct);
+            return new MetadataTransferResult(200, null, null, "image/png");
+        };
+
+        var holder = client.GetImageAsync(root, "iconA");
+        await holderEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var queued = client.GetImageAsync(root, "iconB");
+        await Task.Delay(100);
+
+        client.Dispose();
+
+        await FluentActions.Awaiting(() => holder).Should().ThrowAsync<OperationCanceledException>();
+        await FluentActions.Awaiting(() => queued).Should().ThrowAsync<OperationCanceledException>();
+        Directory.EnumerateFiles(staging).Should().BeEmpty("取消后临时正文也要清掉");
+    }
+
     private static async Task AssertNothingPublishedAsync(string cache, string staging)
     {
         var offline = new ScriptedTransfer((_, _) => throw new InvalidOperationException("缓存命中时不该联网"));
@@ -244,18 +390,28 @@ public class MetadataClientTransferTests
     private static MetadataClient Client(string cache, ScriptedTransfer transfer, string staging) =>
         new(cache, TimeSpan.FromSeconds(30), maxLeafConcurrency: 4, transfer: transfer, stagingDirectory: staging);
 
-    private static string RootXml() => """
-        <?xml version="1.0" encoding="utf-8"?>
-        <Metadata SchemaVersion="1.0" ContentRevision="1">
-          <Application ID="RA3BattleNet">
-            <Version>1.0.0</Version>
-            <Packages>
-              <Package Version="1.0.0"><Manifest>app-leaf</Manifest></Package>
-            </Packages>
-          </Application>
-          <Manifest ID="app-leaf" Source="apps/leaf.xml" />
-        </Metadata>
-        """;
+    private static string RootXml(params string[] imageIds)
+    {
+        var images = string.Join("\n", imageIds.Select(id => $"  <Image ID=\"{id}\" Source=\"images/{id}.png\" />"));
+        return $$"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <Metadata SchemaVersion="1.0" ContentRevision="1">
+            {{images}}
+              <Application ID="RA3BattleNet">
+                <Version>1.0.0</Version>
+                <Packages>
+                  <Package Version="1.0.0"><Manifest>app-leaf</Manifest></Package>
+                </Packages>
+              </Application>
+              <Manifest ID="app-leaf" Source="apps/leaf.xml" />
+            </Metadata>
+            """;
+    }
+
+    private static string ImageUrl(string id) => $"https://metadata.example/images/{id}.png";
+
+    /// <summary>图片类型只看响应头，所以正文用最小的 PNG 签名就够，测试不比较真实图片。</summary>
+    private static readonly byte[] PngBytes = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
     private static string LeafXml(string id) => $$"""
         <?xml version="1.0" encoding="utf-8"?>

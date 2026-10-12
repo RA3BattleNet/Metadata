@@ -98,14 +98,15 @@ var plan = ManifestMountPlanner.Build(
 
 同目录还有 `.etag`（ETag、Last-Modified、规范化 URI、正文 SHA256）、`.uri`（该磁盘路径一次成型的归属地址）和写入过程中的 `.tmp`。`.tmp` 不当缓存读。校验器缺失或与正文摘要不一致时，正文仍可离线使用；下一次显式 XML 刷新才是无条件 GET。
 
-正文的下载与解析都由库一手包办：网络正文先由**传输实现**下载到一个本地临时文件，再由库自己读取、校验并原子发布进缓存，不再把正文读进内存再回写。这条传输边界就是 `Cache/IMetadataTransfer.cs`：
+元数据 XML、登记图片与元数据 Markdown 的下载与解析都由库一手包办：正文先由**下载实现**写到一个本地临时文件，再由库自己读取、校验，校验通过后替换缓存，不再把正文读进内存再回写。这条下载边界就是 `Cache/IMetadataTransfer.cs`：
 
 - 请求 `MetadataTransferRequest(Uri Source, string StagingPath, string? ETag, string? LastModified)`：`StagingPath` 是传输方在 200 时必须写好完整正文的本地路径，非 200 不得落盘。`ETag` / `LastModified` 是本地的条件校验器，传输方据此发 `If-None-Match` / `If-Modified-Since`。
 - 结果 `MetadataTransferResult(int StatusCode, string? ETag, string? LastModified, string? ContentType)`：真实 HTTP 状态码加服务端给出的校验器与内容类型。传输本身的失败（网络、超时、磁盘）直接抛异常，不许用状态码敷衍。
 - 默认实现 `Cache/HttpMetadataTransfer.cs`：用 `HttpClient` 把正文直接下载到本地文件，条件头原样转发，304 原样回报，非 200 不落盘。
 - 临时目录：构造函数传入 `stagingDirectory` 时优先用它；否则开磁盘缓存时为 `<cacheDir>/.stage`，关磁盘缓存时为系统临时目录下的 `ra3-metadata-stage`。目录在第一次真正需要网络传输时才创建，本地来源不会碰它。
+- 并发下载限制：元数据 XML（根与叶子）、登记图片与元数据 Markdown 共用同一个下载名额，默认 3（构造函数 `maxTransferConcurrency` 可调），注入的下载实现同样受它限制；本地 `file://` 读取不占名额。请求先排队拿名额，再开始计 `requestTimeout`，所以排队等名额不会吃掉单次请求超时；拿到名额后整段正文下载仍受同一个超时与调用方取消约束，名额只由拿到它的那次调用归还。
 - 归属：注入的传输实现归调用方所有，库不会释放它；只有库自己在默认建了传输时才负责释放。
-- `MetadataDiskCache.StageFile` 把校验通过、已经落在本地的文件搬进缓存临时位（同卷是移动，不重写字节），正式发布仍由 `Commit` 原子完成。
+- `MetadataDiskCache.StageFile` 把校验通过、已经写在本地文件上的正文搬进缓存临时位（同卷是移动，不重写字节），正式替换仍由 `Commit` 完成。根清单、叶子清单与图片都走这一条：图片先把下载方写好的正文文件搬进缓存临时位，同一份字节只读回内存给调用方，不再重写第二遍。
 
 `MetadataClient` 构造函数的 `httpClient` 参数只在库自用默认传输时有意义：一旦传入了 `transfer`，这个 `HttpClient` 不再参与任何请求。
 

@@ -23,6 +23,7 @@ public sealed class MetadataClient : IDisposable
     private readonly TimeSpan _requestTimeout;
     private readonly TimeProvider _clock;
     private readonly SemaphoreSlim _leafSlots;
+    private readonly SemaphoreSlim _transferSlots;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly object _gate = new();
     private readonly Dictionary<string, Task<RootSnapshotResult>> _openFlights = new(StringComparer.Ordinal);
@@ -37,7 +38,7 @@ public sealed class MetadataClient : IDisposable
     private bool _disposed;
 
     /// <param name="cacheDirectory">磁盘缓存根目录；<paramref name="enableDiskCache"/> 为 false 时不读取、不创建。</param>
-    /// <param name="requestTimeout">单次请求超时。</param>
+    /// <param name="requestTimeout">单次请求超时；排在并发下载限制后面等名额的时间不算，拿到名额后才开始计时。</param>
     /// <param name="maxLeafConcurrency">叶子并发上限。</param>
     /// <param name="httpClient">外部传输实例；为 null 时自己建一个并负责释放。</param>
     /// <param name="enableDiskCache">
@@ -55,6 +56,10 @@ public sealed class MetadataClient : IDisposable
     /// 下载临时目录。为 null 时：开磁盘缓存用 &lt;缓存根&gt;/.stage，关磁盘缓存用系统临时目录
     /// （后者只适合独立使用与测试）。目录在第一次真正需要网络传输时才创建，本地来源不会碰它。
     /// </param>
+    /// <param name="maxTransferConcurrency">
+    /// 网络下载并发上限，默认 3。元数据 XML（根与叶子）、登记图片与元数据 Markdown 走同一个上限，
+    /// 调用方注入的下载实现也一样；本地 file:// 读取不占名额。
+    /// </param>
     public MetadataClient(
         string cacheDirectory,
         TimeSpan requestTimeout,
@@ -63,12 +68,14 @@ public sealed class MetadataClient : IDisposable
         bool enableDiskCache = true,
         TimeProvider? clock = null,
         IMetadataTransfer? transfer = null,
-        string? stagingDirectory = null)
+        string? stagingDirectory = null,
+        int maxTransferConcurrency = 3)
     {
         if (enableDiskCache && string.IsNullOrWhiteSpace(cacheDirectory))
             throw new ArgumentException("缓存目录不能为空", nameof(cacheDirectory));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(requestTimeout, TimeSpan.Zero, nameof(requestTimeout));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxLeafConcurrency);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxTransferConcurrency);
 
         _requestTimeout = requestTimeout;
         _clock = clock ?? TimeProvider.System;
@@ -82,6 +89,7 @@ public sealed class MetadataClient : IDisposable
         _transfer = transfer ?? new HttpMetadataTransfer(httpClient, requestTimeout);
         _stagingDirectory = ResolveStagingDirectory(cacheDirectory, enableDiskCache, stagingDirectory);
         _leafSlots = new SemaphoreSlim(maxLeafConcurrency, maxLeafConcurrency);
+        _transferSlots = new SemaphoreSlim(maxTransferConcurrency, maxTransferConcurrency);
     }
 
     private static string ResolveStagingDirectory(string cacheDirectory, bool enableDiskCache, string? stagingDirectory)
@@ -322,6 +330,8 @@ public sealed class MetadataClient : IDisposable
             // 重复释放时令牌可能已经关掉。
         }
 
+        // 两个信号量都故意不释放：还在跑的任务要归还名额，Dispose 抢在前面会让它们出错。
+        // SemaphoreSlim 没建过 AvailableWaitHandle 就不需要释放；Dispose 只取消会话并释放自己建的下载实现。
         if (_ownsTransfer)
             _transfer.Dispose();
     }
@@ -497,7 +507,7 @@ public sealed class MetadataClient : IDisposable
                         : null;
                     if (memory is null)
                     {
-                        transfer.DiscardStagedFile();
+                        // 304 不带正文，直接换成无条件重取。
                         transfer = await TransferAsync(origin, validators: null, ct).ConfigureAwait(false);
                         if (transfer.NotModified)
                             return RootFallback(origin, "HTTP 304 但本地根清单无法解析");
@@ -546,7 +556,7 @@ public sealed class MetadataClient : IDisposable
 
                 var digest = MetadataDiskCache.Sha256Hex(bytes);
                 if (_disk is not null
-                    && !await TryCommitImageAsync(uri, bytes, digest, contentType, transfer.ETag, transfer.LastModified, ct).ConfigureAwait(false))
+                    && !await TryCommitImageAsync(uri, bytes, transfer.Path, digest, contentType, transfer.ETag, transfer.LastModified, ct).ConfigureAwait(false))
                     return ColdImageFailure(uri, "图片缓存无法写入");
 
                 ClearImageReadBlock(uri.AbsoluteUri);
@@ -586,7 +596,7 @@ public sealed class MetadataClient : IDisposable
                 {
                     if (hasCache)
                         return new ImageResult(cached.Bytes, cachedType, MetadataFreshness.Stale, null);
-                    transfer.DiscardStagedFile();
+                    // 304 不带正文，直接换成无条件重取。
                     transfer = await TransferAsync(uri, validators: null, ct).ConfigureAwait(false);
                 }
 
@@ -607,7 +617,7 @@ public sealed class MetadataClient : IDisposable
 
                 var digest = MetadataDiskCache.Sha256Hex(bytes);
                 var same = hasCache && string.Equals(cached.Digest, digest, StringComparison.OrdinalIgnoreCase);
-                if (!await TryCommitImageAsync(uri, bytes, digest, contentType, transfer.ETag, transfer.LastModified, ct).ConfigureAwait(false))
+                if (!await TryCommitImageAsync(uri, bytes, transfer.Path, digest, contentType, transfer.ETag, transfer.LastModified, ct).ConfigureAwait(false))
                 {
                     if (hasCache && same)
                         return new ImageResult(cached.Bytes, cachedType, MetadataFreshness.Stale, null);
@@ -642,9 +652,14 @@ public sealed class MetadataClient : IDisposable
         }
     }
 
+    /// <summary>
+    /// 把这次下载的图片写进缓存。下载方写到本地文件的正文就是内容来源：能直接搬走就不再重写一遍刚读回内存的字节；
+    /// 只有来自内存的情况（本地 file:// 图片）才写字节。正式替换仍由 <see cref="MetadataDiskCache.Commit"/> 完成。
+    /// </summary>
     private async Task<bool> TryCommitImageAsync(
         Uri uri,
         byte[] bytes,
+        string? stagedPath,
         string digest,
         string contentType,
         string? etag,
@@ -657,7 +672,10 @@ public sealed class MetadataClient : IDisposable
         var path = _disk.ImageBodyPath(uri);
         try
         {
-            await _disk.StageAsync(path, uri.AbsoluteUri, bytes, ct).ConfigureAwait(false);
+            if (stagedPath is not null)
+                _disk.StageFile(path, uri.AbsoluteUri, stagedPath);
+            else
+                await _disk.StageAsync(path, uri.AbsoluteUri, bytes, ct).ConfigureAwait(false);
             _disk.Commit(path, new CacheStamp
             {
                 Uri = uri.AbsoluteUri,
@@ -922,7 +940,7 @@ public sealed class MetadataClient : IDisposable
                         : null;
                     if (reused is null)
                     {
-                        transfer.DiscardStagedFile();
+                        // 304 不带正文，直接换成无条件重取。
                         transfer = await TransferAsync(leaf, validators: null, ct).ConfigureAwait(false);
                         if (transfer.NotModified)
                             return LeafDocFallback(leaf, "HTTP 304 但本地叶子清单无法解析");
@@ -1058,42 +1076,55 @@ public sealed class MetadataClient : IDisposable
         if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
             return Transfer.Fail("不支持的地址协议");
 
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(_requestTimeout);
-        var staging = NewStagingPath();
-        var handedOff = false;
+        // 全局并发下载限制：元数据 XML（根与叶子）、登记图片与元数据 Markdown 都在这里排队，注入的下载实现也一样。
+        // 先拿到名额再起超时计时——排队等名额是客户端自己的并发控制，不算进单次请求超时。
+        // 排队也受会话生命周期约束：Dispose 要放走排队的人，不让他们挂在再也放不出来的名额上。
+        using var queued = CancellationTokenSource.CreateLinkedTokenSource(ct, _lifetime.Token);
+        await _transferSlots.WaitAsync(queued.Token).ConfigureAwait(false);
         try
         {
-            var result = await _transfer
-                .FetchAsync(new MetadataTransferRequest(uri, staging, validators?.ETag, validators?.LastModified), timeout.Token)
-                .ConfigureAwait(false);
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(_requestTimeout);
+            var staging = NewStagingPath();
+            var handedOff = false;
+            try
+            {
+                var result = await _transfer
+                    .FetchAsync(new MetadataTransferRequest(uri, staging, validators?.ETag, validators?.LastModified), timeout.Token)
+                    .ConfigureAwait(false);
 
-            if (result.StatusCode == (int)HttpStatusCode.NotModified)
-                return Transfer.NotModifiedResult();
+                if (result.StatusCode == (int)HttpStatusCode.NotModified)
+                    return Transfer.NotModifiedResult();
 
-            if (result.StatusCode != (int)HttpStatusCode.OK)
-                return Transfer.Fail($"HTTP {result.StatusCode}");
+                if (result.StatusCode != (int)HttpStatusCode.OK)
+                    return Transfer.Fail($"HTTP {result.StatusCode}");
 
-            if (!File.Exists(staging))
-                return Transfer.Fail("传输没有落盘正文");
+                if (!File.Exists(staging))
+                    return Transfer.Fail("传输没有落盘正文");
 
-            handedOff = true;
-            return Transfer.ModifiedFromFile(staging, result.ETag, result.LastModified, result.ContentType);
-        }
-        catch (ObjectDisposedException) when (ct.IsCancellationRequested)
-        {
-            throw new OperationCanceledException("元数据客户端已释放", ct);
-        }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        {
-            return Transfer.Fail("请求超时");
+                handedOff = true;
+                return Transfer.ModifiedFromFile(staging, result.ETag, result.LastModified, result.ContentType);
+            }
+            catch (ObjectDisposedException) when (ct.IsCancellationRequested)
+            {
+                throw new OperationCanceledException("元数据客户端已释放", ct);
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                return Transfer.Fail("请求超时");
+            }
+            finally
+            {
+                // 没有交出去的临时正文一律现在删掉：取消、释放和异常都不能留下半截文件。
+                // 交出去的那份由调用方负责（校验通过搬进缓存，否则在它的 finally 里删掉）。
+                if (!handedOff)
+                    TryDeleteFile(staging);
+            }
         }
         finally
         {
-            // 没有交出去的临时正文一律现在删掉：取消、释放和异常都不能留下半截文件。
-            // 交出去的那份由调用方负责（校验通过搬进缓存，否则在它的 finally 里删掉）。
-            if (!handedOff)
-                TryDeleteFile(staging);
+            // 名额只由真正拿到它的这次调用归还，取消或释放都不会多还或漏还。
+            _transferSlots.Release();
         }
     }
 
