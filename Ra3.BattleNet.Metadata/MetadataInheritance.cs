@@ -10,7 +10,7 @@ public static class MetadataInheritance
     // 顺序即发布物里的元素顺序。DisplayName 在表里只是为了让它排在正确位置：
     // 显示名属于实体自身，合并时只取子实体的全部 DisplayName，绝不从 Base 继承。
     private static readonly string[] ModChildOrder =
-        ["CurrentVersion", "Icon", "DisplayName", "Style", "Packages", "Posts"];
+        ["CurrentVersion", "Icon", "DisplayName", "Style", "Compatibility", "Packages", "Posts", "Links"];
 
     private static readonly string[] ApplicationChildOrder =
         ["Version", "DisplayName", "TransferAd", "Packages", "Posts"];
@@ -32,6 +32,8 @@ public static class MetadataInheritance
         {
             var id = baseEl.Attribute("ID")?.Value;
             var kind = baseEl.Attribute("Kind")?.Value;
+            if (baseEl.Descendants("Compatibility").Any())
+                throw new InvalidOperationException("Compatibility is owned by Mod and cannot be declared in Base");
             if (string.IsNullOrWhiteSpace(id))
                 throw new InvalidOperationException("Base 缺少 ID");
             if (kind is not ("Mod" or "Application"))

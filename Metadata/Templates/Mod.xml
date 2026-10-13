@@ -3,7 +3,18 @@
 <Metadata>
   <Image ID="mod-icon-64px" Source="images/icon-64px.png" />
 
-  <Mod ID="YourMod">
+  <!-- IsAddon defaults to false. Any Mod can still be selected as the main item.
+       Addons can always run with vanilla. Main lists allowed main Mod IDs.
+       Addon rules default to compatible; Compatible=false blocks that pair.
+       Version children are exact advisory versions: a mismatch only warns.
+       Package/Compatibility replaces the entire Mod/Compatibility rule set.
+       Example (replace IDs with actual registered Mods before uncommenting):
+       <Compatibility>
+         <Main Mod="Corona"><Version>3.258</Version></Main>
+         <Addon Mod="OtherAddon" Compatible="false"/>
+       </Compatibility>
+  -->
+  <Mod ID="YourMod" IsAddon="false">
     <CurrentVersion>1.0.0</CurrentVersion>
     <Icon>mod-icon-64px</Icon>
     <!-- 显示名：zh 与 en 两条都必须写，可再补其它语言；实体自身拥有，不从 Base 继承 -->
