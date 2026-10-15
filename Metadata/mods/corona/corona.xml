@@ -76,7 +76,7 @@
             </Package>
         </Packages>
         <Posts>
-            <Post DateTime="2026-07-12T00:00:00+08:00">
+            <Post Type="Changelog" DateTime="2026-07-12T00:00:00+08:00">
                 <Titles>
                     <Title Language="zh">3.256 版本更新说明</Title>
                 </Titles>
@@ -88,7 +88,7 @@
                     <Content Language="zh">news-zh-3.256</Content>
                 </Contents>
             </Post>
-            <Post DateTime="2026-06-22T00:00:00+08:00">
+            <Post Type="Changelog" DateTime="2026-06-22T00:00:00+08:00">
                 <Titles>
                     <Title Language="zh">3.255 版本更新说明</Title>
                 </Titles>
@@ -100,7 +100,7 @@
                     <Content Language="zh">news-zh-3.255</Content>
                 </Contents>
             </Post>
-            <Post DateTime="2026-06-08T00:00:00+08:00">
+            <Post Type="Changelog" DateTime="2026-06-08T00:00:00+08:00">
                 <Titles>
                     <Title Language="zh">3.253 版本更新说明</Title>
                 </Titles>
