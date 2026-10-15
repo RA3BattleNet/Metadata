@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-1-0" HashAlgorithm="SHA256">
+    <Skudef GameVersion="1.12">
+      <AddBig File="MOUI_1.0.big" />
+    </Skudef>
+    <File Hash="3E69D3E819610F42DB06950A1E56B98CFC5C25ED08C5CE918DC124C6A60DF1B3" Size="2207312">
+      <FileName>MOUI_1.0.big</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      <Sources>
+        <Source Type="HTTP" Url="https://object.ra3battle.net/mods/moui/MOUI_1.0.big" />
+      </Sources>
+    </File>
+  </Manifest>
+</Metadata>

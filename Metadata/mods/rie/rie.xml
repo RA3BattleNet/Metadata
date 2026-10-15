@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Includes>
+    <Include Source="manifests/1.2.xml" />
+  </Includes>
+  <Markdown ID="introduction-zh" Source="posts/introduction-zh.md" />
+
+  <Mod ID="RIE" IsAddon="true">
+    <CurrentVersion>1.2</CurrentVersion>
+    <DisplayName Language="zh">EVA语音包：妮娜·崔妮帝（钉宫理惠）</DisplayName>
+    <DisplayName Language="en">EVA Voice Pack: Nena Trinity (Rie Kugimiya)</DisplayName>
+    <Compatibility />
+    <Packages>
+      <Package Version="1.2">
+        <Manifest>manifest-1-2</Manifest>
+      </Package>
+    </Packages>
+    <Posts>
+      <Post DateTime="2023-03-25T00:25:20+08:00">
+        <Titles>
+          <Title Language="zh">模组介绍与使用说明</Title>
+        </Titles>
+        <Descriptions>
+          <Description Language="zh">使用妮娜·崔妮帝（钉宫理惠）语音的原版 EVA 语音包。</Description>
+        </Descriptions>
+        <Contents>
+          <Content Language="zh">introduction-zh</Content>
+        </Contents>
+      </Post>
+    </Posts>
+  </Mod>
+</Metadata>

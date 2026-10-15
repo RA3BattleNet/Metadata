@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-1-5" HashAlgorithm="SHA256">
+    <Skudef GameVersion="1.12">
+      <AddBig File="NeuroEva_1.5.big" />
+    </Skudef>
+    <File Hash="A4B8EE548A7028177ECB2686307B56B8F16E7402AC200E95A03EACEEA36DD17F" Size="65733845">
+      <FileName>NeuroEva_1.5.big</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      <Sources>
+        <Source Type="HTTP" Url="https://object.ra3battle.net/mods/neuroeva/NeuroEva_1.5.big" />
+      </Sources>
+    </File>
+  </Manifest>
+</Metadata>

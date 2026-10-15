@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-1-2" HashAlgorithm="SHA256">
+    <Skudef GameVersion="1.12">
+      <AddBig File="RIE_1.2.big" />
+    </Skudef>
+    <File Hash="C4E095A38D12FD04CEBF54635E22F57774B2EA44E2832401314B6BDB21E91F5A" Size="25077889">
+      <FileName>RIE_1.2.big</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      <Sources>
+        <Source Type="HTTP" Url="https://object.ra3battle.net/mods/rie/RIE_1.2.big" />
+      </Sources>
+    </File>
+  </Manifest>
+</Metadata>

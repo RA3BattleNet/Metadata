@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-1-0" HashAlgorithm="SHA256">
+    <Skudef GameVersion="1.12">
+      <AddBig File="UIMOD_1.0.big" />
+    </Skudef>
+    <File Hash="169E7E2B70C100EAC86A79E7124681C083AA442EE711F064069C4AE1B46A89B0" Size="37394203">
+      <FileName>UIMOD_1.0.big</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      <Sources>
+        <Source Type="HTTP" Url="https://object.ra3battle.net/mods/uimod/UIMOD_1.0.big" />
+      </Sources>
+    </File>
+  </Manifest>
+</Metadata>

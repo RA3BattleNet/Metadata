@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-1-0" HashAlgorithm="SHA256">
+    <Skudef GameVersion="1.12">
+      <AddBig File="OLGAEVA_1.0.big" />
+    </Skudef>
+    <File Hash="39A2BA92C59F5F4FEF33B08E02E2AE98AE87636CD315BA5854BC953ACCDD4A4D" Size="26578685">
+      <FileName>OLGAEVA_1.0.big</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      <Sources>
+        <Source Type="HTTP" Url="https://object.ra3battle.net/mods/olgaeva/OLGAEVA_1.0.big" />
+      </Sources>
+    </File>
+  </Manifest>
+</Metadata>

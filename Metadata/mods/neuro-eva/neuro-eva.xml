@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Includes>
+    <Include Source="manifests/1.0.xml" />
+  </Includes>
+  <Markdown ID="introduction-zh" Source="posts/introduction-zh.md" />
+
+  <Mod ID="NeuroEva" IsAddon="true">
+    <CurrentVersion>1.0</CurrentVersion>
+    <DisplayName Language="zh">EVA语音包：Neuro-sama(原版)</DisplayName>
+    <DisplayName Language="en">EVA Voice Pack: Neuro-sama (Vanilla)</DisplayName>
+    <Compatibility />
+    <Packages>
+      <Package Version="1.0">
+        <Manifest>manifest-1-0</Manifest>
+      </Package>
+    </Packages>
+    <Posts>
+      <Post DateTime="2023-04-05T18:38:06+08:00">
+        <Titles>
+          <Title Language="zh">模组介绍与使用说明</Title>
+        </Titles>
+        <Descriptions>
+          <Description Language="zh">适用于红色警戒3原版的 Neuro-sama EVA 语音包。</Description>
+        </Descriptions>
+        <Contents>
+          <Content Language="zh">introduction-zh</Content>
+        </Contents>
+      </Post>
+    </Posts>
+  </Mod>
+</Metadata>

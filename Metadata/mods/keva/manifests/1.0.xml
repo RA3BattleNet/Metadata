@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-1-0" HashAlgorithm="SHA256">
+    <Skudef GameVersion="1.12">
+      <AddBig File="KEVA_1.0.big" />
+    </Skudef>
+    <File Hash="54FE376FEFE2E79DB3CBE5D34F983BA46347796CA8CBB679CBB79852F2D0EA10" Size="18727216">
+      <FileName>KEVA_1.0.big</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      <Sources>
+        <Source Type="HTTP" Url="https://object.ra3battle.net/mods/keva/KEVA_1.0.big" />
+      </Sources>
+    </File>
+  </Manifest>
+</Metadata>
