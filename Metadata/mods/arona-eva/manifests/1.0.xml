@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-1-0" HashAlgorithm="SHA256">
+    <Skudef GameVersion="1.12">
+      <AddBig File="AronaEva_1.0.big" />
+    </Skudef>
+    <File Hash="AA8F4C86F09FEF5CE57D0666B4BB8019EABEDE53E8B095D27FD70DD12D91B40F" Size="43752763">
+      <FileName>AronaEva_1.0.big</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      <Sources>
+        <Source Type="HTTP" Url="https://object.ra3battle.net/mods/aronaeva/AronaEva_1.0.big" />
+      </Sources>
+    </File>
+  </Manifest>
+</Metadata>

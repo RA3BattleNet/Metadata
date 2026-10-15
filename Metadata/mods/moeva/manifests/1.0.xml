@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-1-0" HashAlgorithm="SHA256">
+    <Skudef GameVersion="1.12">
+      <AddBig File="MOEVA_1.0.big" />
+    </Skudef>
+    <File Hash="329A3F7E38EC7EA705A961159ECAD17B8A524ABB9DAB908DE10DE1167278D5BF" Size="46047410">
+      <FileName>MOEVA_1.0.big</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      <Sources>
+        <Source Type="HTTP" Url="https://object.ra3battle.net/mods/moeva/MOEVA_1.0.big" />
+      </Sources>
+    </File>
+  </Manifest>
+</Metadata>

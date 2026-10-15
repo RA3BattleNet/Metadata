@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Includes>
+    <Include Source="manifests/1.0.xml" />
+  </Includes>
+  <Markdown ID="introduction-zh" Source="posts/introduction-zh.md" />
+
+  <Mod ID="MOUI" IsAddon="true">
+    <CurrentVersion>1.0</CurrentVersion>
+    <DisplayName Language="zh">防和谐UImod(精简版)</DisplayName>
+    <DisplayName Language="en">UI Mod (Lite)</DisplayName>
+    <Compatibility />
+    <Packages>
+      <Package Version="1.0">
+        <Manifest>manifest-1-0</Manifest>
+      </Package>
+    </Packages>
+    <Posts>
+      <Post DateTime="2023-03-25T00:31:34+08:00">
+        <Titles>
+          <Title Language="zh">模组介绍与使用说明</Title>
+        </Titles>
+        <Descriptions>
+          <Description Language="zh">适用于红色警戒3原版的防和谐 UI 模组精简版。</Description>
+        </Descriptions>
+        <Contents>
+          <Content Language="zh">introduction-zh</Content>
+        </Contents>
+      </Post>
+    </Posts>
+  </Mod>
+</Metadata>

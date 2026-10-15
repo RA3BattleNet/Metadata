@@ -61,16 +61,33 @@
     <xs:attribute name="Commit" type="xs:string"/>
   </xs:complexType>
 
+  <!-- Compatibility is owned by Mod; Package replaces the entire rule set. -->
+  <xs:complexType name="ModCompatibilityType">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="Main" type="ModCompatibilityTargetType"/>
+      <xs:element name="Addon" type="ModCompatibilityTargetType"/>
+    </xs:choice>
+  </xs:complexType>
+  <xs:complexType name="ModCompatibilityTargetType">
+    <xs:sequence>
+      <xs:element name="Version" type="xs:token" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="Mod" type="xs:token" use="required"/>
+    <xs:attribute name="Compatible" type="xs:boolean" default="true"/>
+  </xs:complexType>
+
   <xs:complexType name="ModType">
     <xs:sequence>
       <xs:element name="CurrentVersion" type="xs:string" minOccurs="0"/>
       <xs:element name="Icon" type="xs:string" minOccurs="0"/>
       <xs:element name="DisplayName" type="LocalizedTextType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Style" type="StyleType" minOccurs="0"/>
+      <xs:element name="Compatibility" type="ModCompatibilityType" minOccurs="0"/>
       <xs:element name="Packages" type="PackagesType" minOccurs="0"/>
       <xs:element name="Posts" type="PostsType" minOccurs="0"/>
       <xs:element name="Links" type="LinksType" minOccurs="0"/>
     </xs:sequence>
+    <xs:attribute name="IsAddon" type="xs:boolean" default="false"/>
     <xs:attribute name="ID" type="xs:string" use="required"/>
   </xs:complexType>
   <xs:complexType name="LinksType">
@@ -248,6 +265,7 @@
     <xs:sequence>
       <xs:element name="ReleaseDate" type="xs:string" minOccurs="0"/>
       <xs:element name="Manifest" type="xs:string" minOccurs="0"/>
+      <xs:element name="Compatibility" type="ModCompatibilityType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="Version" type="xs:string" use="required"/>
   </xs:complexType>

@@ -199,3 +199,28 @@ dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Ou
 错误: Mod 'Demo': 缺少 en DisplayName
 错误: Application 'RA3BattleNet': DisplayName Language 重复: zh
 ```
+
+
+## Mod 启动兼容性
+
+`Mod@IsAddon="true"` 声明不改变联机逻辑的附属内容，缺省 `false`。任何 Mod 都能作主 Mod；附属的普通启动使用原版身份，显式“作为主 Mod 启动”仍走常规 Mod 身份。
+
+```xml
+<Mod ID="VisualAddon" IsAddon="true">
+  <!-- CurrentVersion、显示名、Style 等按现有顺序填写 -->
+  <Compatibility>
+    <Main Mod="Corona"><Version>3.258</Version></Main>
+    <Addon Mod="OtherVisualAddon" Compatible="false"/>
+  </Compatibility>
+  <Packages>
+    <Package Version="1.0">
+      <Manifest>manifest-100</Manifest>
+      <Compatibility/>
+    </Package>
+  </Packages>
+</Mod>
+```
+
+`Compatibility` 在 Mod 下位于 Style 之后、Packages 之前；Package 下位于 Manifest 之后。`Main` 是允许的主 Mod ID；未声明时默认不兼容任何主 Mod。附属默认兼容原版与其他附属；任一方 `Addon@Compatible="false"` 都拒绝该组合。`Version` 可列出目标的精确支持版本，不匹配只提示，不禁止启动。Package 声明完整替换 Mod 默认规则，空节点清空规则；省略沿用默认规则。兼容 ID 大小写不敏感，不添加资源前缀，不能引用自身、未知目标或重复目标；Addon 目标必须声明 IsAddon。`vanilla` 保留给原版，不能作为 Mod ID。规则不从 Base 继承。
+
+库通过 `mod.IsAddon` 和 `mod.LaunchCompatibility(version)` 暴露此信息。作者须确保附属确实不改变联机逻辑，声明本身无法证明文件行为。

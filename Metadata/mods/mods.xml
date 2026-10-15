@@ -9,5 +9,15 @@
         <Include Source="corona/corona.xml" />
         <Include Source="armor-rush/armor-rush.xml" />
         <Include Source="eisenreich/eisenreich.xml" />
+        <Include Source="neuro-eva/neuro-eva.xml" />
+        <Include Source="neuro-eva-ar/neuro-eva-ar.xml" />
+        <Include Source="arona-eva/arona-eva.xml" />
+        <Include Source="moeva/moeva.xml" />
+        <Include Source="rie/rie.xml" />
+        <Include Source="olga-eva/olga-eva.xml" />
+        <Include Source="keva/keva.xml" />
+        <Include Source="moui/moui.xml" />
+        <Include Source="uimod/uimod.xml" />
+        <Include Source="ra3-censorship-patch/ra3-censorship-patch.xml" />
     </Includes>
 </Metadata>

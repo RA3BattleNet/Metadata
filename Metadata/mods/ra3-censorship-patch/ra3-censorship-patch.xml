@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Includes>
+    <Include Source="manifests/1.0.xml" />
+  </Includes>
+  <Markdown ID="introduction-zh" Source="posts/introduction-zh.md" />
+
+  <Mod ID="RA3CensorshipPatch" IsAddon="true">
+    <CurrentVersion>1.0</CurrentVersion>
+    <DisplayName Language="zh">RA3和谐补丁</DisplayName>
+    <DisplayName Language="en">RA3 Censorship Patch</DisplayName>
+    <Compatibility />
+    <Packages>
+      <Package Version="1.0">
+        <Manifest>manifest-1-0</Manifest>
+      </Package>
+    </Packages>
+    <Posts>
+      <Post DateTime="2023-03-25T00:42:48+08:00">
+        <Titles>
+          <Title Language="zh">模组介绍与使用说明</Title>
+        </Titles>
+        <Descriptions>
+          <Description Language="zh">包含 UI、阵营标志和单位贴图修改的原版和谐补丁。</Description>
+        </Descriptions>
+        <Contents>
+          <Content Language="zh">introduction-zh</Content>
+        </Contents>
+      </Post>
+    </Posts>
+  </Mod>
+</Metadata>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-1-0" HashAlgorithm="SHA256">
+    <Skudef GameVersion="1.12">
+      <AddBig File="mUIAPT_1.0.big" />
+      <AddBig File="mUISTA_1.0.big" />
+    </Skudef>
+    <File Hash="43EB3EA76FD9CF0BBA2980A75FC670F6E3237D7C7B5940051E7EF29D250F81BD" Size="33171871">
+      <FileName>mUIAPT_1.0.big</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      <Sources>
+        <Source Type="HTTP" Url="https://object.ra3battle.net/mods/mui/mUIAPT_1.0.big" />
+      </Sources>
+    </File>
+    <File Hash="C9AE37D9F1C8C12C599A964730862DDA82CCBF7ABE3EA0057DC123697FCFF4F1" Size="6760450">
+      <FileName>mUISTA_1.0.big</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      <Sources>
+        <Source Type="HTTP" Url="https://object.ra3battle.net/mods/mui/mUISTA_1.0.big" />
+      </Sources>
+    </File>
+  </Manifest>
+</Metadata>

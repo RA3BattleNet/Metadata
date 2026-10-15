@@ -20,6 +20,7 @@ public static class MetadataFlattener
         MetadataInheritance.Resolve(root);
 
         ValidateEntityIds(session.EntitySources);
+        ModCompatibility.Validate(root);
 
         root.SetAttributeValue("SchemaVersion", schemaVersion);
         root.SetAttributeValue("ContentRevision", contentRevision);

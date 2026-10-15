@@ -66,7 +66,11 @@ public sealed record ApplicationEntry(string Id, string? Version, IReadOnlyList<
 /// <param name="DisplayNames">分语言的显示名；没写时为空列表。</param>
 /// <param name="Packages">版本包列表。</param>
 /// <param name="Raw">原始元数据节点。</param>
-public sealed record ModEntry(string Id, string? Version, string? Icon, IReadOnlyList<LocalizedTextEntry> DisplayNames, IReadOnlyList<PackageEntry> Packages, Metadata Raw);
+public sealed record ModEntry(string Id, string? Version, string? Icon, IReadOnlyList<LocalizedTextEntry> DisplayNames, IReadOnlyList<PackageEntry> Packages, Metadata Raw)
+{
+    /// <summary>附属身份与主项兼容列表独立；缺省不是附属。</summary>
+    public bool IsAddon => Raw.Get("IsAddon")?.Trim() is "true" or "1";
+}
 
 /// <summary>
 /// 分语言的文本（<c>DisplayName</c> / <c>Title</c> / <c>Description</c> 这类带 <c>@Language</c> 的节点）。

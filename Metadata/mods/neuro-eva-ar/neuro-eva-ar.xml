@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Includes>
+    <Include Source="manifests/1.5.xml" />
+  </Includes>
+  <Markdown ID="introduction-zh" Source="posts/introduction-zh.md" />
+
+  <Mod ID="NeuroEvaAR" IsAddon="true">
+    <CurrentVersion>1.5</CurrentVersion>
+    <DisplayName Language="zh">EVA语音包：Neuro-sama(AR)</DisplayName>
+    <DisplayName Language="en">EVA Voice Pack: Neuro-sama (AR)</DisplayName>
+    <Compatibility>
+      <Main Mod="ArmorRush" />
+    </Compatibility>
+    <Packages>
+      <Package Version="1.5">
+        <Manifest>manifest-1-5</Manifest>
+      </Package>
+    </Packages>
+    <Posts>
+      <Post DateTime="2026-10-15T00:00:00+08:00">
+        <Titles>
+          <Title Language="zh">模组介绍与使用说明</Title>
+        </Titles>
+        <Descriptions>
+          <Description Language="zh">适配装甲冲击的 Neuro-sama EVA 语音包，当前版本为 1.5，也可随原版启动。</Description>
+        </Descriptions>
+        <Contents>
+          <Content Language="zh">introduction-zh</Content>
+        </Contents>
+      </Post>
+    </Posts>
+  </Mod>
+</Metadata>
