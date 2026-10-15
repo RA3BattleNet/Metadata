@@ -289,7 +289,7 @@
       <xs:element name="Contents" type="ContentsType"/>
     </xs:sequence>
     <xs:attribute name="DateTime" type="xs:string" use="required"/>
-    <!-- Type 可选、不限制取值：introduction = 模组介绍，Changelog = 版本更新说明；省略即普通新闻。 -->
+    <!-- Type 可选、不限制取值：introduction = 模组介绍，changelog = 版本更新说明；省略即普通新闻。 -->
     <xs:attribute name="Type" type="xs:string"/>
   </xs:complexType>
 

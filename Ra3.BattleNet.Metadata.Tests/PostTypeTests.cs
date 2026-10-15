@@ -13,7 +13,7 @@ public class PostTypeTests
     [TestMethod]
     [DataRow("", "省略 Type 仍合法，等同于普通新闻")]
     [DataRow(" Type=\"introduction\"", "introduction 用途合法")]
-    [DataRow(" Type=\"Changelog\"", "Changelog 用途合法")]
+    [DataRow(" Type=\"changelog\"", "changelog 用途合法")]
     [DataRow(" Type=\"custom-unknown\"", "不限制取值：未知字符串同样合法")]
     [DataRow(" Type=\"\"", "xs:string 允许空串，模式不做非空约束")]
     public void SourceAndPublishSchema_PostType_OptionalAndAnyString(string typeAttribute, string because)

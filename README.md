@@ -198,7 +198,7 @@ MetadataBuilder.Build(sourceDir, outputDir, schemaVersion: MetadataSchema.Curren
 | `Application` | 根的子元素 | 应用程序实体：包含 `@ID`、当前版本 `Version`、多语言显示名 `DisplayName`（必须同时写 `zh` 与 `en` 两条）、可选布尔开关 `TransferAd`（缺省视为关闭，客户端据此决定是否自动弹出迁移提示窗）、版本包列表 `Packages`、自己的新闻 `Posts`。显示名与新闻都不从 Base 继承，也不使用顶层公共列表 |
 | `Mod` | 根的子元素 | 模组实体：包含 `@ID`、当前推荐版本 `CurrentVersion`、图标 `Icon`（引用图片 ID）、多语言显示名 `DisplayName`（必须同时写 `zh` 与 `en` 两条）、外观样式 `Style`、版本列表 `Packages`、自己的公告 `Posts`、可选友情链接 `Links`。显示名与 Posts／Links 一样属于实体自身，不从 Base 继承 |
 | `Package` | 实体子元素 | 纯安装数据：必填版本号 `@Version`、可选发布日期 `ReleaseDate`、可选独立清单 `Manifest`。不再包含更新日志；可以没有任何新闻 |
-| `Post` | Mod 或 Application 的 `Posts` 子元素 | 独立文章：可选类型 `@Type`（任意字符串；`introduction` 表示模组介绍，`Changelog` 表示版本更新说明；省略或未知类型不作为介绍展示）、发布时间 `@DateTime`、多语言标题 `Titles`、可选摘要 `Descriptions`、可选封面图 `HeadImage`（已登记图片 ID）、正文 Markdown 引用 `Contents`。不关联版本包，不加外跳链接；摘要省略时不从 Markdown 截取 |
+| `Post` | Mod 或 Application 的 `Posts` 子元素 | 独立文章：可选类型 `@Type`（任意字符串；`introduction` 表示模组介绍，`changelog` 表示版本更新说明；省略或未知类型不作为介绍展示）、发布时间 `@DateTime`、多语言标题 `Titles`、可选摘要 `Descriptions`、可选封面图 `HeadImage`（已登记图片 ID）、正文 Markdown 引用 `Contents`。不关联版本包，不加外跳链接；摘要省略时不从 Markdown 截取 |
 | `Link` | 仅 Mod 的直接子元素 | 友情链接：必填 `@Url`（仅 HTTP／HTTPS）、可选 `@Languages`、可选图标短 ID `Icon`、至少一条 `DisplayName`。顺序即展示顺序 |
 | `Image` / `Markdown` / `Manifest` | 资源登记节点 | 包含资源完整 ID `@ID`（带前缀）、相对路径 `@Source`；图片支持 `@Url` 外部链接；清单在主表里表现为占位 stub |
 
@@ -239,7 +239,7 @@ XML 使用 PascalCase，Vue 对象使用 camelCase，CSS 属性使用 kebab-case
 
 **新增必填显示名后协议版本仍为 `1.0`。** Mod 与 Application 只是各自多了必填的 `DisplayName` 实体字段（`zh` 与 `en` 各一条），`SchemaVersion` 不变；`UpdateKind@DisplayName` 的契约与读写代码保持不变，历史安装记录也照旧可读。
 
-**协议版本仍是 `1.0`，但旧更新日志入口已删除。** `Package.Changelogs` 与 `ApplicationEntry.ChangelogSource` 不再受支持，不保留别名或空实现。各 Mod／Application 只读取自己的 `Posts`；`Post` 新增可选 `@Type`（`xs:string`，不限制取值）：`introduction` 表示模组介绍、客户端在 Mod 页直接展示，`Changelog` 表示版本更新说明、库只透传，省略即普通新闻（协议版本仍为 `1.0`）。外部链接由作者写进 Markdown。`Link@Languages` 缺省表示所有语言可见，比较走 `LanguageTag.Matches`，不区分大小写：查询下标 `zh` / `en` 与带地区的 `zh-CN` / `en-US` 都按语言族命中，不会把 `en` 匹配到 `english`。名称由客户端用 `LanguageTag.Select` 取该语言下的第一条。图标省略时由客户端使用通用外链图标。库只原样输出这些节点，不实现语言筛选。
+**协议版本仍是 `1.0`，但旧更新日志入口已删除。** `Package.Changelogs` 与 `ApplicationEntry.ChangelogSource` 不再受支持，不保留别名或空实现。各 Mod／Application 只读取自己的 `Posts`；`Post` 新增可选 `@Type`（`xs:string`，不限制取值）：`introduction` 表示模组介绍、客户端在 Mod 页直接展示，`changelog` 表示版本更新说明、库只透传，省略即普通新闻（协议版本仍为 `1.0`）。外部链接由作者写进 Markdown。`Link@Languages` 缺省表示所有语言可见，比较走 `LanguageTag.Matches`，不区分大小写：查询下标 `zh` / `en` 与带地区的 `zh-CN` / `en-US` 都按语言族命中，不会把 `en` 匹配到 `english`。名称由客户端用 `LanguageTag.Select` 取该语言下的第一条。图标省略时由客户端使用通用外链图标。库只原样输出这些节点，不实现语言筛选。
 
 完整属性列表、XML 示例与决定说明见 [Mod 页面自定义样式](.agents/notes/implemented/feature/2026-10-04-mod-style.md)。
 
