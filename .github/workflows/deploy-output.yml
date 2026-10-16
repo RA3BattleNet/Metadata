@@ -1,0 +1,45 @@
+name: Deploy Output
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# 同一时间只跑一个部署，避免两次推送互相冲掉
+concurrency:
+  group: deploy-output
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # 与线上 Cloudflare Pages 同一条路径：核心展平 + WebP + 硬校验
+      - name: Build Output
+        run: >
+          dotnet run --project ./Ra3.BattleNet.Metadata --no-launch-profile --
+          build --webp --src=./Metadata --dst=./Output
+          --content-revision=${{ github.sha }}
+
+      # 把 Output 里的内容铺到 deploy 分支根目录
+      - name: Deploy to deploy branch
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: deploy
+          folder: Output
+          clean: true
+          commit-message: "chore(deploy): ${{ github.sha }}"
