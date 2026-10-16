@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/metadata.xml",
+      "statusCode": 301
+    }
+  ]
+}
