@@ -1,4 +1,4 @@
-name: Deploy Output
+name: Deploy to deploy branch
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 # 同一时间只跑一个部署，避免两次推送互相冲掉
 concurrency:
-  group: deploy-output
+  group: deploy
   cancel-in-progress: false
 
 jobs:
@@ -36,7 +36,7 @@ jobs:
           --content-revision=${{ github.sha }}
 
       # 把 Output 里的内容铺到 deploy 分支根目录
-      - name: Deploy to deploy branch
+      - name: Deploy to branch
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: deploy
