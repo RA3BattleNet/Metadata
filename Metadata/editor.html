@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
-<title>Mod Style Studio · 模组详情页样式编辑器</title>
+<meta name="color-scheme" content="light">
+<title>Mod Style Editor · 模组页面样式编辑器</title>
 <!--
-  RA3 BattleNet · Mod Style Studio
-  单文件、离线运行。仅编辑 Mod 详情页的 Style / 介绍正文 / 友情链接。
+  RA3 BattleNet · Mod Style Editor
+  单文件、离线运行。仅编辑 Mod 首页 / 详情页的 Style / 介绍正文 / 友情链接。
   第三方组件：
   - marked 18.0.14 (MIT)  Copyright (c) 2018-2026 MarkedJS, (c) 2011-2018 Christopher Jeffrey
   - DOMPurify 3.4.16 (MPL-2.0 OR Apache-2.0)  Copyright (c) Cure53 and other contributors
@@ -15,28 +15,28 @@
 -->
 <style>
 :root {
-  --ink: #0c0e10;
-  --ink-2: #0f1214;
-  --panel: #131619;
-  --panel-2: #171b1f;
-  --raise: #1d2227;
-  --line: #2a3036;
-  --line-soft: #21262b;
-  --text: #e9e5dc;
-  --muted: #9aa1a8;
-  --faint: #6f777e;
-  --brass: #c9a45c;
-  --brass-2: #e3c47f;
-  --brass-dim: #8b7446;
-  --ok: #7fae8a;
-  --warn: #d5a35f;
-  --danger: #d96c62;
-  --info: #7da4ba;
+  --ink: #f5f6f8;
+  --ink-2: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #fafbfc;
+  --raise: #eef1f4;
+  --line: #e1e4e8;
+  --line-soft: #eceef1;
+  --text: #17191c;
+  --muted: #5b6169;
+  --faint: #878e96;
+  --brass: #9a181d;
+  --brass-2: #9a181d;
+  --brass-dim: #9a181d;
+  --ok: #3d7a50;
+  --warn: #a2671a;
+  --danger: #b4453c;
+  --info: #3c6b82;
   --sans: "Microsoft YaHei UI", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
   --display: "Bahnschrift", "DIN Alternate", "Arial Narrow", var(--sans);
   --mono: "Cascadia Code", "Consolas", "SFMono-Regular", monospace;
   --r: 3px;
-  --shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+  --shadow: 0 18px 48px rgba(20, 24, 30, 0.12);
 }
 
 * { box-sizing: border-box; }
@@ -46,7 +46,7 @@ body {
   overflow: hidden;
   color: var(--text);
   background:
-    radial-gradient(1000px 520px at 72% -8%, rgba(201, 164, 92, 0.055), transparent 62%),
+    radial-gradient(1000px 520px at 72% -8%, rgba(154, 24, 29, 0.055), transparent 62%),
     var(--ink);
   font-family: var(--sans);
   font-size: 13px;
@@ -60,7 +60,7 @@ a { color: var(--brass-2); }
 code, .mono { font-family: var(--mono); }
 svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
-::selection { background: rgba(201, 164, 92, 0.3); }
+::selection { background: rgba(154, 24, 29, 0.3); }
 :focus-visible { outline: 2px solid var(--brass-2); outline-offset: 2px; }
 [hidden] { display: none !important; }
 
@@ -72,7 +72,7 @@ svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width:
   gap: 18px;
   padding: 0 14px 0 16px;
   border-bottom: 1px solid var(--line);
-  background: rgba(17, 20, 23, 0.94);
+  background: rgba(255, 255, 255, 0.95);
   position: relative;
   z-index: 20;
 }
@@ -81,19 +81,17 @@ svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width:
   position: absolute;
   left: 0; right: 0; bottom: -1px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(201, 164, 92, 0.35), transparent);
+  background: linear-gradient(90deg, transparent, rgba(154, 24, 29, 0.35), transparent);
   pointer-events: none;
 }
 .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .brand-mark {
-  width: 34px; height: 34px;
+  width: 30px; height: 30px;
   display: grid; place-items: center;
-  border: 1px solid var(--brass-dim);
-  color: var(--brass-2);
-  background: rgba(201, 164, 92, 0.06);
+  color: var(--brass);
   flex: none;
 }
-.brand-mark svg { width: 22px; height: 22px; stroke-width: 1.35; }
+.brand-mark svg { width: 28px; height: 28px; overflow: visible; }
 .brand-copy { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
 .brand-copy strong {
   font-family: var(--display);
@@ -129,16 +127,16 @@ svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width:
   transition: border-color 0.14s ease, background 0.14s ease, color 0.14s ease;
 }
 .btn svg { width: 14px; height: 14px; }
-.btn:hover { border-color: var(--brass-dim); color: #fff; }
+.btn:hover { border-color: var(--brass-dim); color: var(--text); }
 .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
 .btn.ghost:hover { background: var(--panel-2); border-color: var(--line); color: var(--text); }
 .btn.primary {
-  background: var(--brass);
-  border-color: var(--brass);
-  color: #17130b;
+  background: #17191c;
+  border-color: #17191c;
+  color: #ffffff;
   font-weight: 600;
 }
-.btn.primary:hover { background: var(--brass-2); border-color: var(--brass-2); color: #100d07; }
+.btn.primary:hover { background: #2b2e33; border-color: #2b2e33; color: #ffffff; }
 .btn.tiny { height: 26px; padding: 0 8px; font-size: 11px; }
 .btn.danger { border-color: rgba(217, 108, 98, 0.35); color: var(--danger); background: transparent; }
 .btn.danger:hover { background: rgba(217, 108, 98, 0.08); border-color: var(--danger); }
@@ -157,25 +155,25 @@ input[type="text"], input[type="number"], input[type="url"], select, textarea {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: var(--r);
-  background: #0d1012;
+  background: #ffffff;
   color: var(--text);
   padding: 0 8px;
   height: 30px;
   transition: border-color 0.14s ease, box-shadow 0.14s ease;
 }
 textarea { height: auto; padding: 8px; resize: vertical; line-height: 1.6; }
-input:hover, select:hover, textarea:hover { border-color: #3a4148; }
+input:hover, select:hover, textarea:hover { border-color: #c6cbd2; }
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--brass-dim);
-  box-shadow: 0 0 0 2px rgba(201, 164, 92, 0.11);
+  box-shadow: 0 0 0 2px rgba(154, 24, 29, 0.12);
 }
-input::placeholder, textarea::placeholder { color: #5c646b; }
+input::placeholder, textarea::placeholder { color: #a6acb4; }
 input[type="color"] {
   width: 100%; height: 30px; padding: 2px;
   border: 1px solid var(--line);
   border-radius: var(--r);
-  background: #0d1012;
+  background: #ffffff;
   cursor: pointer;
 }
 input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
@@ -314,7 +312,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   display: flex; gap: 7px;
   border: 1px solid var(--line-soft);
   border-left: 2px solid var(--brass-dim);
-  background: rgba(201, 164, 92, 0.035);
+  background: rgba(154, 24, 29, 0.035);
   padding: 8px 9px;
   color: var(--muted);
   font-size: 10.5px;
@@ -343,12 +341,12 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   text-align: left;
   color: var(--muted);
 }
-.control-pick:hover { border-color: #414950; color: var(--text); }
+.control-pick:hover { border-color: #c6cbd2; color: var(--text); }
 .control-pick[aria-pressed="true"] {
   border-color: var(--brass-dim);
-  background: rgba(201, 164, 92, 0.07);
+  background: rgba(154, 24, 29, 0.07);
   color: var(--text);
-  box-shadow: inset 0 0 0 1px rgba(201, 164, 92, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(154, 24, 29, 0.12);
 }
 .control-glyph {
   width: 26px; height: 26px;
@@ -377,7 +375,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .field-head label { color: var(--muted); font-size: 10.5px; }
 .field-head .label-group { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
 .clear-btn {
-  border: 0; background: transparent; color: #5f676e; font-size: 9px; padding: 1px 0; white-space: nowrap;
+  border: 0; background: transparent; color: var(--faint); font-size: 9px; padding: 1px 0; white-space: nowrap;
 }
 .clear-btn:hover { color: var(--danger); }
 .color-line { display: grid; grid-template-columns: 32px minmax(0, 1fr) 68px; gap: 5px; align-items: center; }
@@ -388,7 +386,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .alpha-line output { text-align: right; font-family: var(--mono); font-size: 9px; }
 .num-line { display: grid; grid-template-columns: minmax(0, 1fr) 38px; align-items: center; gap: 4px; }
 .num-line span { color: var(--faint); font-size: 9px; white-space: nowrap; }
-.inherit-tag { color: #5f676e; font-size: 9px; font-style: italic; }
+.inherit-tag { color: var(--faint); font-size: 9px; font-style: italic; }
 .field-error { color: var(--danger); font-size: 9px; margin-top: 3px; }
 
 /* logo */
@@ -397,8 +395,8 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   width: 76px; height: 54px;
   border: 1px solid var(--line);
   background:
-    linear-gradient(45deg, #15181b 25%, transparent 25%, transparent 75%, #15181b 75%),
-    linear-gradient(45deg, #15181b 25%, #0e1113 25%, #0e1113 75%, #15181b 75%);
+    linear-gradient(45deg, #edf0f2 25%, transparent 25%, transparent 75%, #edf0f2 75%),
+    linear-gradient(45deg, #edf0f2 25%, #ffffff 25%, #ffffff 75%, #edf0f2 75%);
   background-size: 10px 10px;
   background-position: 0 0, 5px 5px;
   display: grid; place-items: center;
@@ -408,6 +406,11 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .logo-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .logo-thumb svg { width: 18px; height: 18px; }
 .logo-fields { min-width: 0; }
+.icon-top { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; align-items: start; margin-top: 10px; }
+.icon-top .logo-thumb { width: 64px; height: 64px; }
+.icon-top .logo-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.id-edit { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+.id-edit input { font-family: var(--mono); font-size: 11px; }
 .image-action-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 30px; }
 .image-action-row .image-id { flex: 1; min-width: 80px; font-family: var(--mono); font-size: 10px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .image-action-row .btn { height: 26px; font-size: 10px; }
@@ -423,7 +426,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   border: 1px solid var(--line-soft);
   background: var(--ink-2);
 }
-.bg-item > img, .bg-item > .asset-thumb { width: 52px; height: 34px; object-fit: cover; border: 1px solid var(--line); background: #0b0e10; }
+.bg-item > img, .bg-item > .asset-thumb { width: 52px; height: 34px; object-fit: cover; border: 1px solid var(--line); background: #f1f3f5; }
 .bg-item > .asset-thumb { display: grid; place-items: center; color: var(--faint); }
 .bg-item code { display: block; font-family: var(--mono); font-size: 9px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bg-item small { display: block; margin-top: 2px; color: var(--faint); font-family: var(--mono); font-size: 8.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -452,13 +455,13 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   height: 27px;
   border: 1px solid var(--line);
   background: var(--ink-2);
-  color: #697178;
+  color: var(--muted);
   font-family: var(--mono);
   font-size: 12px;
   padding: 0;
 }
 .anchor-grid button:hover { border-color: var(--brass-dim); color: var(--brass-2); }
-.anchor-grid button[aria-pressed="true"] { border-color: var(--brass); color: var(--brass-2); background: rgba(201, 164, 92, 0.1); }
+.anchor-grid button[aria-pressed="true"] { border-color: var(--brass); color: var(--brass-2); background: rgba(154, 24, 29, 0.1); }
 
 /* background image list */
 .image-list { min-height: 76px; font-family: var(--mono); font-size: 10.5px; }
@@ -516,7 +519,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .asset-thumb {
   width: 46px; height: 34px;
   border: 1px solid var(--line);
-  background: #0b0e10;
+  background: #f1f3f5;
   display: grid; place-items: center;
   overflow: hidden;
   color: var(--faint);
@@ -525,8 +528,9 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 }
 .asset-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .asset-info { min-width: 0; }
-.asset-id { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10px; color: var(--text); overflow: hidden; }
-.asset-id span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.asset-id { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10px; color: var(--text); }
+.asset-id input { flex: 1; width: auto; min-width: 0; height: 24px; padding: 0 5px; font-family: var(--mono); font-size: 10px; }
+.asset-id .status-pill { flex: none; }
 .asset-source { color: var(--faint); font-family: var(--mono); font-size: 9px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .asset-actions { display: flex; gap: 3px; }
 .asset-actions .icon-btn { width: 25px; height: 25px; }
@@ -548,8 +552,8 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   width: 100%; height: 330px;
   font-family: var(--mono); font-size: 10.5px; line-height: 1.6;
   white-space: pre; overflow: auto;
-  background: #0a0d0f;
-  color: #cfd6d0;
+  background: #fbfcfd;
+  color: #2c3138;
   border-color: var(--line);
   tab-size: 2;
 }
@@ -587,7 +591,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   padding: 7px 14px;
   border-bottom: 1px solid var(--line-soft);
-  background: rgba(15, 18, 20, 0.92);
+  background: rgba(255, 255, 255, 0.94);
 }
 .canvas-heading { display: flex; align-items: baseline; gap: 9px; min-width: 0; }
 .eyebrow { color: var(--brass-dim); font-family: var(--mono); font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; white-space: nowrap; }
@@ -607,11 +611,11 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .canvas-scroll {
   flex: 1; min-height: 0; overflow: auto;
   padding: 28px 24px 34px;
-  background-color: #0a0c0e;
+  background-color: #f4f6f8;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.024) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.024) 1px, transparent 1px),
-    radial-gradient(900px 500px at 50% 0%, rgba(201, 164, 92, 0.045), transparent 70%);
+    linear-gradient(rgba(23, 25, 28, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23, 25, 28, 0.035) 1px, transparent 1px),
+    radial-gradient(900px 500px at 50% 0%, rgba(154, 24, 29, 0.05), transparent 70%);
   background-size: 36px 36px, 36px 36px, auto;
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;
@@ -636,12 +640,15 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   max-width: 1120px;
   position: relative;
   overflow: hidden;
-  border: 1px solid #343a40;
+  border: 1px solid #cfd5dc;
   background: #0e1113 center / cover no-repeat;
-  box-shadow: 0 32px 70px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 24px 60px rgba(20, 24, 30, 0.18), 0 0 0 1px rgba(20, 24, 30, 0.05);
   color: #f0ede5;
   font-family: var(--sans);
   isolation: isolate;
+  --brass: #d9535a;
+  --brass-2: #ef8b8f;
+  --brass-dim: #8b7446;
 }
 .stage::before {
   content: "";
@@ -650,6 +657,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   pointer-events: none;
   z-index: 1;
 }
+.stage.screen::before { display: none; }
 .stage.no-bg {
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
@@ -657,12 +665,31 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   background-size: 44px 44px;
   background-color: #101315;
 }
+.stage-viewport { position: relative; }
+/* 首页按客户端整屏渲染：外框占满预览区，内容在框内滚动。 */
+.stage.screen { height: var(--screen-height, 720px); }
+.stage.screen .stage-viewport {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+.stage.screen .stage-viewport::-webkit-scrollbar { width: 8px; }
+.stage.screen .stage-viewport::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.22); border-radius: 4px; }
 .detail-hero {
   position: relative;
   height: 344px;
   background: var(--stage-bg, #13171a) center / cover no-repeat;
   z-index: 0;
 }
+.home-hero {
+  position: relative;
+  height: 460px;
+  background: var(--stage-bg, #13171a) center / cover no-repeat;
+  z-index: 0;
+}
+.stage.screen .home-hero { height: 100%; }
 .detail-hero::after {
   content: "";
   position: absolute; inset: 0;
@@ -677,6 +704,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
 }
 .hero-breadcrumb svg { width: 13px; height: 13px; transform: rotate(180deg); }
+.hero-breadcrumb .hero-icon { width: 16px; height: 16px; object-fit: contain; flex: none; }
 .hero-breadcrumb b { color: #fff; font-weight: 500; }
 .hero-mark {
   position: absolute; top: 16px; right: 20px; z-index: 4;
@@ -689,12 +717,14 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 }
 /* 与客户端一致：上贴顶栏 60px、左右 20px（右沿对齐启动按钮）、下贴启动按钮上沿（18 + 40 = 58px）。 */
 .logo-layer { position: absolute; inset: 60px 20px 58px; z-index: 3; }
+/* 首页首屏启动按钮高 60px，Logo 区域底边随之上移 22px。 */
+.home-hero .logo-layer { inset: 60px 20px 80px; }
 .logo-anchor { position: absolute; max-width: none; }
 .logo-center {
   position: absolute;
   width: 15px; height: 15px;
   transform: translate(-50%, -50%);
-  border: 1px solid rgba(125, 164, 186, 0.9);
+  border: 1px solid rgba(217, 83, 90, 0.9);
   border-radius: 50%;
   z-index: 9;
   pointer-events: none;
@@ -703,7 +733,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .logo-center::before, .logo-center::after {
   content: "";
   position: absolute;
-  background: rgba(125, 164, 186, 0.9);
+  background: rgba(217, 83, 90, 0.9);
 }
 .logo-center::before { left: 6px; top: 0; width: 1px; height: 13px; }
 .logo-center::after { left: 0; top: 6px; width: 13px; height: 1px; }
@@ -742,7 +772,6 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .actions-anchor { position: relative; display: flex; align-items: center; gap: 8px; }
 .actions-anchor > .guide-tag { right: 0; top: -24px; }
 .version-anchor { position: relative; }
-.version-anchor > .guide-tag { left: 0; top: -21px; }
 .bg-tag { right: 20px; top: 45px; }
 .surface-tag { right: 14px; top: 8px; left: auto; }
 .logo-tag-empty { left: 22px; top: 52px; }
@@ -756,6 +785,64 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .version-line { display: flex; align-items: center; gap: 7px; color: rgba(240, 237, 229, 0.58); font-size: 10.5px; letter-spacing: 0.03em; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55); }
 .version-line i { width: 5px; height: 5px; border-radius: 50%; background: #86b18f; box-shadow: 0 0 8px rgba(134, 177, 143, 0.7); }
 .version-line b { color: #fff; font-family: var(--mono); font-weight: 500; font-size: 11px; }
+.home-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 5;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 18px;
+  padding: 18px 20px;
+}
+.home-bar .actions-anchor { align-items: flex-end; }
+.home-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.home-brand-icon {
+  width: 28px; height: 28px; flex: none;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+}
+.home-brand-letter {
+  display: grid; place-items: center;
+  width: 28px; height: 28px; flex: none;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 13px; font-weight: 700;
+}
+.home-brand-name {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 15px; font-weight: 700;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+.mod-button.home-launch {
+  width: 150px;
+  min-width: 150px;
+  height: 60px;
+  justify-content: flex-start;
+  gap: 0;
+  padding: 0;
+  border-radius: 6px;
+}
+.home-launch .launch-icon-slot {
+  display: grid; place-items: center;
+  width: 40px; height: 40px; flex: 0 0 40px;
+}
+.home-launch .launch-icon-slot svg { width: 18px; height: 18px; }
+.home-launch .launch-copy {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+  flex: 1 1 auto; min-width: 0;
+  padding-right: 11px;
+  line-height: 1.05;
+}
+.home-launch .launch-title {
+  max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: calc(1em + 2px);
+}
+.home-launch .launch-subtitle {
+  max-width: 100%;
+  margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  opacity: 0.68;
+  font-size: calc(0.6em + 1px);
+  font-weight: 400;
+}
 .mod-actions { display: flex; align-items: center; gap: 8px; }
 .mod-button {
   --b-base-bg: #e8e2d4;
@@ -780,6 +867,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
 .mod-button svg { width: 16px; height: 16px; }
+.mod-button.primary-launch { width: 150px; min-width: 150px; }
 .mod-button.secondary {
   --b-base-bg: rgba(10, 12, 14, 0.42);
   --b-base-border: rgba(255, 255, 255, 0.34);
@@ -860,6 +948,8 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .intro-status b { color: rgba(240, 237, 229, 0.78); font-weight: 500; }
 
 .side-column { min-width: 0; }
+.links-block { position: relative; }
+.links-block > .guide-tag { top: -3px; left: 44px; right: auto; }
 .side-title { margin: 0 0 9px; color: rgba(240, 237, 229, 0.48); font-family: var(--mono); font-size: 8px; letter-spacing: 0.16em; text-transform: uppercase; }
 .side-links { display: flex; flex-direction: column; gap: 2px; margin-bottom: 24px; }
 .side-link {
@@ -888,24 +978,20 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .side-meta { margin: 0; color: rgba(240, 237, 229, 0.4); font-size: 9.5px; line-height: 1.6; }
 
 .stage[data-guides="true"] .logo-anchor {
-  outline: 1px dashed rgba(125, 164, 186, 0.7);
+  outline: 1px dashed rgba(217, 83, 90, 0.7);
   outline-offset: 6px;
 }
 .stage[data-guides="true"] .mod-button {
-  outline: 1px dashed rgba(201, 164, 92, 0.72);
-  outline-offset: 4px;
-}
-.stage[data-guides="true"] .version-line {
-  outline: 1px dashed rgba(226, 196, 127, 0.42);
+  outline: 1px dashed rgba(217, 83, 90, 0.72);
   outline-offset: 4px;
 }
 .stage[data-guides="true"] .detail-body {
-  box-shadow: inset 0 0 0 1px rgba(201, 164, 92, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(217, 83, 90, 0.22);
 }
 .guide-tag {
   position: absolute;
   z-index: 9;
-  border: 1px solid rgba(201, 164, 92, 0.62);
+  border: 1px solid rgba(217, 83, 90, 0.62);
   background: rgba(9, 11, 13, 0.8);
   color: var(--brass-2);
   font-family: var(--mono);
@@ -921,13 +1007,13 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .guide {
   position: absolute;
   z-index: 7;
-  border: 1px dashed rgba(201, 164, 92, 0.64);
-  background: rgba(201, 164, 92, 0.035);
+  border: 1px dashed rgba(217, 83, 90, 0.64);
+  background: rgba(217, 83, 90, 0.035);
   cursor: pointer;
   padding: 0;
   border-radius: 1px;
 }
-.guide:hover { border-color: var(--brass-2); background: rgba(201, 164, 92, 0.08); }
+.guide:hover { border-color: var(--brass-2); background: rgba(217, 83, 90, 0.08); }
 .guide > b {
   position: absolute; left: -1px; top: -1px; transform: translateY(-100%);
   background: var(--brass); color: #17130b;
@@ -936,15 +1022,15 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 }
 .guide.guide-left > b { left: 0; }
 .guide.guide-top { border-top-style: solid; }
-.guide-logo { border-color: rgba(125, 164, 186, 0.7); background: rgba(125, 164, 186, 0.04); }
-.guide-logo > b { background: var(--info); color: #0a1013; }
+.guide-logo { border-color: rgba(217, 83, 90, 0.7); background: rgba(217, 83, 90, 0.04); }
+.guide-logo > b { background: #c96b70; color: #0a1013; }
 .guide-actions { inset: auto 16px 13px auto; width: 208px; height: 54px; }
-.guide-labels { left: 20px; bottom: 16px; width: 170px; height: 24px; border-color: rgba(226, 196, 127, 0.42); }
-.guide-labels > b { background: #8b7446; }
+.guide-labels { left: 20px; bottom: 16px; width: 170px; height: 24px; border-color: rgba(217, 83, 90, 0.42); }
+.guide-labels > b { background: #b4555a; }
 .guide-surface { left: 12px; bottom: 12px; width: 92px; height: 22px; }
-.guide-surface > b { background: #6f777e; color: #0b0d0f; }
-.guide-bg { right: 20px; top: 46px; width: 126px; height: 24px; border-color: rgba(125, 164, 186, 0.4); }
-.guide-bg > b { background: #4c6d80; }
+.guide-surface > b { background: #b4555a; color: #0b0d0f; }
+.guide-bg { right: 20px; top: 46px; width: 126px; height: 24px; border-color: rgba(217, 83, 90, 0.4); }
+.guide-bg > b { background: #8c2a2f; }
 
 /* ── status bar ──────────────────────────────────────────── */
 .statusbar {
@@ -953,7 +1039,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   display: flex; align-items: center; gap: 9px;
   padding: 0 12px;
   border-top: 1px solid var(--line);
-  background: #101316;
+  background: #fbfcfd;
   color: var(--faint);
   font-family: var(--mono);
   font-size: 9.5px;
@@ -973,19 +1059,19 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .status-issues.has-warnings { color: var(--warn); }
 .dirty-indicator { color: var(--faint); }
 .dirty-indicator.dirty { color: var(--brass-2); }
-.kbd { border: 1px solid var(--line); padding: 1px 4px; color: #5f676e; font-size: 8.5px; }
+.kbd { border: 1px solid var(--line); padding: 1px 4px; color: var(--faint); font-size: 8.5px; }
 
 /* ── dialog / toast / drop ───────────────────────────────── */
 .dialog {
   width: min(780px, calc(100vw - 34px));
   max-height: 86vh;
   padding: 0;
-  border: 1px solid #3a4148;
+  border: 1px solid var(--line);
   background: var(--panel);
   color: var(--text);
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 30px 90px rgba(20, 24, 30, 0.24);
 }
-.dialog::backdrop { background: rgba(5, 7, 9, 0.72); backdrop-filter: blur(3px); }
+.dialog::backdrop { background: rgba(20, 24, 30, 0.38); backdrop-filter: blur(3px); }
 .dialog[open] { display: flex; flex-direction: column; }
 .dialog-head {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
@@ -1001,7 +1087,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .help-body p, .help-body li { margin: 0; color: var(--muted); font-size: 11.5px; line-height: 1.75; }
 .help-body ol, .help-body ul { margin: 0; padding-left: 18px; }
 .help-body li { margin: 3px 0; }
-.help-body code { color: var(--text); font-size: 10px; background: rgba(255, 255, 255, 0.05); padding: 1px 4px; }
+.help-body code { color: var(--text); font-size: 10px; background: rgba(23, 25, 28, 0.05); padding: 1px 4px; }
 .license-note { border-top: 1px solid var(--line-soft); padding-top: 12px; }
 .license-note h3 { color: var(--faint); }
 .license-note p { font-size: 10px; color: var(--faint); }
@@ -1013,7 +1099,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   display: flex; align-items: flex-start; gap: 8px;
   padding: 9px 12px;
   border: 1px solid var(--brass-dim);
-  background: #171b1f;
+  background: #ffffff;
   color: var(--text);
   font-size: 11.5px;
   line-height: 1.5;
@@ -1027,7 +1113,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .drop-veil {
   position: fixed; inset: 0; z-index: 110;
   display: grid; place-items: center;
-  background: rgba(7, 9, 11, 0.78);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(4px);
   border: 2px dashed var(--brass);
 }
@@ -1058,6 +1144,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   .canvas { min-height: 70vh; }
   .canvas-scroll { overflow-x: auto; }
   .detail-hero { height: 280px; }
+  .home-hero { height: 340px; }
   .detail-body { grid-template-columns: 1fr; }
   .side-column { border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 18px; }
   .statusbar { position: static; }
@@ -1073,8 +1160,11 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   .field.wide { grid-column: auto; }
   .detail-body { padding: 22px 18px 30px; }
   .hero-bottom { flex-direction: column; align-items: flex-start; }
+  .home-bar { flex-direction: column; align-items: flex-start; }
+  .home-bar .actions-anchor { width: 100%; }
   .mod-actions { width: 100%; }
   .mod-button.primary-launch { flex: 1; }
+  .mod-button.home-launch { flex: none; }
   .guide-actions { width: 170px; }
   .surface-tag { display: none; }
 }
@@ -1114,10 +1204,15 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 <div class="app" id="app">
   <header class="topbar">
     <div class="brand">
-      <span class="brand-mark" aria-hidden="true"><svg><use href="#i-sun"/></svg></span>
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m 11.485822,1.7831461 a 0.59367793,0.59367793 0 0 1 1.064139,0 l 2.587538,5.241168 a 2.378072,2.378072 0 0 0 1.786636,1.29937 l 5.78668,0.846831 a 0.59367793,0.59367793 0 0 1 0.329323,1.0126129 l -4.18487,4.075095 a 2.378072,2.378072 0 0 0 -0.684409,2.103637 l 0.98797,5.757554 a 0.59367793,0.59367793 0 0 1 -0.863633,0.627284 l -5.17284,-2.719717 a 2.376952,2.376952 0 0 0 -2.210051,0 L 5.740587,22.746698 A 0.59367793,0.59367793 0 0 1 4.8780736,22.119414 L 5.8649231,16.362979 A 2.376952,2.376952 0 0 0 5.1805132,14.258223 L 0.99564389,10.184249 A 0.59367793,0.59367793 0 0 1 1.3249671,9.1693951 l 5.7855595,-0.845711 a 2.376952,2.376952 0 0 0 1.7888748,-1.29937 z" style="stroke-width:1.54754;stroke-dasharray:none"/>
+          <text x="8.4260483" y="17.967779" style="font-family:'Maple Mono NF CN','Maple Mono',monospace;font-size:13.3333px;font-weight:400;fill:#000000;stroke:#000000;stroke-width:0.4">3</text>
+        </svg>
+      </span>
       <span class="brand-copy">
-        <strong>MOD STYLE <b>STUDIO</b></strong>
-        <small>红警3战网 · 模组详情页样式编辑器</small>
+        <strong>MOD STYLE <b>EDITOR</b></strong>
+        <small>红警3战网 · 模组页面样式编辑器</small>
       </span>
     </div>
     <div class="top-actions">
@@ -1163,6 +1258,10 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
           <span class="canvas-title" id="canvas-title">模组详情页</span>
         </div>
         <div class="canvas-tools">
+          <div class="seg page-seg" role="group" aria-label="预览页面">
+            <button type="button" data-page="home" aria-pressed="false">首页</button>
+            <button type="button" data-page="detail" aria-pressed="true">详情页</button>
+          </div>
           <div class="seg" role="group" aria-label="预览语言">
             <button type="button" data-locale="zh" aria-pressed="true">中文</button>
             <button type="button" data-locale="en" aria-pressed="false">EN</button>
@@ -1219,13 +1318,14 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
       <h3>三步走</h3>
       <ol>
         <li><b>导入</b>：选择 <code>mods/&lt;id&gt;/&lt;id&gt;.xml</code>，或直接选整个 Mod 文件夹。文件夹会同时绑定 <code>images/</code> 与 <code>posts/</code> 下的图片和 Markdown。</li>
-        <li><b>编辑</b>：控件、背景、Logo、介绍、友情链接。Logo、背景和链接图标都可以在对应位置直接点「导入图片」，不需要先建 ID；程序按固定规则生成 <code>&lt;mod&gt;-logo</code>、<code>&lt;mod&gt;-bg-N</code>、<code>&lt;mod&gt;-link-N</code>，Source 写到 <code>images/</code>。</li>
+        <li><b>编辑</b>：控件、背景、Logo、模组图标、介绍、友情链接。Logo、模组图标、背景和链接图标都能直接点「上传图片」，程序按固定规则生成 <code>&lt;mod&gt;-logo</code>、<code>&lt;mod&gt;-icon</code>、<code>&lt;mod&gt;-bg-N</code>、<code>&lt;mod&gt;-link-N</code>，Source 写到 <code>images/</code>。在「资源」里可以改模组 ID 和每个资源（图片／Markdown／Manifest）的 ID，引用会一起改写。</li>
         <li><b>导出</b>：可以只导出 XML，也可以在「导出」里下载 ZIP。ZIP 结构为 <code>mods/&lt;id&gt;/&lt;id&gt;.xml</code> + <code>images/</code> + <code>posts/</code> + <code>manifests/</code>，只打包本地已有文件。</li>
       </ol>
     </section>
     <section>
       <h3>预览边界</h3>
       <ul>
+        <li>顶部「首页 / 详情页」按客户端的两种页面分别渲染：首页主图占满预览区高度、下方内容需要在预览框内滚动，右下角启动按钮与详情页同宽，只把高度加高并显示版本副标题；详情页主图较矮，启动按钮为常规高度。</li>
         <li>预览只实现客户端已有的字段映射：ARGB / CSS 颜色、按钮三态、九宫格 Logo、背景图与底色、Markdown 正文、链接栏。</li>
         <li>主题字体、按钮间距、卡片圆角、磨砂强度属于客户端主题，不是 XML 字段，预览用的是工具自己的近似主题。</li>
         <li><code>Include</code> 会在你导入整个 Mod 文件夹时用来查找图片和 Markdown，但不会合并或导出到主文件；<code>InheritFrom</code>（Base）仍不解析。</li>
@@ -1350,7 +1450,7 @@ function a(e,t){return n(e)||r(e,t)||o(e,t)||i()}function o(e,n){if(e){if(typeof
   'use strict';
 
   /* ═══════════════════════════════════════════════════════════
-     MOD STYLE STUDIO
+     MOD STYLE EDITOR
      单文件、离线。数据只活在当前页面内存里。
      ═══════════════════════════════════════════════════════════ */
 
@@ -1419,31 +1519,31 @@ function a(e,t){return n(e)||r(e,t)||o(e,t)||i()}function o(e,n){if(e){if(typeof
           <FontWeight>400</FontWeight>
         </SecondaryLabel>
         <PrimaryButton>
-          <BorderColor>#E3C47F</BorderColor>
+          <BorderColor>#C0393E</BorderColor>
           <BorderWidth>1</BorderWidth>
-          <BackgroundColor>#C9A45C</BackgroundColor>
-          <Color>#17130B</Color>
+          <BackgroundColor>#9A181D</BackgroundColor>
+          <Color>#FFFFFF</Color>
           <FontSize>14</FontSize>
           <FontWeight>700</FontWeight>
           <Hover>
-            <BackgroundColor>#E3C47F</BackgroundColor>
-            <BorderColor>#F0D79B</BorderColor>
+            <BackgroundColor>#C0393E</BackgroundColor>
+            <BorderColor>#E07075</BorderColor>
           </Hover>
           <Active>
-            <BackgroundColor>#A9873F</BackgroundColor>
-            <BorderColor>#8B7446</BorderColor>
+            <BackgroundColor>#6F1013</BackgroundColor>
+            <BorderColor>#4A1013</BorderColor>
           </Active>
         </PrimaryButton>
         <SecondaryButton>
           <BorderColor>#FFFFFF55</BorderColor>
           <BorderWidth>1</BorderWidth>
-          <BackgroundColor>#0B0E10A6</BackgroundColor>
+          <BackgroundColor>#100B0CA6</BackgroundColor>
           <Color>#EDE8DB</Color>
           <FontSize>13</FontSize>
           <FontWeight>500</FontWeight>
           <Hover>
             <BorderColor>#FFFFFFAA</BorderColor>
-            <BackgroundColor>#1A2025CC</BackgroundColor>
+            <BackgroundColor>#1B1214CC</BackgroundColor>
           </Hover>
           <Active>
             <BackgroundColor>#000000CC</BackgroundColor>
@@ -1453,8 +1553,8 @@ function a(e,t){return n(e)||r(e,t)||o(e,t)||i()}function o(e,n){if(e){if(typeof
       <Background Random="true">
         <Image>sample-bg-1</Image>
         <Image>sample-bg-2</Image>
-        <Color>#0B0E10E6</Color>
-        <SecondaryColor>#111519F2</SecondaryColor>
+        <Color>#100A0BE6</Color>
+        <SecondaryColor>#150F10F2</SecondaryColor>
       </Background>
     </Style>
     <Packages>
@@ -1534,6 +1634,7 @@ Import your own mod XML to replace this sample.`;
     buttonState: 'Base',
     mdLang: 'zh',
     locale: 'zh',
+    page: 'detail',
     force: 'Auto',
     guides: true,
     bgPicks: new Map(),
@@ -1671,6 +1772,13 @@ Import your own mod XML to replace this sample.`;
     if (node && node.parentNode) node.parentNode.removeChild(node);
   }
 
+  function walkElements(root, fn) {
+    for (const child of Array.from((root && root.children) || [])) {
+      fn(child);
+      walkElements(child, fn);
+    }
+  }
+
   function textOf(node, fallback) {
     if (!node) return fallback == null ? '' : fallback;
     const value = node.textContent == null ? '' : node.textContent;
@@ -1710,6 +1818,11 @@ Import your own mod XML to replace this sample.`;
     return mod ? mod.getAttribute('ID') || 'Mod' : 'Mod';
   }
 
+  function modIconId() {
+    const mod = currentMod();
+    return mod ? textOf(direct(mod, 'Icon'), '') : '';
+  }
+
   function allRegistrations(tag) {
     if (!state.doc) return [];
     return directAll(state.doc.documentElement, tag);
@@ -1717,6 +1830,7 @@ Import your own mod XML to replace this sample.`;
 
   function imageRegs() { return allRegistrations('Image'); }
   function markdownRegs() { return allRegistrations('Markdown'); }
+  function manifestRegs() { return allRegistrations('Manifest'); }
 
   function regById(tag, id) {
     const needle = String(id || '').toLowerCase();
@@ -1738,6 +1852,7 @@ Import your own mod XML to replace this sample.`;
 
   function imageById(id) { return regById('Image', id); }
   function markdownById(id) { return regById('Markdown', id); }
+  function manifestById(id) { return regById('Manifest', id); }
 
   function uniqueId(prefix) {
     const used = new Set();
@@ -2271,7 +2386,9 @@ Import your own mod XML to replace this sample.`;
 
     const modId = mod.getAttribute('ID') || '';
     if (!modId) err('Mod 缺少 ID。');
-    if (modId.includes(':')) err(`Mod ID "${modId}" 含冒号；源文件里只写短 ID，前缀由构建器生成。`);
+    else if (modId.includes(':')) err(`Mod ID "${modId}" 含冒号；源文件里只写短 ID，前缀由构建器生成。`);
+    else if (/\s/.test(modId)) err(`Mod ID "${modId}" 含空白，路径和引用会出问题。`);
+    else if (modId.toLowerCase() === 'vanilla') err('Mod ID "vanilla" 是保留字，不能使用。');
 
     const displayNames = directAll(mod, 'DisplayName');
     const displayLangs = new Set();
@@ -2306,12 +2423,13 @@ Import your own mod XML to replace this sample.`;
 
     // resource registrations
     const seenIds = new Map();
-    for (const tag of ['Image', 'Markdown']) {
+    for (const tag of ['Image', 'Markdown', 'Manifest']) {
       for (const node of allRegistrations(tag)) {
         const id = String(node.getAttribute('ID') || '').trim();
         const where = `${tag} ID`;
         if (!id) err(`${tag} 登记缺少 ID。`);
         else if (id.includes(':')) err(`${tag} ID "${id}" 含冒号；源文件只写短 ID。`);
+        else if (/\s/.test(id)) err(`${tag} ID "${id}" 含空白，引用和导出会出问题。`);
         else {
           const key = id.toLowerCase();
           if (seenIds.has(key)) err(`资源 ID "${id}" 重复（${seenIds.get(key)} 与 ${tag}）。`);
@@ -2324,7 +2442,7 @@ Import your own mod XML to replace this sample.`;
           if (source && /^[a-z]+:/i.test(source) && !/^https?:/i.test(source)) {
             warn(`Image "${id || '?'}" 的 Source 看起来是绝对地址；Source 应填相对路径，外链请用 Url。`);
           }
-        } else {
+        } else if (tag === 'Markdown') {
           const source = String(node.getAttribute('Source') || '').trim();
           if (!source) err(`Markdown "${id || '?'}" 缺少 Source。`);
           if (source.includes(':') && !/^https?:/i.test(source)) {
@@ -2768,7 +2886,9 @@ Import your own mod XML to replace this sample.`;
     if (!stage) return;
     const mod = currentMod();
     const canvasTitle = $('#canvas-title');
-    if (canvasTitle) canvasTitle.textContent = mod ? `模组详情页 / ${modDisplayName(mod, state.locale)}` : '模组详情页';
+    if (canvasTitle) canvasTitle.textContent = mod
+      ? `${state.page === 'home' ? '模组首页' : '模组详情页'} / ${modDisplayName(mod, state.locale)}`
+      : '模组预览';
 
     if (!mod) {
       stage.removeAttribute('style');
@@ -2816,13 +2936,27 @@ Import your own mod XML to replace this sample.`;
     const surface = colorCss(bg.secondaryColor) || 'rgba(14,16,18,0.9)';
     const cssUrl = bgUrl ? String(bgUrl).replace(/\\/g, '\\\\').replace(/"/g, '\\"') : '';
 
+    const isHome = state.page === 'home';
+    let screenHeight = 0;
+    if (isHome) {
+      const scroller = $('#canvas-scroll');
+      let available = 0;
+      if (scroller) {
+        const styles = getComputedStyle(scroller);
+        const padding = (parseFloat(styles.paddingTop) || 0) + (parseFloat(styles.paddingBottom) || 0);
+        available = scroller.clientHeight - padding;
+      }
+      screenHeight = Math.max(430, Math.round(available));
+    }
+
     const stageStyle = [
       `--wash:${wash}`,
       `--surface:${surface}`,
       bgUrl ? `--stage-bg:url("${cssUrl}")` : '--stage-bg:none',
-    ].join(';');
+      isHome ? `--screen-height:${screenHeight}px` : '',
+    ].filter(Boolean).join(';');
 
-    stage.className = 'stage' + (bgUrl ? '' : ' no-bg');
+    stage.className = 'stage' + (bgUrl ? '' : ' no-bg') + (isHome ? ' screen' : '');
     stage.setAttribute('style', stageStyle);
     stage.dataset.force = state.force;
     stage.dataset.guides = String(state.guides);
@@ -2830,6 +2964,8 @@ Import your own mod XML to replace this sample.`;
     const version = modVersion(mod) || '—';
     const releaseDate = latestReleaseDate(mod);
     const name = modDisplayName(mod, state.locale);
+    const iconRef = modIconId();
+    const iconUrlValue = iconRef ? imageUrl(iconRef) : null;
     const links = direct(mod, 'Links') ? directAll(direct(mod, 'Links'), 'Link') : [];
     const linksHtml = links.map((link) => {
       const url = String(link.getAttribute('Url') || '').trim();
@@ -2859,6 +2995,7 @@ Import your own mod XML to replace this sample.`;
       : (logo.exists
         ? `<div class="logo-anchor" style="${escAttr(logoPlaceholderCss)}"><div class="logo-placeholder"><b>MOD LOGO</b><span>Logo 节点为空</span></div>${logoTip}</div>`
         : (state.guides ? '<button type="button" class="guide-tag logo-tag guide-tag-empty" data-focus="Logo">+ STYLE.LOGO</button>' : ''));
+    const logoLayer = `<div class="logo-layer">${logoCenter}${logoHtml}</div>`;
 
     const actionTip = state.guides
       ? '<button type="button" class="guide-tag" data-focus-control="PrimaryButton">PRIMARY BUTTON</button>'
@@ -2869,39 +3006,72 @@ Import your own mod XML to replace this sample.`;
     const surfaceTip = state.guides
       ? '<button type="button" class="guide-tag surface-tag" data-focus="Surface">SURFACE</button>'
       : '';
+    const bgTip = state.guides
+      ? '<button type="button" class="guide-tag bg-tag" data-focus="Background">STYLE.BACKGROUND</button>'
+      : '';
 
-    stage.innerHTML = `
-      <div class="detail-hero">
-        <div class="hero-breadcrumb">${svgIcon('play')}<span>我的游戏</span><span>/</span><b>${esc(name)}</b></div>
-        <span class="hero-mark">MOD DETAIL</span>
-        <div class="logo-layer">${logoCenter}${logoHtml}</div>
-        <div class="hero-bottom">
-          <div class="version-anchor">
-            <div class="version-line" style="${escAttr(secondaryTextStyle)}"><i></i> 当前版本 <b style="${escAttr(primaryTextStyle)}">v${esc(version)}</b></div>
-            ${labelTip}
+    const gearButton = `<button type="button" class="mod-button secondary icon-only" style="${escAttr(secondaryButtonStyle)}" data-focus-control="SecondaryButton" title="次按钮 · 设置" aria-label="次按钮预览">${svgIcon('gear')}</button>`;
+    const detailLaunch = `<button type="button" class="mod-button primary-launch" style="${escAttr(primaryButtonStyle)}" data-focus-control="PrimaryButton" title="主按钮 · 启动游戏（仅预览）">${svgIcon('play')}启动游戏</button>`;
+    const homeLaunch = `<button type="button" class="mod-button primary-launch home-launch" style="${escAttr(primaryButtonStyle)}" data-focus-control="PrimaryButton" title="主按钮 · 启动游戏（仅预览）">
+      <span class="launch-icon-slot">${svgIcon('play')}</span>
+      <span class="launch-copy"><span class="launch-title">${state.locale === 'en' ? 'Launch' : '启动游戏'}</span><span class="launch-subtitle">${esc(name)} ${esc(version)}</span></span>
+    </button>`;
+    const actions = `<div class="actions-anchor">${gearButton}${isHome ? homeLaunch : detailLaunch}${actionTip}</div>`;
+
+    const sideColumn = `
+      <aside class="side-column">
+        ${linksHtml ? `<div class="links-block">
+          <p class="side-title" style="${escAttr(secondaryTextStyle)}">${state.locale === 'en' ? 'LINKS' : '链接'}</p>
+          <div class="side-links">${linksHtml}</div>
+          ${labelTip}
+        </div>` : ''}
+        <p class="side-title" style="${escAttr(secondaryTextStyle)}">${state.locale === 'en' ? 'VERSION' : '版本'}</p>
+        <div class="side-version"><strong style="${escAttr(primaryTextStyle)}">${esc(version)}</strong>${releaseDate ? `<span style="${escAttr(secondaryTextStyle)}">${esc(releaseDate)}</span>` : ''}</div>
+        <p class="side-meta" style="${escAttr(secondaryTextStyle)}">样式预览 · 文件信息以客户端为准</p>
+      </aside>`;
+
+    const hero = isHome
+      ? `<div class="home-hero">
+        ${logoLayer}
+        <div class="home-bar">
+          <div class="home-brand">
+            ${iconUrlValue
+              ? `<img class="home-brand-icon" src="${escAttr(iconUrlValue)}" alt="">`
+              : `<span class="home-brand-letter" aria-hidden="true">${esc(String(name || '?').slice(0, 1))}</span>`}
+            <span class="home-brand-name" style="${escAttr(primaryTextStyle)}">${esc(name)}</span>
           </div>
-          <div class="actions-anchor">
-            <button type="button" class="mod-button secondary icon-only" style="${escAttr(secondaryButtonStyle)}" data-focus-control="SecondaryButton" title="次按钮 · 设置" aria-label="次按钮预览">${svgIcon('gear')}</button>
-            <button type="button" class="mod-button primary-launch" style="${escAttr(primaryButtonStyle)}" data-focus-control="PrimaryButton" title="主按钮 · 启动游戏（仅预览）">${svgIcon('play')}启动游戏</button>
-            ${actionTip}
-          </div>
+          ${actions}
         </div>
-        ${state.guides ? '<button type="button" class="guide-tag bg-tag" data-focus="Background">STYLE.BACKGROUND</button>' : ''}
-      </div>
+        ${bgTip}
+      </div>`
+      : `<div class="detail-hero">
+        <div class="hero-breadcrumb">${iconUrlValue ? `<img class="hero-icon" src="${escAttr(iconUrlValue)}" alt="">` : svgIcon('play')}<span>我的游戏</span><span>/</span><b>${esc(name)}</b></div>
+        <span class="hero-mark">MOD DETAIL</span>
+        ${logoLayer}
+        <div class="hero-bottom">
+          <div class="version-anchor"><div class="version-line" style="${escAttr(secondaryTextStyle)}"><i></i> 当前版本 <b style="${escAttr(primaryTextStyle)}">v${esc(version)}</b></div></div>
+          ${actions}
+        </div>
+        ${bgTip}
+      </div>`;
+
+    const previousViewport = stage.querySelector('.stage-viewport');
+    const previousScrollTop = previousViewport ? previousViewport.scrollTop : 0;
+
+    stage.innerHTML = `<div class="stage-viewport">${hero}
       <div class="detail-body">
         ${surfaceTip}
         <div class="intro-column">${introHtml(state.locale)}</div>
-        <aside class="side-column">
-          ${linksHtml ? `<p class="side-title" style="${escAttr(secondaryTextStyle)}">${state.locale === 'en' ? 'LINKS' : '链接'}</p><div class="side-links">${linksHtml}</div>` : ''}
-          <p class="side-title" style="${escAttr(secondaryTextStyle)}">${state.locale === 'en' ? 'VERSION' : '版本'}</p>
-          <div class="side-version"><strong style="${escAttr(primaryTextStyle)}">${esc(version)}</strong>${releaseDate ? `<span style="${escAttr(secondaryTextStyle)}">${esc(releaseDate)}</span>` : ''}</div>
-          <p class="side-meta" style="${escAttr(secondaryTextStyle)}">样式预览 · 文件信息以客户端为准</p>
-        </aside>
-      </div>`;
+        ${sideColumn}
+      </div>
+    </div>`;
+
+    const viewport = stage.querySelector('.stage-viewport');
+    if (viewport && isHome) viewport.scrollTop = previousScrollTop;
 
     const foot = $('#canvas-foot-right');
     if (foot) {
-      foot.textContent = `${state.locale === 'zh' ? '中文' : 'English'}${bg.images.length > 1 ? ` · 背景 ${state.bgIndex + 1}/${bg.images.length}` : ''}`;
+      foot.textContent = `${isHome ? '首页' : '详情页'} · ${state.locale === 'zh' ? '中文' : 'English'}${bg.images.length > 1 ? ` · 背景 ${state.bgIndex + 1}/${bg.images.length}` : ''}`;
     }
     const cycle = $('#cycle-bg');
     if (cycle) cycle.disabled = bg.images.length < 2;
@@ -3298,8 +3468,16 @@ Import your own mod XML to replace this sample.`;
 
   /* ── assets tab ─────────────────────────────────────────── */
   function renderAssetsTab() {
+    const mod = currentMod();
     const images = imageRegs();
     const markdowns = markdownRegs();
+    const modId = mod ? (mod.getAttribute('ID') || '') : '';
+    const iconId = modIconId();
+    const icon = iconId ? imageUrl(iconId) : null;
+    const manifests = manifestRegs();
+    const iconStatus = !iconId
+      ? '<span class="status-pill warn"><i></i>未设置</span>'
+      : (icon ? '<span class="status-pill ok"><i></i>已绑定</span>' : '<span class="status-pill warn"><i></i>未绑定</span>');
 
     const imageRows = images.map((node) => {
       const id = node.getAttribute('ID') || '';
@@ -3312,12 +3490,15 @@ Import your own mod XML to replace this sample.`;
         <div class="asset-row" data-image-id="${escAttr(id)}">
           <div class="asset-thumb">${resolved ? `<img src="${escAttr(resolved)}" alt="">` : svgIcon('image')}</div>
           <div class="asset-info">
-            <div class="asset-id"><span>${esc(id)}</span>${status}</div>
+            <div class="asset-id">
+              <input type="text" value="${escAttr(id)}" data-asset-id="${escAttr(id)}" data-asset-kind="image" spellcheck="false" aria-label="图片 ID ${escAttr(id)}">
+              ${status}
+            </div>
             <input type="text" value="${escAttr(source)}" placeholder="images/banner.webp" data-asset-source="${escAttr(id)}" data-asset-kind="image" spellcheck="false" aria-label="${escAttr(id)} Source" style="height:24px;font-family:var(--mono);font-size:9.5px;margin-top:4px">
             <input type="text" value="${escAttr(url)}" placeholder="https://…（可留空，Url 优先于 Source）" data-asset-url="${escAttr(id)}" data-asset-kind="image" spellcheck="false" aria-label="${escAttr(id)} Url" style="height:24px;font-family:var(--mono);font-size:9.5px;margin-top:3px">
           </div>
           <div class="asset-actions">
-            <button type="button" class="icon-btn" data-act="bind-image" data-id="${escAttr(id)}" title="绑定本地图片" aria-label="绑定本地图片">${svgIcon('upload')}</button>
+            <button type="button" class="icon-btn" data-act="bind-image" data-id="${escAttr(id)}" title="上传图片并绑定到这条登记" aria-label="上传图片并绑定到这条登记">${svgIcon('upload')}</button>
             <button type="button" class="icon-btn" data-act="remove-image" data-id="${escAttr(id)}" title="删除登记" aria-label="删除图片登记">${svgIcon('trash')}</button>
           </div>
         </div>`;
@@ -3334,7 +3515,10 @@ Import your own mod XML to replace this sample.`;
         <div class="asset-row" data-markdown-id="${escAttr(id)}">
           <div class="asset-thumb">${svgIcon('file')}</div>
           <div class="asset-info">
-            <div class="asset-id"><span>${esc(id)}</span>${status}</div>
+            <div class="asset-id">
+              <input type="text" value="${escAttr(id)}" data-asset-id="${escAttr(id)}" data-asset-kind="markdown" spellcheck="false" aria-label="Markdown ID ${escAttr(id)}">
+              ${status}
+            </div>
             <input type="text" value="${escAttr(source)}" placeholder="posts/introduction-zh.md" data-asset-source="${escAttr(id)}" data-asset-kind="markdown" spellcheck="false" aria-label="${escAttr(id)} Source" style="height:24px;font-family:var(--mono);font-size:9.5px;margin-top:4px">
             <div class="asset-source">${text ? `${text.length} 字符 · 预览可用` : '点右侧按钮读取本地 .md'}</div>
           </div>
@@ -3346,22 +3530,71 @@ Import your own mod XML to replace this sample.`;
         </div>`;
     }).join('');
 
+    const manifestRows = manifests.map((node) => {
+      const id = node.getAttribute('ID') || '';
+      const source = node.getAttribute('Source') || '';
+      return `
+        <div class="asset-row" data-manifest-id="${escAttr(id)}">
+          <div class="asset-thumb">${svgIcon('file')}</div>
+          <div class="asset-info">
+            <div class="asset-id">
+              <input type="text" value="${escAttr(id)}" data-asset-id="${escAttr(id)}" data-asset-kind="manifest" spellcheck="false" aria-label="Manifest ID ${escAttr(id)}">
+              <span class="status-pill ok"><i></i>登记</span>
+            </div>
+            <input type="text" value="${escAttr(source)}" placeholder="manifests/3.258.xml（可留空）" data-asset-source="${escAttr(id)}" data-asset-kind="manifest" spellcheck="false" aria-label="${escAttr(id)} Source" style="height:24px;font-family:var(--mono);font-size:9.5px;margin-top:4px">
+            <div class="asset-source">改 ID 后，Package 里的 Manifest 引用会一起改写</div>
+          </div>
+          <div class="asset-actions">
+            <button type="button" class="icon-btn" data-act="remove-manifest" data-id="${escAttr(id)}" title="删除登记" aria-label="删除 Manifest 登记">${svgIcon('trash')}</button>
+          </div>
+        </div>`;
+    }).join('');
+
     return `
+      <div class="section">
+        <div class="section-head"><div><h2>模组标识</h2><span class="sub"><code>Mod@ID</code> 与 <code>Mod.Icon</code></span></div></div>
+        <div class="field">
+          <div class="field-head"><span class="label-group"><label>模组 ID</label><code>ID</code></span></div>
+          <div class="id-edit">
+            <input type="text" value="${escAttr(modId)}" data-mod-id spellcheck="false" aria-label="模组 ID">
+            <button type="button" class="btn tiny" data-act="apply-mod-id">应用</button>
+          </div>
+          <p class="image-pick-note">全仓库唯一、不含冒号。改名会同步更新本文件里引用它的 Compatibility 目标。</p>
+        </div>
+        <div class="icon-top">
+          <div class="logo-thumb" id="mod-icon-thumb">${icon ? `<img src="${escAttr(icon)}" alt="">` : svgIcon('image')}</div>
+          <div class="logo-fields">
+            <div class="field-head"><span class="label-group"><label>模组图标</label><code>Icon</code>${iconStatus}</span></div>
+            <div class="image-action-row">
+              <code class="image-id">${iconId ? esc(iconId) : '未设置'}</code>
+              <button type="button" class="btn tiny" data-act="import-mod-icon">${svgIcon('upload')}上传图标</button>
+              ${iconId ? `<button type="button" class="btn tiny" data-act="clear-mod-icon">移除</button>` : ''}
+            </div>
+            <p class="image-pick-note">上传后自动登记为 Image，默认 ID <code>${esc(modSlug())}-icon</code>，Source 写到 <code>images/</code>。</p>
+          </div>
+        </div>
+      </div>
       <div class="section">
         <div class="section-head"><div><h2>资源绑定</h2><span class="sub">只影响预览，不改 XML 的 Source / Url 语义</span></div></div>
         <div class="add-row">
           <button type="button" class="btn" data-act="import-folder">${svgIcon('folder')}选 Mod 文件夹</button>
-          <button type="button" class="btn" data-act="import-images">${svgIcon('image')}选图片</button>
+          <button type="button" class="btn" data-act="import-images">${svgIcon('image')}批量选图片</button>
         </div>
         <p class="hint" style="margin-top:8px">选整个 Mod 文件夹最省事：XML、<code>images/</code> 和 <code>posts/</code> 会按相对路径自动配对。单独选图片只按文件名与路径匹配。</p>
       </div>
       <div class="section">
-        <div class="section-head"><div><h2>图片登记</h2><span class="sub"><code>Metadata.Image</code> · ${images.length}</span></div><button type="button" class="text-btn" data-act="add-image">+ 添加图片</button></div>
-        ${images.length ? `<div class="asset-list">${imageRows}</div>` : '<div class="empty"><b>还没有图片登记</b>日常在 Logo、背景、链接图标处直接导入即可；这里用于批量管理。</div>'}
+        <div class="section-head"><div><h2>图片资源</h2><span class="sub"><code>Metadata.Image</code> · ${images.length}</span></div><button type="button" class="text-btn" data-act="add-image">+ 上传图片</button></div>
+        ${images.length ? `<div class="asset-list">${imageRows}</div>` : '<div class="empty"><b>还没有图片登记</b>点右上角「上传图片」，或在 Logo、背景、链接图标处直接导入。</div>'}
+        <p class="hint" style="margin-top:8px">改 ID 后，Mod 的 Icon、Logo、背景图、新闻封面和链接图标里对它的引用会一起改写。</p>
       </div>
       <div class="section">
-        <div class="section-head"><div><h2>Markdown 登记</h2><span class="sub"><code>Metadata.Markdown</code> · ${markdowns.length}</span></div><button type="button" class="text-btn" data-act="add-markdown">+ 添加 Markdown</button></div>
+        <div class="section-head"><div><h2>Markdown 资源</h2><span class="sub"><code>Metadata.Markdown</code> · ${markdowns.length}</span></div><button type="button" class="text-btn" data-act="add-markdown">+ 添加 Markdown</button></div>
         ${markdowns.length ? `<div class="asset-list">${mdRows}</div>` : '<div class="empty"><b>还没有 Markdown 登记</b>介绍正文、新闻正文都引用这里的 ID。</div>'}
+        <p class="hint" style="margin-top:8px">改 ID 后，所有引用它的 <code>Post.Content</code> 会一起改写。</p>
+      </div>
+      <div class="section">
+        <div class="section-head"><div><h2>Manifest 资源</h2><span class="sub"><code>Metadata.Manifest</code> · ${manifests.length}</span></div></div>
+        ${manifests.length ? `<div class="asset-list">${manifestRows}</div>` : '<div class="empty"><b>还没有 Manifest 登记</b>安装清单通常按当前文件内部的短 ID 引用。</div>'}
       </div>
       <div class="note"><span><b>导出边界</b> XML 只写 <code>Source</code> 路径；ZIP 会打包本地已有的图片和正文，远程图片不会下载。单独导出 XML 时，图片和 .md 仍要自己放回仓库。</span></div>`;
   }
@@ -3469,6 +3702,12 @@ Import your own mod XML to replace this sample.`;
   function setForce(force) {
     state.force = ['Auto', 'Base', 'Hover', 'Active'].includes(force) ? force : 'Auto';
     for (const button of $$('[data-force]')) button.setAttribute('aria-pressed', String(button.dataset.force === state.force));
+    renderPreview();
+  }
+
+  function setPage(page) {
+    state.page = page === 'home' ? 'home' : 'detail';
+    for (const button of $$('[data-page]')) button.setAttribute('aria-pressed', String(button.dataset.page === state.page));
     renderPreview();
   }
 
@@ -3744,12 +3983,116 @@ Import your own mod XML to replace this sample.`;
     const id = element.dataset.assetSource != null ? element.dataset.assetSource : element.dataset.assetUrl;
     if (!id) return;
     const kind = element.dataset.assetKind;
-    const node = kind === 'image' ? imageById(id) : markdownById(id);
+    const node = kind === 'image' ? imageById(id) : (kind === 'manifest' ? manifestById(id) : markdownById(id));
     if (!node) return;
     if (kind === 'image') state.imageOverrides.delete(id.toLowerCase());
     if (element.dataset.assetSource != null) node.setAttribute('Source', element.value.trim());
     else node.setAttribute('Url', element.value.trim());
     commit();
+  }
+
+  const IMAGE_REF_TAGS = new Set(['Icon', 'Logo', 'Image', 'HeadImage']);
+  const MARKDOWN_REF_TAGS = new Set(['Content']);
+  const MANIFEST_REF_TAGS = new Set(['Manifest']);
+
+  function renameResourceId(kind, oldId, newId) {
+    const tag = kind === 'markdown' ? 'Markdown' : (kind === 'manifest' ? 'Manifest' : 'Image');
+    const reg = regById(tag, oldId);
+    if (!reg) return { ok: false, error: `没有找到 ${tag} 登记 "${oldId}"。` };
+    const next = String(newId == null ? '' : newId).trim();
+    if (!next) return { ok: false, error: 'ID 不能为空。' };
+    if (next.includes(':')) return { ok: false, error: 'ID 不能含冒号，前缀由构建器自动生成。' };
+    if (/\s/.test(next)) return { ok: false, error: 'ID 不能含空白。' };
+    const clash = regById(tag, next);
+    if (clash && clash !== reg) return { ok: false, error: `${tag} ID "${next}" 已经存在。` };
+    if (next === oldId) return { ok: true, changed: false, refs: 0 };
+
+    const refTags = kind === 'markdown'
+      ? MARKDOWN_REF_TAGS
+      : (kind === 'manifest' ? MANIFEST_REF_TAGS : IMAGE_REF_TAGS);
+    reg.setAttribute('ID', next);
+    let refs = 0;
+    walkElements(state.doc.documentElement, (node) => {
+      if (!refTags.has(node.localName)) return;
+      if (textOf(node, '').toLowerCase() !== String(oldId).toLowerCase()) return;
+      setText(node, next);
+      refs += 1;
+    });
+
+    if (kind === 'image') {
+      const lowerOld = String(oldId).toLowerCase();
+      const lowerNew = next.toLowerCase();
+      if (state.imageOverrides.has(lowerOld)) {
+        state.imageOverrides.set(lowerNew, state.imageOverrides.get(lowerOld));
+        state.imageOverrides.delete(lowerOld);
+      }
+      if (state.imageFiles.has(lowerOld)) {
+        state.imageFiles.set(lowerNew, state.imageFiles.get(lowerOld));
+        state.imageFiles.delete(lowerOld);
+      }
+    }
+    return { ok: true, changed: true, refs };
+  }
+
+  function handleAssetId(element) {
+    const oldId = element.dataset.assetId;
+    const kind = element.dataset.assetKind === 'markdown'
+      ? 'markdown'
+      : (element.dataset.assetKind === 'manifest' ? 'manifest' : 'image');
+    const result = renameResourceId(kind, oldId, element.value);
+    if (!result.ok) {
+      toast(result.error, 'error');
+      element.value = oldId;
+      return;
+    }
+    if (!result.changed) return;
+    const next = String(element.value || '').trim();
+    mdCache.clear();
+    state.dirty = true;
+    validate();
+    renderModBar();
+    renderInspector();
+    renderPreview();
+    renderStatus();
+    toast(`已把 ${oldId} 改名为 ${next}${result.refs ? `，同步 ${result.refs} 处引用` : ''}。`);
+  }
+
+  function applyModId(element) {
+    const mod = currentMod();
+    if (!mod) return;
+    const oldId = mod.getAttribute('ID') || '';
+    const next = String(element.value || '').trim();
+    if (!next) { toast('模组 ID 不能为空。', 'error'); element.value = oldId; return; }
+    if (next.includes(':')) { toast('模组 ID 不能含冒号。', 'error'); element.value = oldId; return; }
+    if (/\s/.test(next)) { toast('模组 ID 不能含空白。', 'error'); element.value = oldId; return; }
+    if (next.toLowerCase() === 'vanilla') { toast('vanilla 是保留 ID，不能用作模组 ID。', 'error'); element.value = oldId; return; }
+    const clash = state.mods.some((item, index) =>
+      index !== state.modIndex && (item.getAttribute('ID') || '').toLowerCase() === next.toLowerCase());
+    if (clash) { toast(`模组 ID "${next}" 与文件里另一个 Mod 重复。`, 'error'); element.value = oldId; return; }
+    if (next === oldId) return;
+
+    mod.setAttribute('ID', next);
+    let refs = 0;
+    walkElements(state.doc.documentElement, (node) => {
+      for (const attr of ['Mod', 'InheritFrom']) {
+        if (node.getAttribute(attr) === oldId) {
+          node.setAttribute(attr, next);
+          refs += 1;
+        }
+      }
+    });
+    if (state.bgPicks.has(oldId)) {
+      const pick = state.bgPicks.get(oldId);
+      state.bgPicks.delete(oldId);
+      state.bgPicks.set(next, pick);
+    }
+    state.dirty = true;
+    validate();
+    renderModBar();
+    renderInspector();
+    renderPreview();
+    renderStatus();
+    toast(`模组 ID 已改为 ${next}${refs ? `，同步 ${refs} 处兼容引用` : ''}。`);
   }
 
   function onInspectorInput(event) {
@@ -3779,6 +4122,8 @@ Import your own mod XML to replace this sample.`;
     const element = event.target;
     if (!(element instanceof HTMLElement)) return;
     if (element.matches('[data-color-format]')) { handleColorFormat(element); return; }
+    if (element.matches('[data-asset-id]')) { handleAssetId(element); return; }
+    if (element.matches('[data-mod-id]')) { applyModId(element); return; }
     if (element.matches('[data-position-select]')) {
       const logo = getLogo(true);
       if (logo) {
@@ -3930,6 +4275,17 @@ Import your own mod XML to replace this sample.`;
     if (act === 'import-logo-image') { state.imageTarget = { kind: 'logo' }; $('#file-images').click(); return; }
     if (act === 'import-background-image') { state.imageTarget = { kind: 'background' }; $('#file-images').click(); return; }
     if (act === 'import-link-icon') { state.imageTarget = { kind: 'link', index: Number(button.dataset.index) }; $('#file-images').click(); return; }
+    if (act === 'import-mod-icon') { state.imageTarget = { kind: 'icon' }; $('#file-images').click(); return; }
+    if (act === 'apply-mod-id') {
+      const input = $('[data-mod-id]');
+      if (input) applyModId(input);
+      return;
+    }
+    if (act === 'clear-mod-icon') {
+      const mod = currentMod();
+      if (mod && direct(mod, 'Icon')) { removeNode(direct(mod, 'Icon')); refreshStructure(); }
+      return;
+    }
     if (act === 'clear-logo-ref') {
       const logo = getLogo(false);
       if (logo) { setText(logo, ''); refreshStructure(); }
@@ -3950,7 +4306,7 @@ Import your own mod XML to replace this sample.`;
     }
     if (act === 'add-image') { state.imageTarget = { kind: 'add' }; $('#file-images').click(); return; }
     if (act === 'add-markdown') { state.mdTarget = { kind: 'new-asset' }; $('#file-md').click(); return; }
-    if (act === 'bind-image') { state.imageTarget = { kind: 'bind', id: button.dataset.id }; $('#file-images').click(); return; }
+    if (act === 'bind-image') { state.imageTarget = { kind: 'replace', id: button.dataset.id }; $('#file-images').click(); return; }
     if (act === 'remove-image') {
       const id = button.dataset.id;
       if (confirm(`删除图片登记 "${id}"？引用它的 Logo / 背景 / 链接会变成未登记引用。`)) {
@@ -3977,6 +4333,14 @@ Import your own mod XML to replace this sample.`;
       const id = button.dataset.id;
       if (confirm(`删除 Markdown 登记 "${id}"？引用它的正文会变成未登记引用。`)) {
         removeNode(markdownById(id));
+        refreshStructure();
+      }
+      return;
+    }
+    if (act === 'remove-manifest') {
+      const id = button.dataset.id;
+      if (confirm(`删除 Manifest 登记 "${id}"？引用它的 Package 会变成未登记引用。`)) {
+        removeNode(manifestById(id));
         refreshStructure();
       }
       return;
@@ -4067,27 +4431,27 @@ Import your own mod XML to replace this sample.`;
 
   function initSampleAssets() {
     const banner = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="220" viewBox="0 0 900 220">
-      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1b1710"/><stop offset=".55" stop-color="#2a2115"/><stop offset="1" stop-color="#101214"/></linearGradient></defs>
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#210f11"/><stop offset=".55" stop-color="#31161a"/><stop offset="1" stop-color="#100e0f"/></linearGradient></defs>
       <rect width="900" height="220" fill="url(#g)"/>
-      <path d="M0 170h900M0 190h900" stroke="#c9a45c" stroke-opacity=".18"/>
-      <path d="M40 40h820v140H40z" fill="none" stroke="#c9a45c" stroke-opacity=".35"/>
-      <text x="450" y="112" fill="#efe7d4" font-family="Bahnschrift,Microsoft YaHei UI,sans-serif" font-size="52" font-weight="700" letter-spacing="8" text-anchor="middle">EXAMPLE MOD</text>
-      <text x="450" y="144" fill="#c9a45c" font-family="Consolas,monospace" font-size="12" letter-spacing="5" text-anchor="middle">SAMPLE BANNER · REPLACE WITH YOUR IMAGE</text>
+      <path d="M0 170h900M0 190h900" stroke="#d9535a" stroke-opacity=".18"/>
+      <path d="M40 40h820v140H40z" fill="none" stroke="#d9535a" stroke-opacity=".35"/>
+      <text x="450" y="112" fill="#f2e9e9" font-family="Bahnschrift,Microsoft YaHei UI,sans-serif" font-size="52" font-weight="700" letter-spacing="8" text-anchor="middle">EXAMPLE MOD</text>
+      <text x="450" y="144" fill="#d9535a" font-family="Consolas,monospace" font-size="12" letter-spacing="5" text-anchor="middle">SAMPLE BANNER · REPLACE WITH YOUR IMAGE</text>
     </svg>`;
     const bg1 = `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
-      <defs><radialGradient id="r" cx=".35" cy=".2" r=".9"><stop offset="0" stop-color="#26343c"/><stop offset=".55" stop-color="#12181c"/><stop offset="1" stop-color="#080a0c"/></radialGradient></defs>
+      <defs><radialGradient id="r" cx=".35" cy=".2" r=".9"><stop offset="0" stop-color="#3a1a1e"/><stop offset=".55" stop-color="#1a1012"/><stop offset="1" stop-color="#0a0708"/></radialGradient></defs>
       <rect width="1600" height="900" fill="url(#r)"/>
-      <g stroke="#9fc2d0" stroke-opacity=".07"><path d="M0 120h1600M0 260h1600M0 400h1600M0 540h1600M0 680h1600M0 820h1600"/><path d="M160 0v900M400 0v900M640 0v900M880 0v900M1120 0v900M1360 0v900"/></g>
-      <circle cx="1180" cy="250" r="210" fill="none" stroke="#c9a45c" stroke-opacity=".18"/>
-      <circle cx="1180" cy="250" r="150" fill="none" stroke="#c9a45c" stroke-opacity=".12"/>
-      <text x="80" y="840" fill="#c9a45c" fill-opacity=".55" font-family="Consolas,monospace" font-size="13" letter-spacing="4">SAMPLE BACKGROUND 01 · 1600×900</text>
+      <g stroke="#cfa2a4" stroke-opacity=".07"><path d="M0 120h1600M0 260h1600M0 400h1600M0 540h1600M0 680h1600M0 820h1600"/><path d="M160 0v900M400 0v900M640 0v900M880 0v900M1120 0v900M1360 0v900"/></g>
+      <circle cx="1180" cy="250" r="210" fill="none" stroke="#d9535a" stroke-opacity=".18"/>
+      <circle cx="1180" cy="250" r="150" fill="none" stroke="#d9535a" stroke-opacity=".12"/>
+      <text x="80" y="840" fill="#d9535a" fill-opacity=".55" font-family="Consolas,monospace" font-size="13" letter-spacing="4">SAMPLE BACKGROUND 01 · 1600×900</text>
     </svg>`;
     const bg2 = `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
-      <defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c1412"/><stop offset=".5" stop-color="#2b1b17"/><stop offset="1" stop-color="#0b0908"/></linearGradient></defs>
+      <defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#24100f"/><stop offset=".5" stop-color="#38141a"/><stop offset="1" stop-color="#0b0707"/></linearGradient></defs>
       <rect width="1600" height="900" fill="url(#g2)"/>
-      <g fill="none" stroke="#d58b6a" stroke-opacity=".1"><path d="M-100 700 500 100M200 900 900 200M600 1000 1400 200M1000 1000 1800 200"/></g>
-      <rect x="70" y="70" width="420" height="2" fill="#c9a45c" fill-opacity=".35"/>
-      <text x="80" y="840" fill="#c9a45c" fill-opacity=".55" font-family="Consolas,monospace" font-size="13" letter-spacing="4">SAMPLE BACKGROUND 02 · 1600×900</text>
+      <g fill="none" stroke="#d96a70" stroke-opacity=".1"><path d="M-100 700 500 100M200 900 900 200M600 1000 1400 200M1000 1000 1800 200"/></g>
+      <rect x="70" y="70" width="420" height="2" fill="#d9535a" fill-opacity=".35"/>
+      <text x="80" y="840" fill="#d9535a" fill-opacity=".55" font-family="Consolas,monospace" font-size="13" letter-spacing="4">SAMPLE BACKGROUND 02 · 1600×900</text>
     </svg>`;
     const dataUrl = (svg) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     SAMPLE_ASSETS.set('images/sample-banner.svg', dataUrl(banner));
@@ -4368,8 +4732,10 @@ Import your own mod XML to replace this sample.`;
     const slug = modSlug();
     const base = kind === 'logo'
       ? `${slug}-logo`
-      : `${slug}-${kind === 'background' ? 'bg' : (kind === 'link' ? 'link' : 'image')}`;
-    let candidate = kind === 'logo' ? base : `${base}-1`;
+      : (kind === 'icon'
+        ? `${slug}-icon`
+        : `${slug}-${kind === 'background' ? 'bg' : (kind === 'link' ? 'link' : 'image')}`);
+    let candidate = (kind === 'logo' || kind === 'icon') ? base : `${base}-1`;
     let n = 2;
     while (regById('Image', candidate)) {
       candidate = `${base}-${n}`;
@@ -4423,6 +4789,24 @@ Import your own mod XML to replace this sample.`;
     const files = Array.from(fileList || []).filter(isImageFile);
     if (!files.length) { toast('没有识别到图片文件。', 'error'); return; }
 
+    if (target.kind === 'icon') {
+      const mod = currentMod();
+      if (!mod) return;
+      const created = createDirectImage(files[0], 'icon');
+      let icon = direct(mod, 'Icon');
+      if (!icon) {
+        icon = mod.ownerDocument.createElement('Icon');
+        const current = direct(mod, 'CurrentVersion');
+        const before = Array.from(mod.children).find((node) =>
+          ['DisplayName', 'Style', 'Compatibility', 'Packages', 'Posts', 'Links'].includes(node.localName));
+        mod.insertBefore(icon, current ? current.nextSibling : before);
+      }
+      icon.textContent = created.id;
+      refreshStructure();
+      toast(`已导入模组图标，自动生成 ID ${created.id}。`);
+      return;
+    }
+
     if (target.kind === 'logo') {
       const created = createDirectImage(files[0], 'logo');
       setText(getLogo(true), created.id);
@@ -4464,6 +4848,28 @@ Import your own mod XML to replace this sample.`;
     }
 
     toast('未知的图片导入位置。', 'error');
+  }
+
+  async function replaceImageFile(fileList, targetId) {
+    if (!state.doc) { toast('先导入 Mod XML。', 'error'); return; }
+    const reg = imageById(targetId);
+    if (!reg) { toast('这个图片登记已经不存在了。', 'error'); return; }
+    const files = Array.from(fileList || []).filter(isImageFile);
+    if (!files.length) { toast('没有识别到图片文件。', 'error'); return; }
+    const file = files[0];
+    const current = String(reg.getAttribute('Source') || '').trim();
+    const keepSource = current && !/^(?:https?:|data:|blob:)/i.test(current);
+    const source = keepSource ? current : nextImageSource(file);
+    const { url } = registerAssetFile(file);
+    reg.setAttribute('Source', source);
+    reg.removeAttribute('Url');
+    state.localAssets.set(pathKey(source), url);
+    state.localFiles.set(pathKey(source), file);
+    state.imageFiles.set(targetId.toLowerCase(), file);
+    state.imageOverrides.delete(targetId.toLowerCase());
+    mdCache.clear();
+    refreshStructure();
+    toast(`已用 ${baseName(file.name)} 更新 ${targetId}${keepSource ? '' : `，Source 改为 ${source}`}。`);
   }
 
   async function bindImages(fileList, targetId) {
@@ -4935,6 +5341,9 @@ Import your own mod XML to replace this sample.`;
     for (const button of $$('[data-locale]')) {
       button.addEventListener('click', () => setLocale(button.dataset.locale));
     }
+    for (const button of $$('[data-page]')) {
+      button.addEventListener('click', () => setPage(button.dataset.page));
+    }
     for (const button of $$('[data-force]')) {
       button.addEventListener('click', () => setForce(button.dataset.force));
     }
@@ -4992,8 +5401,10 @@ Import your own mod XML to replace this sample.`;
         if (!files.length) return;
         const target = state.imageTarget;
         state.imageTarget = null;
-        if (target && ['logo', 'background', 'link'].includes(target.kind)) {
+        if (target && ['logo', 'background', 'link', 'icon'].includes(target.kind)) {
           await importImagesAt(files, target);
+        } else if (target && target.kind === 'replace') {
+          await replaceImageFile(files, target.id);
         } else if (target && target.kind === 'bind') {
           await bindImages(files, target.id);
         } else {
@@ -5021,6 +5432,10 @@ Import your own mod XML to replace this sample.`;
       if (!state.dirty) return;
       event.preventDefault();
       event.returnValue = '';
+    });
+
+    window.addEventListener('resize', () => {
+      if (state.page === 'home') schedulePreview();
     });
 
     document.addEventListener('keydown', (event) => {
@@ -5081,8 +5496,6 @@ Import your own mod XML to replace this sample.`;
     initSampleAssets();
     bindStaticEvents();
     loadSample(true);
-    const foot = $('#canvas-foot-right');
-    if (foot) foot.textContent = '中文';
   }
 
   window.__studio = {
