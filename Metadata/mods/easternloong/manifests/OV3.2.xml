@@ -6,11 +6,11 @@
     <Includes>
     </Includes>
     <Manifest ID="manifest-ov32" HashAlgorithm="CRC32C">
-        <Skudef GameVersion="1.12" FileName="Eastern Loong_OV3.2.skudef">
-            <AddBig File="Eastern Loong_OV3.2.big" />
+        <Skudef GameVersion="1.12" FileName="EasternLoong_OV3.2.skudef">
+            <AddBig File="EasternLoong_OV3.2.big" />
         </Skudef>
         <File Hash="41B6CC39" Size="822409314" DownloadName="EasternLoong_OV3.2.zst" Compression="zstd">
-            <FileName>Eastern Loong_OV3.2.big</FileName>
+            <FileName>EasternLoong_OV3.2.big</FileName>
             <RelativePath>/</RelativePath>
             <KindOf>MOD;</KindOf>
             <Sources>
