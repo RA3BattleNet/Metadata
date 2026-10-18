@@ -687,7 +687,8 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   color: rgba(255, 255, 255, 0.45);
   font-family: var(--mono); font-size: 8px; letter-spacing: 0.1em;
 }
-.logo-layer { position: absolute; inset: 64px clamp(0px, 22%, 220px) 104px; z-index: 3; }
+/* 与客户端一致：上贴顶栏 60px、左右 20px（右沿对齐启动按钮）、下贴启动按钮上沿（18 + 40 = 58px）。 */
+.logo-layer { position: absolute; inset: 60px 20px 58px; z-index: 3; }
 .logo-anchor { position: absolute; max-width: none; }
 .logo-center {
   position: absolute;
@@ -750,7 +751,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .hero-bottom {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 5;
   display: flex; align-items: flex-end; justify-content: space-between; gap: 18px;
-  padding: 18px 22px;
+  padding: 18px 20px;
 }
 .version-line { display: flex; align-items: center; gap: 7px; color: rgba(240, 237, 229, 0.58); font-size: 10.5px; letter-spacing: 0.03em; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55); }
 .version-line i { width: 5px; height: 5px; border-radius: 50%; background: #86b18f; box-shadow: 0 0 8px rgba(134, 177, 143, 0.7); }
@@ -2090,7 +2091,7 @@ Import your own mod XML to replace this sample.`;
     return [
       `left:calc(${x}% + ${logo.offsetX || 0}px)`,
       `top:calc(${y}% + ${logo.offsetY || 0}px)`,
-      'transform:translate(-50%,-50%)',
+      `transform:translate(${-x}%,${-y}%)`,
       `width:${width}`,
       `height:${height}`,
       'max-width:none',
@@ -2106,7 +2107,7 @@ Import your own mod XML to replace this sample.`;
     return [
       `left:calc(${x}% + ${logo.offsetX || 0}px)`,
       `top:calc(${y}% + ${logo.offsetY || 0}px)`,
-      'transform:translate(-50%,-50%)',
+      `transform:translate(${-x}%,${-y}%)`,
       `width:${width}`,
       `height:${height}`,
       'max-width:none',
@@ -3165,7 +3166,7 @@ Import your own mod XML to replace this sample.`;
             <div class="num-line"><input type="number" step="any" value="${logo.offsetY || 0}" data-logo-attr="OffsetY" aria-label="Logo 垂直偏移"><span>px</span></div>
           </div>
         </div>
-        <p class="hint" style="margin-top:8px">锚点始终是图片中心，位置区与客户端一致（上下 64 / 104px，左右 22%）。只写宽或高时保持原图比例；两者都写会拉伸。偏移是相对这个中心点的像素值，可以是负数。</p>
+        <p class="hint" style="margin-top:8px">Position 决定图片的哪个角/边对齐到位置区，再叠加偏移：TopLeft 对齐左上角、BottomRight 对齐右下角、Center 对齐中心。位置区按客户端规则：上贴顶栏、左右与底部按钮行同距、下贴启动按钮上沿（预览取 60 / 20 / 58px）。只写宽或高时保持原图比例；两者都写会拉伸。偏移是相对锚点的像素值，可以是负数。</p>
       </div>
 
       <div class="section">
