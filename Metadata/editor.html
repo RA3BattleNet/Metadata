@@ -408,6 +408,39 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 .logo-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .logo-thumb svg { width: 18px; height: 18px; }
 .logo-fields { min-width: 0; }
+.image-action-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 30px; }
+.image-action-row .image-id { flex: 1; min-width: 80px; font-family: var(--mono); font-size: 10px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.image-action-row .btn { height: 26px; font-size: 10px; }
+.image-pick-note { margin: 5px 0 0; color: var(--faint); font-size: 9px; line-height: 1.5; }
+.image-pick-note code { font-size: 8.5px; color: var(--muted); }
+.bg-list { display: flex; flex-direction: column; gap: 6px; }
+.bg-item {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 26px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px;
+  border: 1px solid var(--line-soft);
+  background: var(--ink-2);
+}
+.bg-item > img, .bg-item > .asset-thumb { width: 52px; height: 34px; object-fit: cover; border: 1px solid var(--line); background: #0b0e10; }
+.bg-item > .asset-thumb { display: grid; place-items: center; color: var(--faint); }
+.bg-item code { display: block; font-family: var(--mono); font-size: 9px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bg-item small { display: block; margin-top: 2px; color: var(--faint); font-family: var(--mono); font-size: 8.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icon-pick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 3px 5px;
+  border: 1px solid var(--line);
+  background: var(--ink-2);
+}
+.icon-pick > img, .icon-pick > .link-fallback { width: 22px; height: 22px; object-fit: contain; flex: none; }
+.icon-pick > .link-fallback { display: grid; place-items: center; border: 1px solid var(--line); color: var(--faint); }
+.icon-pick > code { flex: 1; min-width: 0; font-family: var(--mono); font-size: 9px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icon-pick .btn { height: 24px; padding: 0 6px; font-size: 10px; }
+.empty-inline { padding: 10px; border: 1px dashed var(--line); color: var(--faint); font-size: 10.5px; text-align: center; }
 .anchor-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1118,7 +1151,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 
       <div class="inspector-foot">
         <svg aria-hidden="true"><use href="#i-help"/></svg>
-        <span>预览按客户端字段映射渲染；主题字体、间距、圆角、磨砂不属于 XML。<br>图片与正文需要绑定本地文件才能预览，导出不会复制它们。</span>
+        <span>预览按客户端字段映射渲染；主题字体、间距、圆角、磨砂不属于 XML。<br>预览需要本地图片与正文；导出 XML 不复制资源，导出 ZIP 会打包本地已有文件。</span>
       </div>
     </aside>
 
@@ -1185,8 +1218,8 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
       <h3>三步走</h3>
       <ol>
         <li><b>导入</b>：选择 <code>mods/&lt;id&gt;/&lt;id&gt;.xml</code>，或直接选整个 Mod 文件夹。文件夹会同时绑定 <code>images/</code> 与 <code>posts/</code> 下的图片和 Markdown。</li>
-        <li><b>编辑</b>：控件、背景、Logo、介绍、友情链接。改动实时写入内存里的 XML 树，右侧预览同步更新。</li>
-        <li><b>导出</b>：只导出 XML。正文 Markdown 要在「内容」或「导出」里单独下载，图片需要你自己放回仓库对应目录。</li>
+        <li><b>编辑</b>：控件、背景、Logo、介绍、友情链接。Logo、背景和链接图标都可以在对应位置直接点「导入图片」，不需要先建 ID；程序按固定规则生成 <code>&lt;mod&gt;-logo</code>、<code>&lt;mod&gt;-bg-N</code>、<code>&lt;mod&gt;-link-N</code>，Source 写到 <code>images/</code>。</li>
+        <li><b>导出</b>：可以只导出 XML，也可以在「导出」里下载 ZIP。ZIP 结构为 <code>mods/&lt;id&gt;/&lt;id&gt;.xml</code> + <code>images/</code> + <code>posts/</code> + <code>manifests/</code>，只打包本地已有文件。</li>
       </ol>
     </section>
     <section>
@@ -1202,6 +1235,7 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
     <section>
       <h3>导出与校验</h3>
       <p>导出只改 <code>Style</code>、<code>Posts</code>、<code>Links</code> 与资源登记，其它节点、注释和属性原样保留。校验覆盖 XSD 里的颜色格式、数值范围、Logo 锚点、URL、语言标签、ID 唯一性与引用完整性；最终仍以仓库构建为准。</p>
+      <p>ZIP 始终导出完整文件，不受「仅 Style」范围影响。远程图片、没有本地文件的资源不会被打包，导出提示会列出缺少数量。</p>
     </section>
     <section>
       <h3>数据安全</h3>
@@ -1506,6 +1540,9 @@ Import your own mod XML to replace this sample.`;
     dirty: false,
     issues: [],
     localAssets: new Map(),
+    localFiles: new Map(),
+    folderFiles: new Map(),
+    imageFiles: new Map(),
     assetUrls: [],
     imageOverrides: new Map(),
     localTexts: new Map(),
@@ -1519,6 +1556,7 @@ Import your own mod XML to replace this sample.`;
   };
 
   const SAMPLE_ASSETS = new Map();
+  const SAMPLE_FILES = new Map();
 
   /* ── tiny utilities ─────────────────────────────────────── */
   function esc(value) {
@@ -2180,6 +2218,9 @@ Import your own mod XML to replace this sample.`;
     state.includeDocs = [];
     state.registrationBase = new WeakMap();
     state.imageOverrides = new Map();
+    state.localFiles = new Map();
+    state.folderFiles = new Map();
+    state.imageFiles = new Map();
     state.imageTarget = null;
     state.mdTarget = null;
     state.isSample = Boolean(opts.sample);
@@ -3064,8 +3105,15 @@ Import your own mod XML to replace this sample.`;
     const logoUrl = logo.ref ? imageUrl(logo.ref) : null;
     const backgroundEl = getBackground(false);
     const bg = backgroundData();
-    const bgFirst = bg.images.length ? imageUrl(bg.images[0]) : null;
-    const imageList = imageRegs().map((node) => node.getAttribute('ID')).filter(Boolean);
+    const bgItems = bg.images.map((id, index) => {
+      const url = imageUrl(id);
+      const source = imageSourceOf(id);
+      return `<div class="bg-item">
+        ${url ? `<img src="${escAttr(url)}" alt="">` : `<div class="asset-thumb">${svgIcon('image')}</div>`}
+        <div><code>${esc(id)}</code><small>${esc(source || '未登记 Source')}</small></div>
+        <button type="button" class="icon-btn" data-act="remove-background-image" data-index="${index}" title="移除这张背景图" aria-label="移除这张背景图">${svgIcon('trash')}</button>
+      </div>`;
+    }).join('');
 
     const currentPosition = logo.positionDeclared || '';
     const positionOptions = ['', ...POSITIONS].map((position) =>
@@ -3077,15 +3125,20 @@ Import your own mod XML to replace this sample.`;
     return `
       <div class="section">
         <div class="section-head">
-          <div><h2>Logo 布局</h2><span class="sub"><code>Style.Logo</code> · 图片 ID + 尺寸 + 九宫格锚点</span></div>
+          <div><h2>Logo 布局</h2><span class="sub"><code>Style.Logo</code> · 直接导入图片 + 尺寸 + 九宫格锚点</span></div>
           ${logo.exists ? `<button type="button" class="text-btn" data-act="clear-logo">移除</button>` : ''}
         </div>
         <div class="logo-top">
           <div class="logo-thumb" id="logo-thumb">${logoUrl ? `<img src="${escAttr(logoUrl)}" alt="">` : svgIcon('image')}</div>
           <div class="logo-fields">
             <div class="field">
-              <div class="field-head"><span class="label-group"><label>图片引用</label><code>短 ID</code></span></div>
-              <input type="text" value="${escAttr(logo.ref)}" placeholder="${imageList[0] || '例如 corona-banner'}" list="image-id-list" data-logo-ref spellcheck="false" aria-label="Logo 图片短 ID">
+              <div class="field-head"><span class="label-group"><label>Logo 图片</label><code>自动 ID</code></span></div>
+              <div class="image-action-row">
+                <code class="image-id">${logo.ref ? esc(logo.ref) : '未导入'}</code>
+                <button type="button" class="btn tiny" data-act="import-logo-image">${svgIcon('upload')}导入图片</button>
+                ${logo.ref ? `<button type="button" class="btn tiny" data-act="clear-logo-ref">移除</button>` : ''}
+              </div>
+              <p class="image-pick-note">导入后自动生成 <code>${esc(modSlug())}-logo</code>，Source 固定为 <code>images/文件名</code>。</p>
             </div>
           </div>
         </div>
@@ -3121,12 +3174,12 @@ Import your own mod XML to replace this sample.`;
           ${bg.exists ? `<button type="button" class="text-btn" data-act="clear-background">移除</button>` : ''}
         </div>
         <div class="field">
-          <div class="field-head"><span class="label-group"><label>背景图列表</label><code>Image</code></span></div>
-          <textarea class="image-list" rows="4" data-bg-images placeholder="每行一个已登记的图片短 ID" spellcheck="false" aria-label="背景图片 ID 列表">${esc(bg.images.join('\n'))}</textarea>
-        </div>
-        <div class="bg-preview">
-          ${bgFirst ? `<img class="swatch" src="${escAttr(bgFirst)}" alt="">` : `<span class="swatch empty-swatch">${svgIcon('image')}</span>`}
-          <span>${bg.images.length ? `${bg.images.length} 张背景图 · 第一张用于缩略图` : '还没有背景图，预览使用主题底色'}</span>
+          <div class="field-head"><span class="label-group"><label>背景图</label><code>Image</code></span></div>
+          <div class="bg-list">${bgItems || '<div class="empty-inline">还没有背景图，预览使用主题底色</div>'}</div>
+          <div class="image-action-row" style="margin-top:7px">
+            <button type="button" class="btn tiny" data-act="import-background-image">${svgIcon('upload')}导入背景图</button>
+            <span class="image-pick-note">多选会按顺序追加，ID 自动生成：<code>${esc(modSlug())}-bg-1</code>、<code>-2</code>…</span>
+          </div>
         </div>
         <div class="field" style="margin-top:10px">
           <div class="field-head"><span class="label-group"><label>多图选择</label><code>Random</code></span></div>
@@ -3141,16 +3194,13 @@ Import your own mod XML to replace this sample.`;
           ${colorFieldHtml(backgroundEl, null, 'SecondaryColor', 'data-scope="background" data-field="SecondaryColor"', false, { label: '卡片底色', theme: '' })}
         </div>
         <p class="hint" style="margin-top:8px">页面底色压在背景图上；卡片底色用于正文区域。透明度写在颜色的 Alpha 通道里。</p>
-      </div>
-
-      <datalist id="image-id-list">${imageList.map((id) => `<option value="${escAttr(id)}"></option>`).join('')}</datalist>`;
+      </div>`;
   }
 
   /* ── content tab ────────────────────────────────────────── */
   function renderContentTab() {
     const post = introPost();
     const links = currentMod() && direct(currentMod(), 'Links') ? directAll(direct(currentMod(), 'Links'), 'Link') : [];
-    const imageList = imageRegs().map((node) => node.getAttribute('ID')).filter(Boolean);
 
     const titlesNode = post ? direct(post, 'Titles') : null;
     const titleZh = post ? textOf(localizedExact(titlesNode, 'Title', 'zh'), '') : '';
@@ -3218,7 +3268,15 @@ Import your own mod XML to replace this sample.`;
             <div class="field wide"><div class="field-head"><span class="label-group"><label>链接地址</label><code>Url</code></span></div><input type="url" value="${escAttr(link.getAttribute('Url') || '')}" placeholder="https://example.com/" data-link-url="${index}" spellcheck="false" aria-label="链接地址"></div>
             <div class="field"><div class="field-head"><span class="label-group"><label>中文名</label><code>zh</code></span></div><input type="text" value="${escAttr(zh)}" placeholder="官方网站" data-link-name="${index}" data-lang="zh" aria-label="链接中文名"></div>
             <div class="field"><div class="field-head"><span class="label-group"><label>英文名</label><code>en</code></span></div><input type="text" value="${escAttr(en)}" placeholder="Official website" data-link-name="${index}" data-lang="en" aria-label="链接英文名"></div>
-            <div class="field"><div class="field-head"><span class="label-group"><label>图标</label><code>Icon</code></span></div><input type="text" value="${escAttr(iconId)}" placeholder="可选图片 ID" list="image-id-list-content" data-link-icon="${index}" spellcheck="false" aria-label="链接图标 ID"></div>
+            <div class="field"><div class="field-head"><span class="label-group"><label>图标</label><code>Icon</code></span></div>
+              <div class="icon-pick">
+                ${icon ? `<img src="${escAttr(icon)}" alt="">` : `<span class="link-fallback">${svgIcon('image')}</span>`}
+                <code>${iconId ? esc(iconId) : '未设置'}</code>
+                <button type="button" class="btn tiny" data-act="import-link-icon" data-index="${index}">导入</button>
+                ${iconId ? `<button type="button" class="btn tiny" data-act="clear-link-icon" data-index="${index}">移除</button>` : ''}
+              </div>
+              <p class="image-pick-note">自动 ID：<code>${esc(modSlug())}-link-N</code></p>
+            </div>
             <div class="field"><div class="field-head"><span class="label-group"><label>可见语言</label><code>Languages</code></span></div><input type="text" value="${escAttr(languages)}" placeholder="zh en（可留空）" data-link-languages="${index}" spellcheck="false" aria-label="链接可见语言"></div>
           </div>
           <div class="link-preview-line">${icon ? `<img src="${escAttr(icon)}" alt="">` : svgIcon('external')}<span>${esc(zh || en || '未命名')} → ${esc(link.getAttribute('Url') || '未填写地址')}</span></div>
@@ -3234,8 +3292,7 @@ Import your own mod XML to replace this sample.`;
         <div class="section-head"><div><h2>友情链接</h2><span class="sub"><code>Mod.Links</code> · 文档顺序即展示顺序</span></div><button type="button" class="text-btn" data-act="add-link">+ 添加链接</button></div>
         ${links.length ? `<div class="link-list">${linkCards}</div>` : '<div class="empty"><b>还没有友情链接</b>客户端在详情页右侧展示。图标省略时使用通用外链图标。</div>'}
         <p class="hint" style="margin-top:8px">客户端当前展示全部链接；<code>Languages</code> 会照常写进 XML。预览按当前语言取显示名，缺少对应语言时取第一条。</p>
-      </div>
-      <datalist id="image-id-list-content">${imageList.map((id) => `<option value="${escAttr(id)}"></option>`).join('')}</datalist>`;
+      </div>`;
   }
 
   /* ── assets tab ─────────────────────────────────────────── */
@@ -3299,13 +3356,13 @@ Import your own mod XML to replace this sample.`;
       </div>
       <div class="section">
         <div class="section-head"><div><h2>图片登记</h2><span class="sub"><code>Metadata.Image</code> · ${images.length}</span></div><button type="button" class="text-btn" data-act="add-image">+ 添加图片</button></div>
-        ${images.length ? `<div class="asset-list">${imageRows}</div>` : '<div class="empty"><b>还没有图片登记</b>Logo、背景、链接图标都引用这里的 ID。</div>'}
+        ${images.length ? `<div class="asset-list">${imageRows}</div>` : '<div class="empty"><b>还没有图片登记</b>日常在 Logo、背景、链接图标处直接导入即可；这里用于批量管理。</div>'}
       </div>
       <div class="section">
         <div class="section-head"><div><h2>Markdown 登记</h2><span class="sub"><code>Metadata.Markdown</code> · ${markdowns.length}</span></div><button type="button" class="text-btn" data-act="add-markdown">+ 添加 Markdown</button></div>
         ${markdowns.length ? `<div class="asset-list">${mdRows}</div>` : '<div class="empty"><b>还没有 Markdown 登记</b>介绍正文、新闻正文都引用这里的 ID。</div>'}
       </div>
-      <div class="note"><span><b>导出边界</b> XML 只写 <code>Source</code> 路径，不会复制图片或正文。导出的 .md 要放回仓库对应目录，图片也要一起提交。</span></div>`;
+      <div class="note"><span><b>导出边界</b> XML 只写 <code>Source</code> 路径；ZIP 会打包本地已有的图片和正文，远程图片不会下载。单独导出 XML 时，图片和 .md 仍要自己放回仓库。</span></div>`;
   }
 
   /* ── export tab ─────────────────────────────────────────── */
@@ -3334,7 +3391,7 @@ Import your own mod XML to replace this sample.`;
     const mdList = markdownDownloads();
     return `
       <div class="section">
-        <div class="section-head"><div><h2>导出 XML</h2><span class="sub">保留注释、其它 Mod 与未编辑节点</span></div></div>
+        <div class="section-head"><div><h2>导出 XML / Mod 包</h2><span class="sub">保留注释、其它 Mod 与未编辑节点</span></div></div>
         <div class="export-head">
           <div class="field">
             <div class="field-head"><span class="label-group"><label>导出范围</label><code>Output</code></span></div>
@@ -3347,9 +3404,11 @@ Import your own mod XML to replace this sample.`;
         <textarea class="export-code" id="export-code" readonly spellcheck="false" aria-label="导出的 XML"></textarea>
         <div class="export-actions">
           <button type="button" class="btn primary" data-act="download-xml" ${errors ? 'disabled' : ''}>${svgIcon('download')}下载 XML</button>
+          <button type="button" class="btn" data-act="download-zip" ${errors ? 'disabled' : ''}>${svgIcon('folder')}下载 ZIP（mod 包）</button>
           <button type="button" class="btn" data-act="copy-xml" ${errors ? 'disabled' : ''}>${svgIcon('copy')}复制</button>
         </div>
-        <p class="hint" style="margin-top:8px">${state.exportScope === 'style' ? '只导出 <code>&lt;Style&gt;</code>；介绍正文与友情链接的改动不会包含。' : '导出整份 XML；介绍正文与图片不会被复制。'}</p>
+        <p class="hint" style="margin-top:8px">${state.exportScope === 'style' ? '只导出 <code>&lt;Style&gt;</code>；介绍正文与友情链接的改动不会包含。ZIP 始终导出完整文件。' : '导出整份 XML；介绍正文与图片不会被复制。'}</p>
+        <p class="hint">ZIP 结构：<code>mods/&lt;id&gt;/&lt;id&gt;.xml</code> + <code>images/</code> + <code>posts/</code> + <code>manifests/</code>。只打包本地已有的文件，远程图片不会下载。</p>
       </div>
       <div class="section">
         <div class="section-head"><div><h2>正文文件</h2><span class="sub">Markdown 需要单独放回仓库</span></div></div>
@@ -3701,9 +3760,7 @@ Import your own mod XML to replace this sample.`;
       if (parent) { writeNumber(parent, element.dataset.field, element.value); commit(); }
       return;
     }
-    if (element.matches('[data-logo-ref]')) { handleLogoRef(element); return; }
     if (element.matches('[data-logo-attr]')) { handleLogoAttr(element); return; }
-    if (element.matches('[data-bg-images]')) { handleBackgroundImages(element); return; }
     if (element.matches('[data-intro-title]')) { handleIntroTitle(element); return; }
     if (element.matches('[data-intro-date]')) {
       const post = introPost();
@@ -3713,7 +3770,7 @@ Import your own mod XML to replace this sample.`;
     if (element.matches('[data-intro-content-id]')) { handleIntroContentId(element); return; }
     if (element.matches('[data-intro-source]')) { handleIntroSource(element); return; }
     if (element.matches('[data-intro-body]')) { handleIntroBody(element); return; }
-    if (element.matches('[data-link-url], [data-link-name], [data-link-icon], [data-link-languages]')) { handleLinkField(element); return; }
+    if (element.matches('[data-link-url], [data-link-name], [data-link-languages]')) { handleLinkField(element); return; }
     if (element.matches('[data-asset-source], [data-asset-url]')) { handleAssetField(element); return; }
   }
 
@@ -3869,9 +3926,30 @@ Import your own mod XML to replace this sample.`;
       refreshStructure();
       return;
     }
-    if (act === 'add-image') { state.imageTarget = null; $('#file-images').click(); return; }
+    if (act === 'import-logo-image') { state.imageTarget = { kind: 'logo' }; $('#file-images').click(); return; }
+    if (act === 'import-background-image') { state.imageTarget = { kind: 'background' }; $('#file-images').click(); return; }
+    if (act === 'import-link-icon') { state.imageTarget = { kind: 'link', index: Number(button.dataset.index) }; $('#file-images').click(); return; }
+    if (act === 'clear-logo-ref') {
+      const logo = getLogo(false);
+      if (logo) { setText(logo, ''); refreshStructure(); }
+      return;
+    }
+    if (act === 'remove-background-image') {
+      const background = getBackground(false);
+      const images = background ? directAll(background, 'Image') : [];
+      const image = images[Number(button.dataset.index)];
+      if (image) { removeNode(image); refreshStructure(); }
+      return;
+    }
+    if (act === 'clear-link-icon') {
+      const links = currentMod() && direct(currentMod(), 'Links') ? directAll(direct(currentMod(), 'Links'), 'Link') : [];
+      const link = links[Number(button.dataset.index)];
+      if (link) { removeNode(direct(link, 'Icon')); refreshStructure(); }
+      return;
+    }
+    if (act === 'add-image') { state.imageTarget = { kind: 'add' }; $('#file-images').click(); return; }
     if (act === 'add-markdown') { state.mdTarget = { kind: 'new-asset' }; $('#file-md').click(); return; }
-    if (act === 'bind-image') { state.imageTarget = button.dataset.id; $('#file-images').click(); return; }
+    if (act === 'bind-image') { state.imageTarget = { kind: 'bind', id: button.dataset.id }; $('#file-images').click(); return; }
     if (act === 'remove-image') {
       const id = button.dataset.id;
       if (confirm(`删除图片登记 "${id}"？引用它的 Logo / 背景 / 链接会变成未登记引用。`)) {
@@ -3903,10 +3981,11 @@ Import your own mod XML to replace this sample.`;
       return;
     }
     if (act === 'download-xml') { downloadXml(); return; }
+    if (act === 'download-zip') { downloadZip(); return; }
     if (act === 'copy-xml') { copyExport(); return; }
     if (act === 'import-xml') { $('#file-xml').click(); return; }
     if (act === 'import-folder') { $('#file-folder').click(); return; }
-    if (act === 'import-images') { state.imageTarget = null; $('#file-images').click(); return; }
+    if (act === 'import-images') { state.imageTarget = { kind: 'add' }; $('#file-images').click(); return; }
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -4016,6 +4095,9 @@ Import your own mod XML to replace this sample.`;
     SAMPLE_ASSETS.set('sample-bg-1.svg', dataUrl(bg1));
     SAMPLE_ASSETS.set('images/sample-bg-2.svg', dataUrl(bg2));
     SAMPLE_ASSETS.set('sample-bg-2.svg', dataUrl(bg2));
+    SAMPLE_FILES.set('images/sample-banner.svg', new File([banner], 'sample-banner.svg', { type: 'image/svg+xml' }));
+    SAMPLE_FILES.set('images/sample-bg-1.svg', new File([bg1], 'sample-bg-1.svg', { type: 'image/svg+xml' }));
+    SAMPLE_FILES.set('images/sample-bg-2.svg', new File([bg2], 'sample-bg-2.svg', { type: 'image/svg+xml' }));
   }
   /* ═══════════════════════════════════════════════════════════
      FILES / IMPORT / EXPORT
@@ -4032,6 +4114,10 @@ Import your own mod XML to replace this sample.`;
     return path;
   }
 
+  function isModSourceFile(path) {
+    return /\.(?:xml|md|markdown|png|jpe?g|webp|gif|svg|avif|bmp)$/i.test(path);
+  }
+
   function revokeAssetUrls() {
     for (const url of state.assetUrls) {
       try { URL.revokeObjectURL(url); } catch (error) { /* noop */ }
@@ -4042,10 +4128,15 @@ Import your own mod XML to replace this sample.`;
   function clearFolderBindings() {
     revokeAssetUrls();
     state.localAssets = new Map();
+    state.localFiles = new Map();
+    state.folderFiles = new Map();
+    state.imageFiles = new Map();
     state.localTexts = new Map();
     state.imageOverrides = new Map();
     state.includeDocs = [];
     state.registrationBase = new WeakMap();
+    state.imageTarget = null;
+    state.mdTarget = null;
     mdCache.clear();
   }
 
@@ -4053,16 +4144,22 @@ Import your own mod XML to replace this sample.`;
     const rel = normPath(file.webkitRelativePath || file.name);
     const url = URL.createObjectURL(file);
     state.assetUrls.push(url);
+    const name = baseName(rel);
     const keys = new Set([
       rel,
       stripXmlDir(rel),
-      baseName(rel),
+      name,
+      `images/${name}`,
       joinPath(state.xmlDir, stripXmlDir(rel)),
+      joinPath(state.xmlDir, `images/${name}`),
     ]);
     for (const key of keys) {
-      if (key) state.localAssets.set(pathKey(key), url);
+      if (key) {
+        state.localAssets.set(pathKey(key), url);
+        state.localFiles.set(pathKey(key), file);
+      }
     }
-    return { rel, url };
+    return { rel, url, file };
   }
 
   function registerTextFile(file, text) {
@@ -4074,7 +4171,10 @@ Import your own mod XML to replace this sample.`;
       joinPath(state.xmlDir, stripXmlDir(rel)),
     ]);
     for (const key of keys) {
-      if (key) state.localTexts.set(pathKey(key), text);
+      if (key) {
+        state.localTexts.set(pathKey(key), text);
+        state.localFiles.set(pathKey(key), file);
+      }
     }
     return rel;
   }
@@ -4091,6 +4191,14 @@ Import your own mod XML to replace this sample.`;
     state.exportScope = 'full';
     mdCache.clear();
     loadXmlText(SAMPLE_XML, { name: 'example-mod.xml', sample: true, silent: true });
+    state.localFiles = new Map();
+    state.folderFiles = new Map();
+    for (const [rel, file] of SAMPLE_FILES) {
+      state.localFiles.set(pathKey(rel), file);
+      state.folderFiles.set(rel, file);
+    }
+    state.dirty = false;
+    renderAll();
     state.dirty = false;
     renderStatus();
     if (!force) toast('示例已载入。改完记得导出你自己的 XML。');
@@ -4202,6 +4310,11 @@ Import your own mod XML to replace this sample.`;
 
     for (const file of files) {
       const rel = normPath(file.webkitRelativePath || file.name);
+      const modRel = stripXmlDir(rel);
+      if (isModSourceFile(modRel)) {
+        state.folderFiles.set(normPath(modRel), file);
+        state.localFiles.set(pathKey(modRel), file);
+      }
       if (/\.xml$/i.test(rel)) continue;
       if (/\.(?:png|jpe?g|webp|gif|svg|avif|bmp)$/i.test(rel) || /^image\//i.test(file.type)) {
         registerAssetFile(file);
@@ -4229,11 +4342,132 @@ Import your own mod XML to replace this sample.`;
     }
   }
 
-  async function bindImages(fileList) {
+  function modSlug() {
+    const id = currentModId() || 'mod';
+    return id.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'mod';
+  }
+
+  function everyImageReg() {
+    const list = [...imageRegs()];
+    for (const entry of state.includeDocs || []) {
+      list.push(...directAll(entry.doc && entry.doc.documentElement, 'Image'));
+    }
+    return list;
+  }
+
+  function everyMarkdownReg() {
+    const list = [...markdownRegs()];
+    for (const entry of state.includeDocs || []) {
+      list.push(...directAll(entry.doc && entry.doc.documentElement, 'Markdown'));
+    }
+    return list;
+  }
+
+  function nextImageId(kind) {
+    const slug = modSlug();
+    const base = kind === 'logo'
+      ? `${slug}-logo`
+      : `${slug}-${kind === 'background' ? 'bg' : (kind === 'link' ? 'link' : 'image')}`;
+    let candidate = kind === 'logo' ? base : `${base}-1`;
+    let n = 2;
+    while (regById('Image', candidate)) {
+      candidate = `${base}-${n}`;
+      n += 1;
+    }
+    return candidate;
+  }
+
+  function nextImageSource(file) {
+    const original = safeFileName(baseName(file.name) || 'image', 'image');
+    const dot = original.lastIndexOf('.');
+    const stem = dot > 0 ? original.slice(0, dot) : original;
+    const ext = dot > 0 ? original.slice(dot) : '';
+    const used = new Set(everyImageReg()
+      .map((reg) => String(reg.getAttribute('Source') || '').trim())
+      .filter(Boolean)
+      .map(pathKey));
+    for (const rel of state.folderFiles.keys()) used.add(pathKey(rel));
+    let candidate = `images/${original}`;
+    let n = 2;
+    while (used.has(pathKey(candidate))) {
+      candidate = `images/${stem}-${n}${ext}`;
+      n += 1;
+    }
+    return candidate;
+  }
+
+  function isImageFile(file) {
+    return /\.(?:png|jpe?g|webp|gif|svg|avif|bmp)$/i.test(file.name) || /^image\//i.test(file.type);
+  }
+
+  function createDirectImage(file, kind) {
+    const id = nextImageId(kind);
+    const source = nextImageSource(file);
+    ensureRegistration('Image', id, source);
+    const { url } = registerAssetFile(file);
+    state.localAssets.set(pathKey(source), url);
+    state.localFiles.set(pathKey(source), file);
+    state.imageFiles.set(id.toLowerCase(), file);
+    return { id, source };
+  }
+
+  function imageSourceOf(id) {
+    const reg = imageById(id);
+    if (!reg) return '';
+    return String(reg.getAttribute('Source') || reg.getAttribute('Url') || '').trim();
+  }
+
+  async function importImagesAt(fileList, target) {
+    if (!state.doc) { toast('先导入 Mod XML。', 'error'); return; }
+    const files = Array.from(fileList || []).filter(isImageFile);
+    if (!files.length) { toast('没有识别到图片文件。', 'error'); return; }
+
+    if (target.kind === 'logo') {
+      const created = createDirectImage(files[0], 'logo');
+      setText(getLogo(true), created.id);
+      refreshStructure();
+      toast(`已导入 Logo 图片，自动生成 ID ${created.id}。`);
+      return;
+    }
+
+    if (target.kind === 'background') {
+      const background = getBackground(true);
+      const before = direct(background, 'Color') || direct(background, 'SecondaryColor');
+      const ids = [];
+      for (const file of files) {
+        const created = createDirectImage(file, 'background');
+        const image = background.ownerDocument.createElement('Image');
+        image.textContent = created.id;
+        background.insertBefore(image, before || null);
+        ids.push(created.id);
+      }
+      refreshStructure();
+      toast(`已导入 ${ids.length} 张背景图：${ids.join('、')}。`);
+      return;
+    }
+
+    if (target.kind === 'link') {
+      const links = currentMod() && direct(currentMod(), 'Links') ? directAll(direct(currentMod(), 'Links'), 'Link') : [];
+      const link = links[target.index];
+      if (!link) { toast('这条链接已经不存在了。', 'error'); return; }
+      const created = createDirectImage(files[0], 'link');
+      let icon = direct(link, 'Icon');
+      if (!icon) {
+        icon = link.ownerDocument.createElement('Icon');
+        link.insertBefore(icon, link.firstChild);
+      }
+      icon.textContent = created.id;
+      refreshStructure();
+      toast(`已导入链接图标，自动生成 ID ${created.id}。`);
+      return;
+    }
+
+    toast('未知的图片导入位置。', 'error');
+  }
+
+  async function bindImages(fileList, targetId) {
     const files = Array.from(fileList || []);
     if (!files.length) return;
-    const targetId = state.imageTarget;
-    state.imageTarget = null;
     const registered = [];
     for (const file of files) {
       if (!/\.(?:png|jpe?g|webp|gif|svg|avif|bmp)$/i.test(file.name) && !/^image\//i.test(file.type)) continue;
@@ -4262,14 +4496,10 @@ Import your own mod XML to replace this sample.`;
     if (!state.doc) { toast('先导入 Mod XML。', 'error'); return; }
     let count = 0;
     for (const file of files) {
-      if (!/\.(?:png|jpe?g|webp|gif|svg|avif|bmp)$/i.test(file.name) && !/^image\//i.test(file.type)) continue;
-      const { rel } = registerAssetFile(file);
-      const id = uniqueId('image');
-      const reg = ensureRegistration('Image', id, /^images\//i.test(rel) ? rel : `images/${baseName(rel)}`);
-      reg.setAttribute('Source', /^images\//i.test(rel) ? rel : `images/${baseName(rel)}`);
+      if (!isImageFile(file)) continue;
+      createDirectImage(file, 'image');
       count += 1;
     }
-    state.imageTarget = null;
     if (count) {
       mdCache.clear();
       refreshStructure();
@@ -4341,8 +4571,7 @@ Import your own mod XML to replace this sample.`;
   }
 
   /* ── downloads ──────────────────────────────────────────── */
-  function downloadText(fileName, text, mime) {
-    const blob = new Blob([text], { type: mime || 'application/xml' });
+  function downloadBlob(fileName, blob) {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
@@ -4351,7 +4580,230 @@ Import your own mod XML to replace this sample.`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1200);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  function downloadText(fileName, text, mime) {
+    downloadBlob(fileName, new Blob([text], { type: mime || 'application/xml' }));
+  }
+
+  function zipRelForReg(reg, fallbackDir) {
+    const source = String(reg.getAttribute('Source') || '').trim();
+    if (!source || /^(?:https?:|data:|blob:)/i.test(source)) return '';
+    const base = regBase(reg);
+    let rel = normPath(joinPath(base, source));
+    const root = normPath(state.xmlDir);
+    if (root && pathKey(rel).startsWith(pathKey(root) + '/')) rel = rel.slice(root.length + 1);
+    rel = normPath(rel);
+    if (!rel || rel.startsWith('../')) {
+      const name = baseName(source);
+      return name ? `${fallbackDir}/${name}` : '';
+    }
+    return rel;
+  }
+
+  function imageFileForReg(reg) {
+    const id = String(reg.getAttribute('ID') || '').toLowerCase();
+    if (state.imageFiles.has(id)) return state.imageFiles.get(id);
+    const source = String(reg.getAttribute('Source') || '').trim();
+    if (!source) return null;
+    const base = regBase(reg);
+    const candidates = [
+      zipRelForReg(reg, 'images'),
+      joinPath(base, source),
+      source,
+      baseName(source),
+    ];
+    for (const candidate of candidates) {
+      if (!candidate) continue;
+      const file = state.localFiles.get(pathKey(candidate));
+      if (file) return file;
+    }
+    return null;
+  }
+
+  async function buildModZip() {
+    if (!state.doc) throw new Error('还没有载入 Mod。');
+    const slug = modSlug();
+    const root = `mods/${slug}/`;
+    const entries = new Map();
+    const encoder = new TextEncoder();
+    const addText = (path, text) => entries.set(`mods/${slug}/${path}`, encoder.encode(text));
+
+    addText(`${slug}.xml`, serializeDocument());
+
+    const mainRel = pathKey(stripXmlDir(state.docName));
+    for (const [rel, file] of state.folderFiles) {
+      if (!isModSourceFile(rel)) continue;
+      if (mainRel && pathKey(rel) === mainRel) continue;
+      if (entries.has(`${root}${rel}`)) continue;
+      if (/\.(?:md|markdown)$/i.test(rel)) {
+        const text = state.localTexts.get(pathKey(rel));
+        if (text != null) { addText(rel, text); continue; }
+      }
+      entries.set(`${root}${rel}`, new Uint8Array(await file.arrayBuffer()));
+    }
+
+    let missingIncludes = 0;
+    const includes = direct(state.doc.documentElement, 'Includes');
+    if (includes) {
+      const folderKeys = new Set([...state.folderFiles.keys()].map(pathKey));
+      for (const include of directAll(includes, 'Include')) {
+        const source = String(include.getAttribute('Source') || '').trim();
+        if (!source) continue;
+        const rel = stripXmlDir(normPath(joinPath(dirName(state.docName), source)));
+        if (!folderKeys.has(pathKey(rel))) missingIncludes += 1;
+      }
+    }
+
+    let missingImages = 0;
+    let missingRemoteImages = 0;
+    for (const reg of everyImageReg()) {
+      const rel = zipRelForReg(reg, 'images');
+      if (!rel) {
+        if (String(reg.getAttribute('Url') || '').trim()) missingRemoteImages += 1;
+        else missingImages += 1;
+        continue;
+      }
+      if (entries.has(`${root}${rel}`)) continue;
+      const file = imageFileForReg(reg);
+      if (!file) {
+        if (String(reg.getAttribute('Url') || '').trim()) missingRemoteImages += 1;
+        else missingImages += 1;
+        continue;
+      }
+      entries.set(`${root}${rel}`, new Uint8Array(await file.arrayBuffer()));
+    }
+
+    let missingMarkdown = 0;
+    for (const reg of everyMarkdownReg()) {
+      const rel = zipRelForReg(reg, 'posts');
+      if (!rel) { missingMarkdown += 1; continue; }
+      const text = markdownText(reg.getAttribute('ID'));
+      if (text) { addText(rel, text); continue; }
+      if (!entries.has(`${root}${rel}`)) missingMarkdown += 1;
+    }
+
+    return {
+      blob: makeZip(entries),
+      root,
+      count: entries.size,
+      missingImages,
+      missingRemoteImages,
+      missingMarkdown,
+      missingIncludes,
+    };
+  }
+
+  const CRC_TABLE = (() => {
+    const table = new Uint32Array(256);
+    for (let i = 0; i < 256; i += 1) {
+      let value = i;
+      for (let bit = 0; bit < 8; bit += 1) {
+        value = (value & 1) ? (0xEDB88320 ^ (value >>> 1)) : (value >>> 1);
+      }
+      table[i] = value >>> 0;
+    }
+    return table;
+  })();
+
+  function crc32(bytes) {
+    let crc = 0xFFFFFFFF;
+    for (const byte of bytes) crc = CRC_TABLE[(crc ^ byte) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function makeZip(entries) {
+    const now = new Date();
+    const time = (now.getHours() << 11) | (now.getMinutes() << 5) | Math.floor(now.getSeconds() / 2);
+    const date = ((Math.max(1980, now.getFullYear()) - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+    const list = [...entries.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    const localParts = [];
+    const centralParts = [];
+    let offset = 0;
+    const encoder = new TextEncoder();
+
+    for (const [path, data] of list) {
+      const name = encoder.encode(path);
+      const crc = crc32(data);
+      const size = data.length;
+      const local = new Uint8Array(30 + name.length);
+      const lv = new DataView(local.buffer);
+      lv.setUint32(0, 0x04034b50, true);
+      lv.setUint16(4, 20, true);
+      lv.setUint16(6, 0x0800, true);
+      lv.setUint16(8, 0, true);
+      lv.setUint16(10, time, true);
+      lv.setUint16(12, date, true);
+      lv.setUint32(14, crc, true);
+      lv.setUint32(18, size, true);
+      lv.setUint32(22, size, true);
+      lv.setUint16(26, name.length, true);
+      lv.setUint16(28, 0, true);
+      local.set(name, 30);
+      localParts.push(local, data);
+
+      const central = new Uint8Array(46 + name.length);
+      const cv = new DataView(central.buffer);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, 20, true);
+      cv.setUint16(6, 20, true);
+      cv.setUint16(8, 0x0800, true);
+      cv.setUint16(10, 0, true);
+      cv.setUint16(12, time, true);
+      cv.setUint16(14, date, true);
+      cv.setUint32(16, crc, true);
+      cv.setUint32(20, size, true);
+      cv.setUint32(24, size, true);
+      cv.setUint16(28, name.length, true);
+      cv.setUint16(30, 0, true);
+      cv.setUint16(32, 0, true);
+      cv.setUint16(34, 0, true);
+      cv.setUint16(36, 0, true);
+      cv.setUint32(38, 0, true);
+      cv.setUint32(42, offset, true);
+      central.set(name, 46);
+      centralParts.push(central);
+      offset += local.length + data.length;
+    }
+
+    const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+    const end = new Uint8Array(22);
+    const ev = new DataView(end.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(4, 0, true);
+    ev.setUint16(6, 0, true);
+    ev.setUint16(8, list.length, true);
+    ev.setUint16(10, list.length, true);
+    ev.setUint32(12, centralSize, true);
+    ev.setUint32(16, offset, true);
+    ev.setUint16(20, 0, true);
+
+    return new Blob([...localParts, ...centralParts, end], { type: 'application/zip' });
+  }
+
+  async function downloadZip() {
+    const errors = state.issues.filter((issue) => issue.level === 'error');
+    if (errors.length) {
+      setTab('xml');
+      toast(`还有 ${errors.length} 个错误，修完再导出。`, 'error');
+      return;
+    }
+    try {
+      toast('正在打包 Mod…');
+      const result = await buildModZip();
+      downloadBlob(`${modSlug()}.zip`, result.blob);
+      const missing = [];
+      if (result.missingImages) missing.push(`${result.missingImages} 张图片缺少本地文件`);
+      if (result.missingRemoteImages) missing.push(`${result.missingRemoteImages} 张远程图片未打包`);
+      if (result.missingMarkdown) missing.push(`${result.missingMarkdown} 个 Markdown 缺少正文`);
+      if (result.missingIncludes) missing.push(`${result.missingIncludes} 个 Include 文件未打包`);
+      toast(missing.length
+        ? `已导出 ${modSlug()}.zip（${result.count} 个文件）；${missing.join('，')}。`
+        : `已导出 ${modSlug()}.zip，共 ${result.count} 个文件。`);
+    } catch (error) {
+      toast('打包失败：' + (error.message || String(error)), 'error');
+    }
   }
 
   function downloadXml() {
@@ -4370,7 +4822,7 @@ Import your own mod XML to replace this sample.`;
     downloadText(name, text, 'application/xml');
     toast(state.exportScope === 'style'
       ? `已导出 ${name}（仅 Style）。`
-      : `已导出 ${name}。正文 Markdown 和图片需要单独放回仓库。`);
+      : `已导出 ${name}。需要连图片和正文一起带走时，用「下载 ZIP（mod 包）」。`);
   }
 
   function downloadIntroMarkdown(lang) {
@@ -4435,10 +4887,10 @@ Import your own mod XML to replace this sample.`;
     const focus = target.dataset.focus;
     if (focus === 'Logo') {
       setTab('layout');
-      focusSelector('[data-logo-ref]');
+      focusSelector('[data-act="import-logo-image"]');
     } else if (focus === 'Background') {
       setTab('layout');
-      focusSelector('[data-bg-images]');
+      focusSelector('[data-act="import-background-image"]');
     } else if (focus === 'Surface') {
       setTab('layout');
       focusSelector('[data-field-block="SecondaryColor"] [data-color-hex]');
@@ -4537,8 +4989,15 @@ Import your own mod XML to replace this sample.`;
         const files = imageInput.files ? Array.from(imageInput.files) : [];
         imageInput.value = '';
         if (!files.length) return;
-        if (state.imageTarget) await bindImages(files);
-        else await addImageFiles(files);
+        const target = state.imageTarget;
+        state.imageTarget = null;
+        if (target && ['logo', 'background', 'link'].includes(target.kind)) {
+          await importImagesAt(files, target);
+        } else if (target && target.kind === 'bind') {
+          await bindImages(files, target.id);
+        } else {
+          await addImageFiles(files);
+        }
       });
     }
 
