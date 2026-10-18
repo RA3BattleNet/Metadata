@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Includes>
+        <Include Source="manifests/manifests.xml" />
+    </Includes>
+
+    <Markdown ID="intro-zh" Source="posts/introduction-zh.md" />
+    <Markdown ID="intro-en" Source="posts/introduction-en.md" />
+    <Image ID="easternloong-logo" Source="images/easternloong-logo.webp" />
+    <Image ID="easternloong-bg-1" Source="images/easternloong-bg-1.webp" />
+    <Image ID="easternloong-bg-2" Source="images/easternloong-bg-2.webp" />
+    <Image ID="easternloong-bg-3" Source="images/easternloong-bg-3.webp" />
+    <Image ID="easternloong-bg-4" Source="images/easternloong-bg-4.webp" />
+    <Image ID="easternloong-bg-5" Source="images/easternloong-bg-5.webp" />
+    <Image ID="easternloong-icon" Source="images/easternloong-icon.webp" />
+
+    <Mod ID="easternloong">
+        <CurrentVersion>OV3.2</CurrentVersion>
+        <Icon>easternloong-icon</Icon>
+        <DisplayName Language="zh">龙霸天下</DisplayName>
+        <DisplayName Language="en">Eastern Loong</DisplayName>
+        <Style>
+            <Logo Width="400" Position="Center" OffsetY="-18">easternloong-logo</Logo>
+            <Controls>
+                <PrimaryLabel>
+                    <Color>#FFFFFF</Color>
+                    <FontSize>16</FontSize>
+                    <FontWeight>700</FontWeight>
+                </PrimaryLabel>
+                <SecondaryLabel>
+                    <Color>#C9C3B6</Color>
+                    <FontSize>11</FontSize>
+                    <FontWeight>400</FontWeight>
+                </SecondaryLabel>
+                <PrimaryButton>
+                    <BorderColor>#C0393E</BorderColor>
+                    <BorderWidth>1</BorderWidth>
+                    <BackgroundColor>#9A181D</BackgroundColor>
+                    <Color>#FFFFFF</Color>
+                    <FontSize>14</FontSize>
+                    <FontWeight>700</FontWeight>
+                    <Hover>
+                        <BackgroundColor>#C0393E</BackgroundColor>
+                        <BorderColor>#E07075</BorderColor>
+                    </Hover>
+                    <Active>
+                        <BackgroundColor>#6F1013</BackgroundColor>
+                        <BorderColor>#4A1013</BorderColor>
+                    </Active>
+                </PrimaryButton>
+                <SecondaryButton>
+                    <BorderColor>#FFFFFF55</BorderColor>
+                    <BorderWidth>1</BorderWidth>
+                    <BackgroundColor>#100B0CA6</BackgroundColor>
+                    <Color>#EDE8DB</Color>
+                    <FontSize>13</FontSize>
+                    <FontWeight>500</FontWeight>
+                    <Hover>
+                        <BorderColor>#FFFFFFAA</BorderColor>
+                        <BackgroundColor>#1B1214CC</BackgroundColor>
+                    </Hover>
+                    <Active>
+                        <BackgroundColor>#000000CC</BackgroundColor>
+                    </Active>
+                </SecondaryButton>
+            </Controls>
+            <Background Random="true">
+                <Image>easternloong-bg-1</Image>
+                <Image>easternloong-bg-2</Image>
+                <Image>easternloong-bg-3</Image>
+                <Image>easternloong-bg-4</Image>
+                <Image>easternloong-bg-5</Image>
+                <Color>#100A0BE6</Color>
+                <SecondaryColor>#150F10F2</SecondaryColor>
+            </Background>
+        </Style>
+        <Packages>
+            <Package Version="OV3.2">
+                <ReleaseDate>2026-10-18</ReleaseDate>
+                <Manifest>manifest-ov32</Manifest>
+            </Package>
+        </Packages>
+        <Posts>
+            <Post Type="introduction" DateTime="2026-10-18T00:00:00+08:00">
+                <Titles>
+                    <Title Language="zh">模组介绍</Title>
+                    <Title Language="en">Introduction</Title>
+                </Titles>
+                <Contents>
+                    <Content Language="zh">intro-zh</Content>
+                    <Content Language="en">intro-en</Content>
+                </Contents>
+            </Post>
+        </Posts>
+    </Mod>
+</Metadata>
