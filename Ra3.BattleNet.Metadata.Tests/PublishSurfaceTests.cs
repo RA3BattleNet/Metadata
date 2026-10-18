@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Ra3.BattleNet.Metadata.Tests;
 
 /// <summary>
-/// 发布面：Output 只含展平 metadata.xml + 被引用资源 + _redirects；
+/// 发布面：Output 只含展平 metadata.xml + 被引用资源 + _redirects + editor.html；
 /// 源 XML / XSD / Templates 一律不进发布物。
 /// </summary>
 [TestClass]
@@ -49,6 +49,12 @@ public class PublishSurfaceTests
 
             // _redirects 自动带出
             File.Exists(Path.Combine(dst, "_redirects")).Should().BeTrue();
+
+            // editor.html 原样带出
+            var editorSource = Path.Combine(src, "editor.html");
+            var editorOutput = Path.Combine(dst, "editor.html");
+            File.Exists(editorOutput).Should().BeTrue();
+            File.ReadAllBytes(editorOutput).Should().Equal(File.ReadAllBytes(editorSource));
 
             // 发布面不含源树资产
             Directory.GetFiles(dst, "*.xsd", SearchOption.AllDirectories).Should().BeEmpty();

@@ -9,6 +9,7 @@
 构建打包程序最终产出的是纯粹的静态文件目录树，不是什么复杂的 RPC 接口服务：
 
 - `{BaseUrl}/metadata.xml` —— 经过展平合并后的所有业务数据大总表（**已经移除了所有 Include 标签**）；
+- `{BaseUrl}/editor.html` —— 单文件模组详情页样式编辑器，构建时从 `Metadata/editor.html` 原样复制，浏览器直接打开即可用；
 - `{BaseUrl}/{相对路径}` —— 各类配套资源文件（包括图片、Markdown 说明、各版本的独立清单），文件路径来自资源登记节点的 `Source` 属性；
 - 根节点的核心属性：`SchemaVersion`（数据协议版本号）、`ContentRevision`（本次内容更新的修订号，客户端用来快速判断要不要拉取新缓存）。
 
@@ -253,7 +254,7 @@ npm run build:release   # 核心打包 + 图片压缩转为 WebP 格式（正式
 npm run deploy          # 编译打包并直接发布部署到 Cloudflare Pages 线上环境
 ```
 
-- **核心构建流程**（纯托管 C# 代码执行）：校验源数据 XSD → 将包含 Include 的树展平合并 → 自动替换宏变量 → 复制被引用的图片与文档资源 → 全面业务语义校验；最终 `Output/` 包含合并后的 `metadata.xml`、被引用的资源文件，以及从 `Metadata/` 原样复制的 `_redirects` 和 `edgeone.json` 部署配置（文件存在时复制）；
+- **核心构建流程**（纯托管 C# 代码执行）：校验源数据 XSD → 将包含 Include 的树展平合并 → 自动替换宏变量 → 复制被引用的图片与文档资源 → 全面业务语义校验；最终 `Output/` 包含合并后的 `metadata.xml`、被引用的资源文件，以及从 `Metadata/` 原样复制的 `_redirects`、`edgeone.json` 部署配置和 `editor.html`（文件存在时复制）；
 - **叶子独立清单处理**：`Manifest` 登记节点的源文件，与大总表入口一样会经过展平处理（移除多余 Include、替换完整 ID、解析宏变量）后再输出发布，客户端直接调 `MetadataBuilder.Load` 就能无缝读取；图片和 Markdown 则直接原样拷贝；
 - **图片转换模块（Imaging）**：只负责在发版阶段把大图片转成轻量的 WebP 格式，它不打进面向客户端的 NuGet 主包里；只有在带 `--webp` 参数时才会对图片触发转换；
 - **部署构建入口**：Cloudflare 的 `wrangler.toml` 与 EdgeOne 的 GitHub Actions 统一调用 `bash build.sh --webp`，由脚本安装 .NET SDK 并构建；Actions 额外传入 `--content-revision=${{ github.sha }}` 保留提交版本标识。

@@ -71,11 +71,12 @@ public static class MetadataBuilder
             var flatPath = Path.Combine(dst, "metadata.xml");
             var resolver = new VariableResolver();
 
-            // 发布面 = 展平 metadata.xml + 被引用资源 + _redirects + edgeone.json；
+            // 发布面 = 展平 metadata.xml + 被引用资源 + _redirects + edgeone.json + editor.html；
             // 源 XML / XSD / Templates 不进 Output
             var leafPaths = CopyReferencedResources(flattened, src, dst, version, revision, resolver);
             CopyIfExists(Path.Combine(src, "_redirects"), Path.Combine(dst, "_redirects"));
             CopyIfExists(Path.Combine(src, "edgeone.json"), Path.Combine(dst, "edgeone.json"));
+            CopyIfExists(Path.Combine(src, "editor.html"), Path.Combine(dst, "editor.html"));
 
             flattened.Save(flatPath);
             resolver.ReplaceInFile(flatPath);
