@@ -610,7 +610,6 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   font-family: var(--sans);
   isolation: isolate;
 }
-.stage[data-width="compact"] { max-width: 560px; }
 .stage::before {
   content: "";
   position: absolute; inset: 0;
@@ -655,13 +654,30 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
   color: rgba(255, 255, 255, 0.45);
   font-family: var(--mono); font-size: 8px; letter-spacing: 0.1em;
 }
-.logo-layer { position: absolute; inset: 0; z-index: 3; }
+.logo-layer { position: absolute; inset: 64px clamp(0px, 22%, 220px) 104px; z-index: 3; }
 .logo-anchor { position: absolute; max-width: none; }
+.logo-center {
+  position: absolute;
+  width: 15px; height: 15px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(125, 164, 186, 0.9);
+  border-radius: 50%;
+  z-index: 9;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+.logo-center::before, .logo-center::after {
+  content: "";
+  position: absolute;
+  background: rgba(125, 164, 186, 0.9);
+}
+.logo-center::before { left: 6px; top: 0; width: 1px; height: 13px; }
+.logo-center::after { left: 0; top: 6px; width: 13px; height: 1px; }
 .hero-logo {
   position: static;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: fill;
   max-width: none;
   display: block;
   filter: drop-shadow(0 8px 22px rgba(0, 0, 0, 0.45));
@@ -1117,10 +1133,6 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
             <button type="button" data-locale="zh" aria-pressed="true">中文</button>
             <button type="button" data-locale="en" aria-pressed="false">EN</button>
           </div>
-          <div class="seg" role="group" aria-label="预览宽度">
-            <button type="button" data-width="desktop" aria-pressed="true" title="桌面宽度"><svg><use href="#i-monitor"/></svg></button>
-            <button type="button" data-width="compact" aria-pressed="false" title="紧凑宽度"><svg><use href="#i-phone"/></svg></button>
-          </div>
           <label class="switch"><input type="checkbox" id="guides-toggle" checked> 标注</label>
           <div class="seg force-seg" role="group" aria-label="强制按钮状态">
             <button type="button" data-force="Auto" aria-pressed="true" title="真实交互">自动</button>
@@ -1134,13 +1146,13 @@ input[type="checkbox"] { accent-color: var(--brass); width: 13px; height: 13px; 
 
       <div class="canvas-scroll" id="canvas-scroll">
         <div class="stage-wrap">
-          <div class="stage" id="stage" data-width="desktop" data-force="Auto"></div>
+          <div class="stage" id="stage" data-force="Auto"></div>
         </div>
       </div>
 
       <div class="canvas-foot">
         <span><b>提示</b> 点击预览里的文字、按钮或标注，可直接跳到对应字段。</span>
-        <span class="canvas-foot-right" id="canvas-foot-right">桌面 1120px · 中文</span>
+        <span class="canvas-foot-right" id="canvas-foot-right">中文</span>
       </div>
     </section>
   </main>
@@ -1487,7 +1499,6 @@ Import your own mod XML to replace this sample.`;
     buttonState: 'Base',
     mdLang: 'zh',
     locale: 'zh',
-    previewWidth: 'desktop',
     force: 'Auto',
     guides: true,
     bgPicks: new Map(),
@@ -2036,7 +2047,7 @@ Import your own mod XML to replace this sample.`;
     const y = position.startsWith('Top') ? 0 : (position.startsWith('Center') ? 50 : 100);
     const width = logo.width != null && logo.width > 0
       ? `${logo.width}px`
-      : (logo.height != null && logo.height > 0 ? 'auto' : 'min(280px,34%)');
+      : (logo.height != null && logo.height > 0 ? 'auto' : 'min(280px,34vw)');
     const height = logo.height != null && logo.height > 0 ? `${logo.height}px` : 'auto';
     return [
       `left:calc(${x}% + ${logo.offsetX || 0}px)`,
@@ -2052,7 +2063,7 @@ Import your own mod XML to replace this sample.`;
     const position = logo.position || 'BottomLeft';
     const x = position.endsWith('Right') ? 100 : (position.endsWith('Center') || position === 'Center' ? 50 : 0);
     const y = position.startsWith('Top') ? 0 : (position.startsWith('Center') ? 50 : 100);
-    const width = logo.width != null && logo.width > 0 ? `${logo.width}px` : 'min(280px,34%)';
+    const width = logo.width != null && logo.width > 0 ? `${logo.width}px` : 'min(280px,34vw)';
     const height = logo.height != null && logo.height > 0 ? `${logo.height}px` : '56px';
     return [
       `left:calc(${x}% + ${logo.offsetX || 0}px)`,
@@ -2720,7 +2731,6 @@ Import your own mod XML to replace this sample.`;
     if (!mod) {
       stage.removeAttribute('style');
       stage.className = 'stage no-bg';
-      stage.dataset.width = state.previewWidth;
       stage.dataset.force = state.force;
       stage.dataset.guides = String(state.guides);
       stage.innerHTML = `<div style="padding:80px 40px;text-align:center;color:#9aa1a8;font-size:13px;line-height:1.9">
@@ -2748,10 +2758,10 @@ Import your own mod XML to replace this sample.`;
     const logoCss = logoStyle(logo);
     const logoPlaceholderCss = placeholderLogoStyle(logo);
     const logoImgStyle = logo.width != null && logo.width > 0
-      ? 'width:100%;height:100%;object-fit:contain'
+      ? 'width:100%;height:100%;object-fit:fill'
       : (logo.height != null && logo.height > 0
-        ? 'width:auto;height:100%;object-fit:contain'
-        : 'width:100%;height:auto;object-fit:contain');
+        ? 'width:auto;height:100%;object-fit:fill'
+        : 'width:100%;height:auto;object-fit:fill');
 
     const bg = backgroundData();
     let bgId = '';
@@ -2772,7 +2782,6 @@ Import your own mod XML to replace this sample.`;
 
     stage.className = 'stage' + (bgUrl ? '' : ' no-bg');
     stage.setAttribute('style', stageStyle);
-    stage.dataset.width = state.previewWidth;
     stage.dataset.force = state.force;
     stage.dataset.guides = String(state.guides);
 
@@ -2791,6 +2800,12 @@ Import your own mod XML to replace this sample.`;
         : `<span class="side-link" aria-disabled="true" title="${escAttr(url)}">${body}</span>`;
     }).join('');
 
+    const logoPosition = logo.position || 'BottomLeft';
+    const logoX = logoPosition.endsWith('Right') ? 100 : (logoPosition.endsWith('Center') || logoPosition === 'Center' ? 50 : 0);
+    const logoY = logoPosition.startsWith('Top') ? 0 : (logoPosition.startsWith('Center') ? 50 : 100);
+    const logoCenter = state.guides && logo.exists
+      ? `<span class="logo-center" aria-hidden="true" style="left:calc(${logoX}% + ${logo.offsetX || 0}px);top:calc(${logoY}% + ${logo.offsetY || 0}px)"></span>`
+      : '';
     const logoTagBelow = logo.position.startsWith('Top');
     const logoTip = state.guides
       ? `<button type="button" class="guide-tag logo-tag${logoTagBelow ? ' below' : ''}" data-focus="Logo">STYLE.LOGO</button>`
@@ -2817,7 +2832,7 @@ Import your own mod XML to replace this sample.`;
       <div class="detail-hero">
         <div class="hero-breadcrumb">${svgIcon('play')}<span>我的游戏</span><span>/</span><b>${esc(name)}</b></div>
         <span class="hero-mark">MOD DETAIL</span>
-        <div class="logo-layer">${logoHtml}</div>
+        <div class="logo-layer">${logoCenter}${logoHtml}</div>
         <div class="hero-bottom">
           <div class="version-anchor">
             <div class="version-line" style="${escAttr(secondaryTextStyle)}"><i></i> 当前版本 <b style="${escAttr(primaryTextStyle)}">v${esc(version)}</b></div>
@@ -2844,7 +2859,7 @@ Import your own mod XML to replace this sample.`;
 
     const foot = $('#canvas-foot-right');
     if (foot) {
-      foot.textContent = `${state.previewWidth === 'desktop' ? '桌面 1120px' : '紧凑 560px'} · ${state.locale === 'zh' ? '中文' : 'English'}${bg.images.length > 1 ? ` · 背景 ${state.bgIndex + 1}/${bg.images.length}` : ''}`;
+      foot.textContent = `${state.locale === 'zh' ? '中文' : 'English'}${bg.images.length > 1 ? ` · 背景 ${state.bgIndex + 1}/${bg.images.length}` : ''}`;
     }
     const cycle = $('#cycle-bg');
     if (cycle) cycle.disabled = bg.images.length < 2;
@@ -3097,7 +3112,7 @@ Import your own mod XML to replace this sample.`;
             <div class="num-line"><input type="number" step="any" value="${logo.offsetY || 0}" data-logo-attr="OffsetY" aria-label="Logo 垂直偏移"><span>px</span></div>
           </div>
         </div>
-        <p class="hint" style="margin-top:8px">只写宽或高时保持原图比例；两者都写会按指定尺寸拉伸。偏移是相对锚点的像素值，可以是负数。</p>
+        <p class="hint" style="margin-top:8px">锚点始终是图片中心，位置区与客户端一致（上下 64 / 104px，左右 22%）。只写宽或高时保持原图比例；两者都写会拉伸。偏移是相对这个中心点的像素值，可以是负数。</p>
       </div>
 
       <div class="section">
@@ -3389,12 +3404,6 @@ Import your own mod XML to replace this sample.`;
     for (const button of $$('[data-locale]')) button.setAttribute('aria-pressed', String(button.dataset.locale === state.locale));
     renderPreview();
     if (state.tab === 'content') renderInspector();
-  }
-
-  function setWidth(width) {
-    state.previewWidth = width === 'compact' ? 'compact' : 'desktop';
-    for (const button of $$('[data-width]')) button.setAttribute('aria-pressed', String(button.dataset.width === state.previewWidth));
-    renderPreview();
   }
 
   function setForce(force) {
@@ -4473,9 +4482,6 @@ Import your own mod XML to replace this sample.`;
     for (const button of $$('[data-locale]')) {
       button.addEventListener('click', () => setLocale(button.dataset.locale));
     }
-    for (const button of $$('[data-width]')) {
-      button.addEventListener('click', () => setWidth(button.dataset.width));
-    }
     for (const button of $$('[data-force]')) {
       button.addEventListener('click', () => setForce(button.dataset.force));
     }
@@ -4616,7 +4622,7 @@ Import your own mod XML to replace this sample.`;
     bindStaticEvents();
     loadSample(true);
     const foot = $('#canvas-foot-right');
-    if (foot) foot.textContent = '桌面 1120px · 中文';
+    if (foot) foot.textContent = '中文';
   }
 
   window.__studio = {
