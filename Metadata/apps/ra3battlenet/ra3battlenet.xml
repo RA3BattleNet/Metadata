@@ -9,11 +9,15 @@
     </Includes>
 
     <Application ID="RA3BattleNet">
-        <Version>1.9.9.12</Version>
+        <Version>1.9.9.16</Version>
         <DisplayName Language="zh">红色警戒3战网服务</DisplayName>
         <DisplayName Language="en">Ra3BattleNet</DisplayName>
         <TransferAd>true</TransferAd>
         <Packages>
+            <Package Version="1.9.9.16">
+                <ReleaseDate>2026-10-18</ReleaseDate>
+                <Manifest>manifest-1.9.9.16</Manifest>
+            </Package>
             <Package Version="1.9.9.12">
                 <ReleaseDate>2026-10-07</ReleaseDate>
                 <Manifest>manifest-1.9.9.12</Manifest>
