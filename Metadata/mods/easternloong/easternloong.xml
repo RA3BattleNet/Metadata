@@ -89,6 +89,10 @@
                     <Title Language="zh">模组介绍</Title>
                     <Title Language="en">Introduction</Title>
                 </Titles>
+                <Descriptions>
+                    <Description Language="zh">由国内牧星团队基于《红色警戒3》1.12版本精心打造的一款大型扩展MOD，于2013年2月发行。MOD在原版三大阵营之外，完整构建了全新独立阵营——“天朝”</Description>
+                    <Description Language="en">A massive expansion mod crafted by the Chinese development team MuStar based on Red Alert 3 version 1.12, released in February 2013. Beyond the original three factions, the mod fully builds a brand-new independent faction: the Heavenly Empire (Tianchao).</Description>
+                </Descriptions>
                 <Contents>
                     <Content Language="zh">intro-zh</Content>
                     <Content Language="en">intro-en</Content>
