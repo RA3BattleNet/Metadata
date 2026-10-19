@@ -13,6 +13,7 @@
     <Image ID="tnw-icon" Source="images/tnw-icon.webp" />
     <Image ID="tnw-bg-1" Source="images/tnw-bg-1.webp" />
     <Image ID="tnw-link-1" Source="images/tnw-link-1.webp" />
+    <Image ID="tnw-link-2" Source="images/tnw-link-2.webp" />
 
     <Mod ID="tnw">
         <CurrentVersion>9.3Q</CurrentVersion>
@@ -96,6 +97,11 @@
                 <Icon>tnw-link-1</Icon>
                 <DisplayName Language="zh">哔哩哔哩</DisplayName>
                 <DisplayName Language="en">Bilibili</DisplayName>
+            </Link>
+            <Link Url="https://www.moddb.com/mods/red-alert-the-new-world">
+                <Icon>tnw-link-2</Icon>
+                <DisplayName Language="zh">ModDB 主页</DisplayName>
+                <DisplayName Language="en">ModDB Page</DisplayName>
             </Link>
         </Links>
     </Mod>
