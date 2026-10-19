@@ -10,6 +10,7 @@
         <Include Source="armor-rush/armor-rush.xml" />
         <Include Source="eisenreich/eisenreich.xml" />
         <Include Source="easternloong/easternloong.xml" />
+        <Include Source="tnw/tnw.xml" />
         <Include Source="neuro-eva/neuro-eva.xml" />
         <Include Source="neuro-eva-ar/neuro-eva-ar.xml" />
         <Include Source="arona-eva/arona-eva.xml" />

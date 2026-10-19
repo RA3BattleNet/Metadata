@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Includes>
+        <Include Source="manifests/manifests.xml" />
+    </Includes>
+
+    <Markdown ID="intro-zh" Source="posts/introduction-zh.md" />
+    <Markdown ID="intro-en" Source="posts/introduction-en.md" />
+    <Image ID="tnw-logo" Source="images/tnw-logo.webp" />
+    <Image ID="tnw-icon" Source="images/tnw-icon.webp" />
+    <Image ID="tnw-bg-1" Source="images/tnw-bg-1.webp" />
+    <Image ID="tnw-link-1" Source="images/tnw-link-1.webp" />
+
+    <Mod ID="tnw">
+        <CurrentVersion>9.3Q</CurrentVersion>
+        <Icon>tnw-icon</Icon>
+        <DisplayName Language="zh">新世界</DisplayName>
+        <DisplayName Language="en">The New World</DisplayName>
+        <Style>
+            <Logo Width="300" Position="BottomLeft" OffsetY="0">tnw-logo</Logo>
+            <Controls>
+                <PrimaryLabel>
+                    <Color>#FFFFFF</Color>
+                    <FontSize>16</FontSize>
+                    <FontWeight>700</FontWeight>
+                </PrimaryLabel>
+                <SecondaryLabel>
+                    <Color>#949494</Color>
+                    <FontSize>11</FontSize>
+                    <FontWeight>400</FontWeight>
+                </SecondaryLabel>
+                <PrimaryButton>
+                    <BorderColor>#659DBB</BorderColor>
+                    <BorderWidth>1</BorderWidth>
+                    <BackgroundColor>#659DBB00</BackgroundColor>
+                    <Color>#D9DADA</Color>
+                    <FontSize>14</FontSize>
+                    <FontWeight>700</FontWeight>
+                    <Hover>
+                        <BackgroundColor>#659CBB</BackgroundColor>
+                    </Hover>
+                    <Active>
+                        <BackgroundColor>#659CBB99</BackgroundColor>
+                        <BorderColor>#659DBC</BorderColor>
+                    </Active>
+                </PrimaryButton>
+                <SecondaryButton>
+                    <BorderColor>#FFFFFF55</BorderColor>
+                    <BorderWidth>1</BorderWidth>
+                    <BackgroundColor>#0B0E10A6</BackgroundColor>
+                    <Color>#EDE8DB</Color>
+                    <FontSize>13</FontSize>
+                    <FontWeight>500</FontWeight>
+                    <Hover>
+                        <BorderColor>#FFFFFFAA</BorderColor>
+                        <BackgroundColor>#1A2025CC</BackgroundColor>
+                    </Hover>
+                    <Active>
+                        <BackgroundColor>#000000CC</BackgroundColor>
+                    </Active>
+                </SecondaryButton>
+            </Controls>
+            <Background Random="true">
+                <Image>tnw-bg-1</Image>
+                <Color>#0B0E10</Color>
+                <SecondaryColor>#659EBC1A</SecondaryColor>
+            </Background>
+        </Style>
+        <Packages>
+            <Package Version="9.3Q">
+                <ReleaseDate>2026-10-18</ReleaseDate>
+                <Manifest>manifest-93q</Manifest>
+            </Package>
+        </Packages>
+        <Posts>
+            <Post Type="introduction" DateTime="2026-10-18T00:00:00+08:00">
+                <Titles>
+                    <Title Language="zh">模组介绍</Title>
+                    <Title Language="en">Introduction</Title>
+                </Titles>
+                <Descriptions>
+                    <Description Language="zh">由 小琪Kiritsugu 制作的《红色警戒3》大型模组，重做电力、经济与战斗机制，支持水上建造、史诗单位与奇观胜利。</Description>
+                    <Description Language="en">A large-scale Red Alert 3 mod by KiritsuguQi, rebuilding power, economy and combat around water construction, epic units and a Wonder victory system.</Description>
+                </Descriptions>
+                <Contents>
+                    <Content Language="zh">intro-zh</Content>
+                    <Content Language="en">intro-en</Content>
+                </Contents>
+            </Post>
+        </Posts>
+        <Links>
+            <Link Url="https://space.bilibili.com/9013174" Languages="zh">
+                <Icon>tnw-link-1</Icon>
+                <DisplayName Language="zh">哔哩哔哩</DisplayName>
+                <DisplayName Language="en">Bilibili</DisplayName>
+            </Link>
+        </Links>
+    </Mod>
+</Metadata>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Includes>
+    </Includes>
+    <Manifest ID="manifest-93q" HashAlgorithm="CRC32C">
+        <Skudef GameVersion="1.12" FileName="The New World_9.3Q.skudef">
+            <AddBig File="TheNewWorld_9.3Q.big" />
+        </Skudef>
+        <File Hash="868D0339" Size="574137532" DownloadName="TheNewWorld_9.3Q.zst" Compression="zstd">
+            <FileName>TheNewWorld_9.3Q.big</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MOD;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="http://object.ra3battle.net/mods/tnw/TheNewWorld_9.3Q.zst" />
+            </Sources>
+        </File>
+    </Manifest>
+</Metadata>
