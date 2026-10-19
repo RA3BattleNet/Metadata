@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Includes>
+        <Include Source="manifests/manifests.xml" />
+    </Includes>
+
+    <Markdown ID="intro-zh" Source="posts/introduction-zh.md" />
+    <Markdown ID="intro-en" Source="posts/introduction-en.md" />
+    <Image ID="remix-icon" Source="images/remix-icon.webp" />
+    <Image ID="remix-bg-1" Source="images/remix-bg-1.webp" />
+    <Image ID="remix-link-1" Source="images/remix-link-1.webp" />
+
+    <Mod ID="remix">
+        <CurrentVersion>0.3.7</CurrentVersion>
+        <Icon>remix-icon</Icon>
+        <DisplayName Language="zh">REMIX</DisplayName>
+        <DisplayName Language="en">Remix</DisplayName>
+        <Style>
+            <Logo Width="1" Position="Center" OffsetY="0" />
+            <Controls>
+                <PrimaryLabel>
+                    <Color>#FAE5C3</Color>
+                    <FontSize>16</FontSize>
+                    <FontWeight>700</FontWeight>
+                </PrimaryLabel>
+                <SecondaryLabel>
+                    <Color>#C9C3B6</Color>
+                    <FontSize>11</FontSize>
+                    <FontWeight>400</FontWeight>
+                </SecondaryLabel>
+                <PrimaryButton>
+                    <BorderColor>#C0393E</BorderColor>
+                    <BorderWidth>2</BorderWidth>
+                    <BackgroundColor>#9A181D00</BackgroundColor>
+                    <Color>#FFFFFF</Color>
+                    <FontSize>14</FontSize>
+                    <FontWeight>700</FontWeight>
+                    <Hover>
+                        <BackgroundColor>#FF150B</BackgroundColor>
+                        <BorderColor>#FB1419</BorderColor>
+                    </Hover>
+                    <Active>
+                        <BackgroundColor>#6F1013</BackgroundColor>
+                        <BorderColor>#4A1013</BorderColor>
+                    </Active>
+                </PrimaryButton>
+                <SecondaryButton>
+                    <BorderColor>#FFFFFF55</BorderColor>
+                    <BorderWidth>1</BorderWidth>
+                    <BackgroundColor>#100B0CA6</BackgroundColor>
+                    <Color>#EDE8DB</Color>
+                    <FontSize>13</FontSize>
+                    <FontWeight>500</FontWeight>
+                    <Hover>
+                        <BorderColor>#FFFFFFAA</BorderColor>
+                        <BackgroundColor>#1B1214CC</BackgroundColor>
+                    </Hover>
+                    <Active>
+                        <BackgroundColor>#000000CC</BackgroundColor>
+                    </Active>
+                </SecondaryButton>
+            </Controls>
+            <Background Random="true">
+                <Image>remix-bg-1</Image>
+                <Color>#CC0022E6</Color>
+                <SecondaryColor>#2F0E0AF2</SecondaryColor>
+            </Background>
+        </Style>
+        <Packages>
+            <Package Version="0.3.7">
+                <ReleaseDate>2024-05-30</ReleaseDate>
+                <Manifest>manifest-037</Manifest>
+            </Package>
+        </Packages>
+        <Posts>
+            <Post Type="introduction" DateTime="2024-05-30T00:00:00+08:00">
+                <Titles>
+                    <Title Language="zh">模组介绍</Title>
+                    <Title Language="en">Introduction</Title>
+                </Titles>
+                <Descriptions>
+                    <Description Language="zh">KnightVVV 制作的《红色警戒3》模组，重做全部绝密协议，加入新单位、新地图并修复原版问题。</Description>
+                    <Description Language="en">A Red Alert 3 mod by KnightVVV that remakes every Top Secret Protocol and adds new units, maps and fixes.</Description>
+                </Descriptions>
+                <Contents>
+                    <Content Language="zh">intro-zh</Content>
+                    <Content Language="en">intro-en</Content>
+                </Contents>
+            </Post>
+        </Posts>
+        <Links>
+            <Link Url="https://space.bilibili.com/74467580">
+                <Icon>remix-link-1</Icon>
+                <DisplayName Language="zh">哔哩哔哩主页</DisplayName>
+                <DisplayName Language="en">Bilibili</DisplayName>
+            </Link>
+        </Links>
+    </Mod>
+</Metadata>

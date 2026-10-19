@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Includes>
+    </Includes>
+    <Manifest ID="manifest-037" HashAlgorithm="CRC32C">
+        <Skudef GameVersion="1.12" FileName="Remix_0.3.7.skudef">
+            <AddBig File="Remix_0.3.7.big" />
+        </Skudef>
+        <File Hash="AC31B4AE" Size="354743204" DownloadName="Remix_0.3.7.zst" Compression="zstd">
+            <FileName>Remix_0.3.7.big</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MOD;</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="http://object.ra3battle.net/mods/remix/Remix_0.3.7.zst" />
+            </Sources>
+        </File>
+    </Manifest>
+</Metadata>
