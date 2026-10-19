@@ -21,7 +21,7 @@
         <DisplayName Language="zh">新世界</DisplayName>
         <DisplayName Language="en">The New World</DisplayName>
         <Style>
-            <Logo Width="400" Position="Center">tnw-logo</Logo>
+            <Logo Width="300" Position="BottomLeft" OffsetY="0">tnw-logo</Logo>
             <Controls>
                 <PrimaryLabel>
                     <Color>#FFFFFF</Color>
