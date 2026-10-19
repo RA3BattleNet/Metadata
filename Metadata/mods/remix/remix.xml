@@ -65,8 +65,8 @@
             </Controls>
             <Background Random="true">
                 <Image>remix-bg-1</Image>
-                <Color>#CC0022E6</Color>
-                <SecondaryColor>#2F0E0AF2</SecondaryColor>
+                <Color>#000000E6</Color>
+                <SecondaryColor>#000000F2</SecondaryColor>
             </Background>
         </Style>
         <Packages>
