@@ -23,7 +23,7 @@
         <DisplayName Language="zh">龙霸天下</DisplayName>
         <DisplayName Language="en">Eastern Loong</DisplayName>
         <Style>
-            <Logo Width="400" Position="Center" OffsetY="-18">easternloong-logo</Logo>
+            <Logo Width="400" Position="BottomLeft">easternloong-logo</Logo>
             <Controls>
                 <PrimaryLabel>
                     <Color>#FFFFFF</Color>
