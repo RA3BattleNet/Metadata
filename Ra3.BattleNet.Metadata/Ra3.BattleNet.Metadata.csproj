@@ -5,6 +5,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- NativeAOT：库内 JSON 全部走源生成，Trimmer/AOT 分析器在编译期把关 -->
+    <IsAotCompatible>true</IsAotCompatible>
     <!-- Desktop NuGet：仅主包（解析 + 核心 Build），不含 Imaging/SkiaSharp -->
     <IsPackable>true</IsPackable>
     <PackageId>Ra3.BattleNet.Metadata</PackageId>
@@ -12,5 +14,10 @@
     <Description>RA3 BattleNet metadata parse/query and pure-managed core build (no Imaging/WebP).</Description>
     <Authors>RA3BattleNet</Authors>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 缓存 JSON 契约回归测试需要读写 internal 的 CacheOrigin/CacheStamp 与源生成上下文 -->
+    <InternalsVisibleTo Include="Ra3.BattleNet.Metadata.Tests" />
+  </ItemGroup>
 
 </Project>

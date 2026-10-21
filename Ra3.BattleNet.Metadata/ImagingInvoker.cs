@@ -56,7 +56,7 @@ public static class ImagingInvoker
                  {
                      Environment.CurrentDirectory,
                      AppContext.BaseDirectory,
-                     Path.GetDirectoryName(typeof(ImagingInvoker).Assembly.Location) ?? ""
+                     Path.GetDirectoryName(Environment.ProcessPath) ?? ""
                  })
         {
             var dir = start;

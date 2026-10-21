@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Ra3.BattleNet.Metadata.Cache;
 
@@ -32,12 +33,6 @@ internal sealed class MetadataDiskCache
     private const string OriginFileName = "origin.json";
     private const string SourcesDirectoryName = ".sources";
     private const string RequestsDirectoryName = ".requests";
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        WriteIndented = false,
-    };
 
     private static readonly StringComparison PathComparison =
         OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
@@ -163,7 +158,7 @@ internal sealed class MetadataDiskCache
             try
             {
                 Directory.CreateDirectory(_root);
-                WriteAtomically(path, JsonSerializer.Serialize(new CacheOrigin { PublishingBase = baseUri.AbsoluteUri }, JsonOptions));
+                WriteAtomically(path, JsonSerializer.Serialize(new CacheOrigin { PublishingBase = baseUri.AbsoluteUri }, MetadataCacheJsonContext.Default.CacheOrigin));
             }
             catch (IOException) when (File.Exists(path))
             {
@@ -377,7 +372,7 @@ internal sealed class MetadataDiskCache
         else
             File.Move(tmp, bodyPath);
 
-        WriteJson(stampPath, stamp);
+        WriteJson(stampPath, stamp, MetadataCacheJsonContext.Default.CacheStamp);
     }
 
     public static string Sha256Hex(byte[] data) => Convert.ToHexString(SHA256.HashData(data)).ToLowerInvariant();
@@ -502,7 +497,7 @@ internal sealed class MetadataDiskCache
 
         try
         {
-            var origin = JsonSerializer.Deserialize<CacheOrigin>(File.ReadAllText(path), JsonOptions);
+            var origin = JsonSerializer.Deserialize(File.ReadAllText(path), MetadataCacheJsonContext.Default.CacheOrigin);
             if (origin is null || string.IsNullOrWhiteSpace(origin.PublishingBase))
                 return (true, null);
             return (true, CanonicalizeCore(new Uri(origin.PublishingBase, UriKind.Absolute)));
@@ -590,7 +585,7 @@ internal sealed class MetadataDiskCache
             return null;
         try
         {
-            return JsonSerializer.Deserialize<CacheStamp>(File.ReadAllText(path), JsonOptions);
+            return JsonSerializer.Deserialize(File.ReadAllText(path), MetadataCacheJsonContext.Default.CacheStamp);
         }
         catch (JsonException)
         {
@@ -602,13 +597,13 @@ internal sealed class MetadataDiskCache
         }
     }
 
-    private static void WriteJson<T>(string path, T value)
+    private static void WriteJson<T>(string path, T value, JsonTypeInfo<T> typeInfo)
     {
         var tmp = path + ".tmp";
         var directory = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(directory))
             Directory.CreateDirectory(directory);
-        File.WriteAllText(tmp, JsonSerializer.Serialize(value, JsonOptions), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        File.WriteAllText(tmp, JsonSerializer.Serialize(value, typeInfo), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         if (File.Exists(path))
             File.Replace(tmp, path, destinationBackupFileName: null);
         else
