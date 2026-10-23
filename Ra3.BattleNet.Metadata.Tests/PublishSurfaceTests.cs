@@ -44,7 +44,7 @@ public class PublishSurfaceTests
                 File.ReadAllBytes(Path.Combine(dst, relative))
                     .Should().Equal(File.ReadAllBytes(Path.Combine(src, relative)));
             }
-            File.Exists(Path.Combine(dst, "mods", "corona", "manifests", "3.258.xml")).Should().BeTrue();
+            File.Exists(Path.Combine(dst, "mods", "corona", "manifests", "3.259.xml")).Should().BeTrue();
             File.Exists(Path.Combine(dst, "apps", "ra3battlenet", "manifests", "1.9.9.11.xml")).Should().BeTrue();
 
             // _redirects 自动带出
@@ -113,7 +113,7 @@ public class PublishSurfaceTests
             MetadataBuilder.Build(RepoMetadataDir, dst, schemaVersion: "1.0", contentRevision: "publish-test");
 
             // 叶子清单不能照抄源文件：客户端解析器拒绝 Includes，也不该收到未替换的变量
-            var leafPath = Path.Combine(dst, "mods", "corona", "manifests", "3.258.xml");
+            var leafPath = Path.Combine(dst, "mods", "corona", "manifests", "3.259.xml");
             var text = File.ReadAllText(leafPath);
             text.Should().NotContain("<Includes");
             text.Should().NotMatchRegex(@"\$\{[^}]+\}");
@@ -140,7 +140,7 @@ public class PublishSurfaceTests
         {
             MetadataBuilder.Build(RepoMetadataDir, dst, schemaVersion: "1.0", contentRevision: "publish-test");
 
-            var entry = MetadataBuilder.Load(Path.Combine(dst, "mods", "corona", "manifests", "3.258.xml"))
+            var entry = MetadataBuilder.Load(Path.Combine(dst, "mods", "corona", "manifests", "3.259.xml"))
                 .Find("Manifest")!.ToManifestEntry();
             var skudef = entry.Skudef;
 
@@ -148,7 +148,7 @@ public class PublishSurfaceTests
             skudef!.GameVersion.Should().Be("1.12");
             skudef.Commands.Select(c => c.Target).Should().ContainInOrder(
                 "CustomConfig.txt", "Disabler.big", "HighResShadow.big", "Cor_ENG_3.250.big",
-                "coronaBGM_3.228.lyi", "corona_3.258.lyi", "StaticVersion.big");
+                "coronaBGM_3.228.lyi", "corona_3.259.lyi", "StaticVersion.big");
             skudef.Commands.Should().ContainSingle(c => c.Target == "CustomConfig.txt" && c.Kind == SkudefCommandKind.Config && c.Optional);
             skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "Disabler.big" && c.Package == "disable-sky-and-patches");
             skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "HighResShadow.big" && c.Package == "hd-shadow");

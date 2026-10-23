@@ -19,7 +19,7 @@
     <Image ID="homepage-douyin" Source="images/homepage-douyin.webp" />
 
     <Mod ID="Corona">
-        <CurrentVersion>3.258</CurrentVersion>
+        <CurrentVersion>3.259</CurrentVersion>
         <Icon>corona-icon-128px</Icon>
         <DisplayName Language="zh">日冕</DisplayName>
         <DisplayName Language="en">Corona</DisplayName>
@@ -70,9 +70,9 @@
             </Background>
         </Style>
         <Packages>
-            <Package Version="3.258">
-                <ReleaseDate>2026-08-13</ReleaseDate>
-                <Manifest>manifest-3258</Manifest>
+            <Package Version="3.259">
+                <ReleaseDate>2026-10-23</ReleaseDate>
+                <Manifest>manifest-3259</Manifest>
             </Package>
         </Packages>
         <Posts>

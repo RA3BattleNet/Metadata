@@ -64,7 +64,7 @@ public class QueryApiTests
             var corona = root.Catalog().Mod("Corona")!;
 
             corona.Package().Should().NotBeNull("版本缺省取实体当前版本");
-            corona.ManifestSource().Replace('\\', '/').Should().EndWith("manifests/3.258.xml");
+            corona.ManifestSource().Replace('\\', '/').Should().EndWith("manifests/3.259.xml");
 
             var act = () => corona.ManifestSource("9.9.9");
             act.Should().Throw<InvalidOperationException>().WithMessage("*没有版本*");
