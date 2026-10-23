@@ -61,8 +61,8 @@ public class StageATests
             File.ReadAllText(manifestPath).Should().Contain("<File").And.Contain("Ra3BattleNet_Setup_1.9.9.11.exe");
 
             var coronaManifest = loaded.GetAllElements("Manifest")
-                .First(m => MetadataFlattener.LocalId(m.Get("ID")!) == "manifest-3258");
-            coronaManifest.Get("Source")!.Replace('\\', '/').Should().EndWith("manifests/3.258.xml");
+                .First(m => MetadataFlattener.LocalId(m.Get("ID")!) == "manifest-3259");
+            coronaManifest.Get("Source")!.Replace('\\', '/').Should().EndWith("manifests/3.259.xml");
 
             // 引用已改写为限定 ID
             var app = loaded.Applications().Single(a => a.Id == "RA3BattleNet");

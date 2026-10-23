@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Includes>
+    </Includes>
+    <Manifest ID="manifest-3259" HashAlgorithm="CRC32C">
+        <Skudef GameVersion="1.12">
+            <AddConfig LocalFile="CustomConfig.txt" Optional="true" />
+            <AddBig File="Disabler.big" Package="disable-sky-and-patches" />
+            <AddBig File="HighResShadow.big" Package="hd-shadow" />
+            <AddBig File="Cor_ENG_3.250.big" Language="en" />
+            <AddBig File="coronaBGM_3.228.lyi" />
+            <AddBig File="corona_3.259.lyi" />
+            <AddBig File="StaticVersion.big" Package="world-builder" />
+        </Skudef>
+        <File Hash="3507CD54" Size="5115638">
+            <FileName>Disabler.big</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MISC;</KindOf>
+            <Sources>
+                <Source Type="BT" Url="https://file.cor-games.com/srv/cor/miscs/Disabler.big.torrent" />
+            </Sources>
+        </File>
+        <File Hash="88BE39D6" Size="4693884">
+            <FileName>HighResShadow.big</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MISC;</KindOf>
+            <Sources>
+                <Source Type="BT" Url="https://file.cor-games.com/srv/cor/miscs/HighResShadow.big.torrent" />
+            </Sources>
+        </File>
+        <File Hash="95DC8BF4" Size="13152004">
+            <FileName>Cor_ENG_3.250.big</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MISC;</KindOf>
+            <Sources>
+                <Source Type="BT" Url="https://file.cor-games.com/srv/cor/miscs/Cor_ENG_3.250.big.torrent" />
+            </Sources>
+        </File>
+        <File Hash="385546B3" Size="320502871" DownloadName="coronaBGM_3.228.zst" Compression="zstd">
+            <FileName>coronaBGM_3.228.lyi</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
+            <Sources>
+                <Source Type="BT" Url="https://file.cor-games.com/srv/cor/bgm/coronaBGM_3.228.zst.torrent" />
+            </Sources>
+        </File>
+        <File Hash="EE39CC8C" Size="1020481293" DownloadName="corona_3.259.zst" Compression="zstd">
+            <FileName>corona_3.259.lyi</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
+            <Sources>
+                <Source Type="BT" Url="https://file.cor-games.com/srv/cor/mod/corona_3.259.zst.torrent" />
+            </Sources>
+        </File>
+        <File Hash="7A24FEEF" Size="118">
+            <FileName>StaticVersion.big</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>MISC;</KindOf>
+            <Sources>
+                <Source Type="BT" Url="https://file.cor-games.com/srv/cor/miscs/StaticVersion.big.torrent" />
+            </Sources>
+        </File>
+        <Dependencies>
+            <Dll Name="Lyi.dll" KindOf="APPLICATION" Hash="A4A7924F" />
+            <Dll Name="RA3LuaBridge.dll" KindOf="APPLICATION" Hash="0D49B9A0" />
+            <Dll Name="EnhancerCorona.dll" KindOf="APPLICATION" Hash="61F43FED" />
+        </Dependencies>
+    </Manifest>
+</Metadata>
