@@ -10,6 +10,7 @@
   <Image ID="Eisenreich-icon" Source="images/icon-64px.png"/>
   <Image ID="Eisenreich-logo" Source="images/banner.png"/>
   <Image ID="Eisenreich-bg" Source="images/background-1.webp"/>
+  <Markdown ID="intro-zh" Source="posts/introduction-zh.md" />
   <Mod ID="Eisenreich">
     <CurrentVersion>3.0</CurrentVersion>
     <Icon>Eisenreich-icon</Icon>
@@ -70,6 +71,28 @@
         <Manifest>manifest-30</Manifest>
       </Package>
     </Packages>
-    <Posts/>
+    <Posts>
+      <Post Type="introduction" DateTime="2026-10-24T00:00:00+08:00">
+        <Titles>
+          <Title Language="zh">《红色警戒3：钢铁帝国-现代战争》模组介绍</Title>
+        </Titles>
+        <Descriptions>
+          <Description Language="zh">由 CrystalNight 制作的《红色警戒3》大型扩展 MOD，重做阵营、科技树与战斗体系，带来写实现代战争体验。</Description>
+        </Descriptions>
+        <Contents>
+          <Content Language="zh">intro-zh</Content>
+        </Contents>
+      </Post>
+    </Posts>
+    <Links>
+      <Link Url="https://space.bilibili.com/29121921">
+        <DisplayName Language="zh">哔哩哔哩</DisplayName>
+        <DisplayName Language="en">Bilibili</DisplayName>
+      </Link>
+      <Link Url="https://www.moddb.com/mods/red-alert-3-eisenreich">
+        <DisplayName Language="zh">ModDB 主页</DisplayName>
+        <DisplayName Language="en">ModDB Page</DisplayName>
+      </Link>
+    </Links>
   </Mod>
 </Metadata>
