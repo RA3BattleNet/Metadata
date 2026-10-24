@@ -436,6 +436,8 @@ public static class MetadataBuilder
                 ValidateIdRef(img.Value?.Trim(), "Background Image", imageIds, errors);
         }
 
+        ValidateModSettingsPairing(metadata, outputDir, errors);
+
         if (string.IsNullOrWhiteSpace(metadata.Get("SchemaVersion"))
             && metadata.Find("SchemaVersion") == null)
         {
@@ -487,6 +489,64 @@ public static class MetadataBuilder
         if (string.IsNullOrWhiteSpace(id)) return;
         if (!idIndex.Contains(id))
             errors.Add($"{kind} 引用未找到 ID: {id}");
+    }
+
+    /// <summary>
+    /// 校验所属 Mod 的设置定义与各版本叶子 Manifest 的设置绑定是否合法匹配。
+    /// 校验逻辑：
+    /// 1. 遍历元数据中所有 Mod，解析其 <c>Mod/Settings</c>（若未声明则视为空集合）。
+    /// 2. 依次读取该 Mod 下每个 Package 对应的叶子 Manifest 文件，交由 <see cref="ModSettingsContract.Validate"/> 进行跨节点硬校验。
+    /// 3. 兼容性保证：未声明设置绑定且未声明 Dll ID 的旧清单不包含新语法节点，校验直接通过，完全不受影响。
+    /// </summary>
+    private static void ValidateModSettingsPairing(Metadata metadata, string outputDir, List<string> errors)
+    {
+        foreach (var mod in metadata.GetAllElements("Mod"))
+        {
+            var modId = mod.Get("ID") ?? string.Empty;
+            IReadOnlyList<ModSettingDefinition> definitions;
+            try
+            {
+                var settingsNode = mod.Find("Settings");
+                definitions = settingsNode == null
+                    ? Array.Empty<ModSettingDefinition>()
+                    : ModSettingsContract.ParseDefinitions(settingsNode);
+            }
+            catch (InvalidOperationException ex)
+            {
+                errors.Add($"Mod '{modId}' 设置定义非法: {ex.Message}");
+                continue;
+            }
+
+            var packages = mod.Find("Packages");
+            if (packages == null)
+                continue;
+
+            foreach (var package in packages.Children.Where(c => c.Name == "Package"))
+            {
+                var manifestId = package.Find("Manifest")?.Value;
+                if (string.IsNullOrWhiteSpace(manifestId))
+                    continue;
+
+                var source = metadata.ManifestRegistration(manifestId)?.Get("Source");
+                if (string.IsNullOrWhiteSpace(source))
+                    continue;
+
+                var leafPath = Path.Combine(outputDir, source.Replace('\\', '/'));
+                if (!File.Exists(leafPath))
+                    continue; // 资源缺失由上面统一报错
+
+                try
+                {
+                    var leaf = Metadata.LoadFromFile(leafPath).Find("Manifest")
+                        ?? throw new InvalidOperationException($"叶子清单缺少 Manifest 节点: {source}");
+                    ModSettingsContract.Validate(definitions, leaf.ToManifestEntry());
+                }
+                catch (InvalidOperationException ex)
+                {
+                    errors.Add($"Mod '{modId}' 版本 {package.Get("Version")} 设置契约: {ex.Message}");
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -622,6 +682,7 @@ public static class MetadataBuilder
             return;
 
         var seenDlls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenDllIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var dll in dependencies.Elements().Where(e => e.Name.LocalName == "Dll"))
         {
             var name = dll.Attribute("Name")?.Value ?? string.Empty;
@@ -634,6 +695,17 @@ public static class MetadataBuilder
 
             if (!seenDlls.Add(name))
                 errors.Add($"{where}: Dll Name 重复");
+
+            var dllId = dll.Attribute("ID")?.Value;
+            if (dllId != null)
+            {
+                if (string.IsNullOrWhiteSpace(dllId))
+                    errors.Add($"{where}: Dll ID 不能为空");
+                else if (dllId.Contains(':', StringComparison.Ordinal))
+                    errors.Add($"{where}: Dll ID 不能含 ':'（局部 ID）");
+                else if (!seenDllIds.Add(dllId))
+                    errors.Add($"{where}: Dll ID 重复: {dllId}");
+            }
 
             var hash = dll.Attribute("Hash")?.Value ?? string.Empty;
             if (hash.Length != hashLen)

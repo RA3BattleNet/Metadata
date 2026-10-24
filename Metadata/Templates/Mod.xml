@@ -103,6 +103,30 @@
       </Link>
     </Links>
     -->
+    <!-- 通用模组设置定义：仅支持 Boolean（布尔）与 Choice（单选枚举）；
+         ID 是所属 Mod 内的局部 ID，不含全根资源前缀；动态文案请使用标准主语言族代号（如 zh、en）。
+         注意：Settings 节点在 XML 结构中必须作为 Mod 节点的最后一个子元素。示例：
+    <Settings>
+      <Boolean ID="hd-shadow" Default="false">
+        <DisplayName Language="zh">高清阴影</DisplayName>
+        <DisplayName Language="en">High-Res Shadows</DisplayName>
+        <Description Language="zh">启用更高分辨率的实时地面阴影</Description>
+        <Description Language="en">Enable higher resolution shadows</Description>
+      </Boolean>
+      <Choice ID="mod-language" Default="chs">
+        <DisplayName Language="zh">模组语言</DisplayName>
+        <DisplayName Language="en">Mod Language</DisplayName>
+        <Option Value="chs">
+          <DisplayName Language="zh">简体中文</DisplayName>
+          <DisplayName Language="en">Simplified Chinese</DisplayName>
+        </Option>
+        <Option Value="en">
+          <DisplayName Language="zh">英语 (English)</DisplayName>
+          <DisplayName Language="en">English</DisplayName>
+        </Option>
+      </Choice>
+    </Settings>
+    -->
   </Mod>
 
   <Manifest ID="manifest-100">
@@ -111,5 +135,33 @@
       <RelativePath>/</RelativePath>
       <KindOf>MOD;</KindOf>
     </File>
+    <!-- 依赖 DLL 列表：ID 为当前清单内的局部唯一 ID（供注入与设置动作引用）；Name 为实际文件名；
+         Hash 请依据清单声明的 HashAlgorithm 填写真实计算值；
+         Protocol 仅在需要被注入时显式声明（如 lyi-create-process、easyhook）；CustomData 目前仅支持 utf8/log-file。示例：
+    <Dependencies>
+      <Dll ID="lua-bridge" Name="RA3LuaBridge.dll" Hash="0D49B9A0" Protocol="lyi-create-process" />
+      <Dll ID="crates-hook" Name="ARCratesDll.dll" Hash="真实CRC32C" Protocol="easyhook">
+        <CustomData Encoding="utf8">
+          <RuntimeValue Name="log-file" />
+        </CustomData>
+      </Dll>
+    </Dependencies>
+    -->
+    <!-- 显式注入动作集合：凡是声明了 Dll ID 或在设置中包含 InjectDll 的新清单，都必须显式写出 Injection 节点；若无无条件动作，请写空节点 <Injection />。示例：
+    <Injection>
+      <RequireDll Ref="lyi" />
+      <InjectDll Ref="lua-bridge" />
+    </Injection>
+    -->
+    <!-- 版本设置绑定：一律使用 SettingRef 及其 Ref 属性引用 Mod 级已经定义的设置 ID，不可在此处重新定义设置。示例：
+    <Settings>
+      <SettingRef Ref="mod-language">
+        <MountLanguage />
+      </SettingRef>
+      <SettingRef Ref="hd-shadow">
+        <MountPackage Name="hd-shadow" />
+      </SettingRef>
+    </Settings>
+    -->
   </Manifest>
 </Metadata>
