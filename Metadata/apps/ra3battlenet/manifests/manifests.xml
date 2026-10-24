@@ -10,5 +10,6 @@
         <Include Source="1.9.9.11.xml" />
         <Include Source="1.9.9.12.xml" />
         <Include Source="1.9.9.16.xml" />
+        <Include Source="1.9.9.19.xml" />
     </Includes>
 </Metadata>

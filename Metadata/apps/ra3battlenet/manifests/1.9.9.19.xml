@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <!-- 客户端整包（NSIS 安装器）。本版在 file.cor-games.com 上没有 torrent，
+         只有 R2 上这一份 HTTP 直发的安装包，所以只登记 HTTP 来源。
+         @Hash 是安装器本身（FileName）的 CRC32C Full，@Size 是它的字节数；
+         不写 DownloadName / Compression —— 服务端就是原样直发这个 exe。 -->
+    <Manifest ID="manifest-1.9.9.19" HashAlgorithm="CRC32C">
+        <File Hash="CDA4CFF5" Size="34973154">
+            <FileName>Ra3BattleNet_Setup_1.9.9.19.exe</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>APPLICATION</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://update.ra3battle.net/app/RA3BattleNet/Ra3BattleNet_Setup_1.9.9.19.exe" />
+            </Sources>
+        </File>
+    </Manifest>
+</Metadata>
