@@ -10,6 +10,8 @@
   <Image ID="Eisenreich-icon" Source="images/icon-64px.png"/>
   <Image ID="Eisenreich-logo" Source="images/banner.png"/>
   <Image ID="Eisenreich-bg" Source="images/background-1.webp"/>
+  <Image ID="Eisenreich-link-bilibili" Source="images/link-bilibili.webp"/>
+  <Image ID="Eisenreich-link-moddb" Source="images/link-moddb.webp"/>
   <Markdown ID="intro-zh" Source="posts/introduction-zh.md" />
   <Mod ID="Eisenreich">
     <CurrentVersion>3.0</CurrentVersion>
@@ -86,10 +88,12 @@
     </Posts>
     <Links>
       <Link Url="https://space.bilibili.com/29121921">
+        <Icon>Eisenreich-link-bilibili</Icon>
         <DisplayName Language="zh">哔哩哔哩</DisplayName>
         <DisplayName Language="en">Bilibili</DisplayName>
       </Link>
       <Link Url="https://www.moddb.com/mods/red-alert-3-eisenreich">
+        <Icon>Eisenreich-link-moddb</Icon>
         <DisplayName Language="zh">ModDB 主页</DisplayName>
         <DisplayName Language="en">ModDB Page</DisplayName>
       </Link>
