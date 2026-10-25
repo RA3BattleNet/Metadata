@@ -9,7 +9,6 @@
 
     <Markdown ID="intro-zh" Source="posts/introduction-zh.md" />
     <Markdown ID="intro-en" Source="posts/introduction-en.md" />
-    <Image ID="tnw-logo" Source="images/tnw-logo.webp" />
     <Image ID="tnw-icon" Source="images/tnw-icon.webp" />
     <Image ID="tnw-bg-1" Source="images/tnw-bg-1.webp" />
     <Image ID="tnw-link-1" Source="images/tnw-link-1.webp" />
@@ -21,7 +20,7 @@
         <DisplayName Language="zh">新世界</DisplayName>
         <DisplayName Language="en">The New World</DisplayName>
         <Style>
-            <Logo Width="300" Position="BottomLeft" OffsetY="0">tnw-logo</Logo>
+            <Logo Width="1" Position="Center" OffsetY="0" />
             <Controls>
                 <PrimaryLabel>
                     <Color>#FFFFFF</Color>
