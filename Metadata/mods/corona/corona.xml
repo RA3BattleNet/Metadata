@@ -70,6 +70,10 @@
             </Background>
         </Style>
         <Packages>
+            <Package Version="3.258">
+                <ReleaseDate>2026-08-13</ReleaseDate>
+                <Manifest>manifest-3258</Manifest>
+            </Package>
             <Package Version="3.259">
                 <ReleaseDate>2026-10-23</ReleaseDate>
                 <Manifest>manifest-3259</Manifest>
