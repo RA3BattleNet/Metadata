@@ -1,226 +1,64 @@
-# AGENTS.md — Metadata 仓库指引
+# AGENTS.md
 
-本仓库是**红警3战网**的元数据仓库，核心其实就管两件事：
+本仓库是红警3战网的元数据中心：`Metadata/` 放原始数据，`Ra3.BattleNet.Metadata` 是解析库兼构建器。下面是硬约束和地图；细节全在 `.agents/`，按需再读，别一次吞完。
 
-1. **放数据的地方**：Mod 作者或者开发者提交原始的 XML 文件、图片、更新说明 Markdown 和安装清单，GitHub CI 编译打包后发布成静态网页文件，客户端联网下载并解析；
-2. **读数据的解析库**：`Ra3.BattleNet.Metadata`（纯 C# 编写，不依赖任何第三方平台组件）——客户端不管是通过**网页链接（URL）还是本地文件夹**，都用这个库来读取和解析发布出来的数据。
+## 红线
 
-> 怎么看这份文档：**自己手动写数据的作者**看下文的「数据贡献者指南」；**自动化 Agent 或开发人员**请通读全文并严格按规矩执行。
-> 客户端怎么调用解析库的用法，见 [README.md](./README.md)。
+1. **删除**：禁止 `rm`、`del`、`Remove-Item` 直接删除；一律移到回收站。改软硬链接前先确认。
+2. **范围**：用户没点名的文件不动；不顺手重排格式、不顺手重构无关代码。
+3. **ID 前缀**：作者只写短名，`{路径前缀}:` 由构建器补。手写冒号前缀直接报错。
+4. **失败处理**：校验失败就抛错并清空 `Output/`。不吞异常，不加“先放过”的兜底分支。
+5. **测试框架**：只用 MSTest，禁止引入 xunit。
+6. **流水线开关**：不要新增 `RUN_STAGE_B` / `StageB` 之类的阶段参数，构建只有一条路。
+7. **敏感信息**：不读、不打印密钥、Token、密码；需要时只引用环境变量名。
 
-## 常用开发命令
+## 命令
 
 ```bash
-# 运行单元测试（使用 MSTest）
 dotnet test Metadata.sln
-
-# 核心编译打包（平时开发默认跑这个，本地调试桌面端也是这个）
 dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Output
-
-# 正式发布打包（包含把图片转成 WebP 格式）
-npm run build:release
-# 或者在 Linux / Git Bash 下跑：
-bash build.sh --webp
+npm run build:release                  # 构建 + WebP，与线上一致
+node scripts/verify-docs.mjs           # 文档与笔记检查
+node scripts/verify-docs.mjs --write   # 文档内容确实改了时，重写生成物
 ```
 
-- **千万不要**在代码里再去加老旧的 `RUN_STAGE_B` 或 `StageB` 参数控制面。
-- 本地开发测试时默认**不会**去跑耗时的图片转换（Imaging）；部署到 Cloudflare Pages 线上生产环境时才执行 `bash build.sh --webp`。
+## 文档地图
 
----
-
-# 数据贡献者指南（写数据的人必读）
-
-## 快速上手：怎么添加一个新的 Mod（只需 5 步）
-
-1. 复制现成的模板脚手架：把 `Metadata/Templates/Mod.xml` 复制一份到 `Metadata/mods/<你的Mod英文名>/<你的Mod英文名>.xml`；
-2. 改唯一标识：把里面的 `<Mod ID="<你的Mod英文名>">` 改成你的名字（**必须全仓库唯一**）；至于里面的图片、Markdown、清单等资源短 ID，只要在当前文件内部不重名就行；
-3. 把你要用到的图片和 Markdown 说明文件放进同一个文件夹里（比如建个 `images/` 或 `posts/` 目录），XML 里各个资源的 `Source` 属性直接填写它们的相对路径；
-4. 打开 `Metadata/mods/mods.xml`，在 `<Includes>` 列表里加上一行，把你的文件挂上去：
-   `<Include Source="<你的Mod英文名>/<你的Mod英文名>.xml" />`
-5. 运行自检命令（见下文「提交前自检」），检查有没有格式错误。
-
-如果要添加 Application（比如战网客户端自身或者游戏运行资源），流程完全一样，只是把目录换成 `apps/<应用名>/`，并挂载到 `apps/apps.xml` 里。无论 Mod 还是 Application，都别忘了把模板里 `zh` 与 `en` 两条显示名改成真实产品名（详见下文说明）。
-
-## 必须遵守的三条铁律（剩下的繁琐杂活全部交给构建器处理）
-
-1. **文件夹路径必须独一无二**：所有东西老老实实放在 `mods/<Mod名>/` 或 `apps/<应用名>/` 目录下，文件在哪个目录，就相当于在哪个命名空间里；
-2. **文件内的资源短 ID 只要文件内不重复即可**：同一个 XML 文件里的 `Image`、`Markdown`、`Manifest` 的 `@ID` 只要在当前文件里不重名就没问题；
-3. **顶层实体的全局 ID 必须全仓库唯一**：每个 `Mod` 或者 `Application` 的 `@ID` 必须在整个仓库里独一无二（不区分大小写，跨 Mod 和 Application 统统不能撞名）。
-
-构建打包程序会自动帮你做：补全完整的全名 ID（格式为 `{路径前缀}:{localId}`）、自动替换互相引用的地方、自动把引用的图片等资源拷贝到输出目录，并进行全方位校验。
-**只要发现任何冲突，打包就会立刻硬失败报错**（报错信息会明确指出版权在哪一行、哪个文件），坚决不偷偷摸摸产出脏数据。平时在写 XML 时，**坚决禁止自己手动去拼冒号 `:` 前缀**。
-
-## 原始数据目录长什么样
-
-```text
-Metadata/
-  metadata.xml              整个项目的总入口：里面只负责用 Include 挂载其他文件
-  apps/<应用名>/            每个独立应用程序放一个目录
-    <应用名>.xml            定义应用本身以及登记所需的资源
-    manifests/ posts/ ...
-  mods/<Mod名>/             每个 Mod 放一个目录
-    <Mod名>.xml             定义 Mod 本身、版本、外观样式、新闻、友情链接以及登记所需资源
-    manifests/ posts/ images/ ...
-  Templates/                脚手架模板（新建文件时直接复制，不参与正式打包）
-```
-
-## 一个完整的 Mod 文件到底怎么写
-
-```xml
-<Metadata>
-  <!-- 登记你要用到的资源：写文件内部的短 ID 即可，Source 属性指向同目录下的实际文件 -->
-  <Image ID="icon-64px" Source="images/icon-64px.png" />
-  <Markdown ID="news-zh-3229" Source="news-zh-3229.md" />
-  <Markdown ID="news-en-3229" Source="news-en-3229.md" />
-  <Image ID="logo-example" Url="https://example.com/logo.png" />  <!-- 外部图片直链，不会下载保存到本地 -->
-
-  <Mod ID="Corona">                              <!-- 实体 ID：在整个仓库里必须是唯一的 -->
-    <CurrentVersion>3.229</CurrentVersion>
-    <Icon>icon-64px</Icon>                       <!-- 引用上面登记的资源，直接写短名 -->
-    <DisplayName Language="zh">日冕</DisplayName>   <!-- 必填：zh 与 en 两条都要写，可再补其它语言 -->
-    <DisplayName Language="en">Corona</DisplayName>
-    <Style>
-      <Logo Width="400" Height="80">icon-64px</Logo>
-      <Controls>
-        <PrimaryButton>
-          <BorderColor Format="ARGB">#FF000000</BorderColor>
-          <Hover><BackgroundColor>#FFFFFF</BackgroundColor></Hover>
-          <Active><BackgroundColor>#CCCCCC</BackgroundColor></Active>
-        </PrimaryButton>
-      </Controls>
-      <Background Random="true">
-        <Image>icon-64px</Image>                 <!-- 背景里的 Image 纯粹是引用短名，不需要写 ID -->
-      </Background>
-    </Style>
-    <Packages>
-      <Package Version="3.229">
-        <ReleaseDate>2025-04-01</ReleaseDate>
-        <Manifest>manifest-3229</Manifest>
-      </Package>
-    </Packages>
-    <Posts>                                    <!-- 新闻属于本 Mod，不挂在 Package 上，也不从 Base 继承 -->
-      <Post DateTime="2025-04-01T00:00:00+08:00">
-        <Titles>
-          <Title Language="zh">版本更新 3.229</Title>
-          <Title Language="en">Update 3.229</Title>
-        </Titles>
-        <Descriptions>                         <!-- 可选；没有简介就省略整个 Descriptions，不要写空标签 -->
-          <Description Language="zh">简短介绍。</Description>
-          <Description Language="en">Short summary.</Description>
-        </Descriptions>
-        <HeadImage>icon-64px</HeadImage>       <!-- 可选：已登记图片的短 ID，作为新闻封面；没有就省略整个 HeadImage -->
-        <Contents>
-          <Content Language="zh">news-zh-3229</Content>
-          <Content Language="en">news-en-3229</Content>
-        </Contents>
-      </Post>
-    </Posts>
-    <Links>                                    <!-- 只允许写在 Mod 下；取消注释或照抄前换成真实网址 -->
-      <Link Url="https://example.com/" Languages="zh en">
-        <Icon>icon-64px</Icon>                 <!-- 可选图片短 ID，不要写 URL 或路径前缀 -->
-        <DisplayName Language="zh">官方网站</DisplayName>
-        <DisplayName Language="en">Official website</DisplayName>
-      </Link>
-    </Links>
-  </Mod>
-</Metadata>
-```
-
-核心要点说明：
-
-- **资源登记节点**：指的是带 `@ID` 属性的 `Image`、`Markdown`、`Manifest` 标签；而在后面引用它们时（比如 Icon、Logo、Background 里的 Image、公告正文 Post.Content、公告封面 Post.HeadImage、友情链接 Link.Icon、版本包对应的 Package.Manifest），**统一直接写短名字**，构建打包程序会自动在“当前文件以及它所引入的文件”作用域内，帮你把短名字改写成带路径前缀的完整 ID。
-- `Include` 标签只需要写 `Source` 属性（填相对于当前文件的路径），不需要写额外的 `Type` 或 `Path` 属性；所有子文件根节点一律以 `<Metadata>` 开头。
-- 如果多个 Mod 想共享同一套公共样式，可以使用 `Base` 和 `InheritFrom` 继承机制（编译打包时会自动合并，最终发布出来的文件里不留痕迹）；平时如果用不到直接忽略即可。
-- `Style` 和所有样式字段都可省略，未配置时由客户端主题决定。标签分 `PrimaryLabel` / `SecondaryLabel`，按钮分 `PrimaryButton` / `SecondaryButton`；按钮的 `Hover` 与 `Active` 分别表示悬停和按下，状态字段缺省时使用最终合并后的普通按钮字段，不从 Hover 回退到 Active。
-- 颜色字段使用 `Color` / `BackgroundColor` / `BorderColor` / `SecondaryColor`，每个颜色节点可写 `Format="CSS"` 或 `Format="ARGB"`。省略时按 CSS 的 `#RRGGBB` / `#RRGGBBAA` 解析；ARGB 必须是 `#AARRGGBB`。颜色值和 Format 在继承时一起替换。客户端可调用 `MetadataColor.ToCss(value, format)` 转成 CSS。
-- 字号用 `FontSize`（正数），字重用 `FontWeight`（100～900 的整数），边框宽度用 `BorderWidth`（非负数）。Logo 尺寸、字号、边框与偏移单位为逻辑像素。详细属性与 Vue 映射见 [Mod 样式文档](.agents/notes/implemented/feature/2026-10-04-mod-style.md)。
-- 元数据契约版本保持 `1.0`，Style 调整不提高整个元数据的版本号。客户端可调用 `MetadataSchema.IsCompatible(root.Get("SchemaVersion"))` 检查；通过版本检查不代表已实现新样式展示。旧控件名称不再受 XSD 支持。
-
-- 版本包只保留 `Version`、可选 `ReleaseDate` 和可选 `Manifest`。不要再写 `Changelogs`；更新说明全部放进该实体自己的 `Posts`。Application 同样只在自身节点写 `Posts`，不能写 `Links`。Base 不能定义 `Posts` 或 `Links`，新闻和友情链接都不继承。没有文章时写 `<Posts/>`，不要编造新闻，也不要做跨实体公共列表。
-- `Post` 顺序固定为 `Titles`、可选 `Descriptions`、可选 `HeadImage`、`Contents`。正文继续引用已登记的 Markdown 短 ID，外跳链接写在 Markdown 里，不要给 Post 加 `Url` 或 `Version`。介绍可省略，构建器不会从正文截取。`HeadImage` 是新闻可选封面，填已登记图片短 ID（引用 Markdown／Manifest 或写不存在的 ID 都会被构建器硬失败拦截），省略即无封面。
-- `Link@Url` 只能是 HTTP／HTTPS，必须有非空主机且不能含空白。`Languages` 省略表示所有语言可见；写成空白分隔列表（如 `zh en`），不能是空字符串。比较走 `LanguageTag.Matches`，不区分大小写：数据侧只写 `zh`／`en`，查询带地区时按语言族比（`zh-CN` 按 `zh`，`en-US` 按 `en`），`en` 不会匹配到 `english`；反向不成立，查询 `zh` 不会命中 `zh-CN`。展示名由客户端用 `LanguageTag.Select` 取该语言下的第一条。同一条链接内不要重复同一语言标签。省略 `Icon` 时客户端用通用外链图标。
-- `Mod` 与 `Application` 都必须有显示名：重复的 `<DisplayName Language="…">文本</DisplayName>`，其中 `zh` 与 `en` 两条必须各写一条（完整语言标签精确匹配，比较不区分大小写），完整语言标签不区分大小写且同实体不能重复，文本不能为空，可再补其它语言。显示名属于实体自身，不从 `Base` 继承（Base 也不允许写 `DisplayName`）。
-- 元数据协议版本保持 `1.0`。这不表示旧的 `Package.Changelogs` 或 `ChangelogSource` 仍可用：二者已从模式和解析库删除，没有兼容包装。客户端用实体的 `Raw.Find("Posts")` 读取新闻，用 Mod 的 `Raw.Find("Links")` 读取友情链接；库不提供这两类节点的强类型查询，也不负责执行语言筛选。
-
-## 安装清单（Manifest）的两种写法（两种都合法，文件表都不会塞进大总表里）
-
-1. **偷懒省事写法**：在 Mod 的主 XML 文件顶层直接写 `<Manifest ID="..."><File .../></Manifest>` —— 构建器生成的占位引用 `Source` 会直接指向**本模块文件**（平时做示例或本地测试够用，缺点是这个清单文件里顺带包含了 Mod 的实体定义，稍微多占了点体积）；
-2. **正规规范写法（官方推荐，日冕 Mod 采用的就是这种）**：在 `manifests/manifests.xml` 里通过 Include 引入独立的叶子清单文件 `manifests/<版本号>.xml`（这个独立文件里只老老实实放 `Manifest`、`Skudef` 和 `File` 文件表）——打包后的引用精确指向该独立文件，**文件的哈希通常由 Updater 负责维护**，本仓库里的示例哈希可以先填占位。
-
-叶子清单里的 `<Skudef>` 标签，决定了客户端启动游戏前生成的 skudef 脚本里该写哪些行、按什么顺序写（你在 XML 里写的子元素先后顺序，就是最终生成的行顺序）：
-
-```xml
-<Manifest ID="manifest-3258" HashAlgorithm="CRC32C">
-  <Skudef GameVersion="1.12">
-    <AddConfig LocalFile="CustomConfig.txt" Optional="true" />
-    <AddBig File="Cor_ENG_3.250.big" Language="en" />
-    <AddBig File="corona_3.258.lyi" />
-  </Skudef>
-  <File Hash="95DC8BF4" ...>
-    <FileName>Cor_ENG_3.250.big</FileName>
-    ...
-  </File>
-</Manifest>
-```
-
-- `AddBig@File` 必须填写对应的 `FileName`，而且每个 `FileName` 必须恰好被引用一次；`AddConfig@LocalFile` 填写用户在 Mod 目录下自己手动放的纯文件名。
-- 加载条件二选一：`@Language`（只有当玩家客户端切换到该语言时才加载）、`@Package`（只有当玩家在客户端里勾选了该可选功能包时才加载）；如果什么都不写，代表无条件默认加载。
-- 只要写了 `<Skudef>` 标签，就坚决不允许再跑到下面的 `<File>` 标签上写 `Mount`、`Language`、`Package` 属性（所有加载规则必须集中在 Skudef 这一处说明）。
-
-## 构建时自动替换的宏变量
-
-| 变量语法 | 实际替换成什么 |
+| 要做什么 | 读哪份 |
 |---|---|
-| `${TIMESTAMP}` | 当前构建的 UTC 时间戳 |
-| `${ENV:NAME}` | 读取名为 NAME 的环境变量 |
+| 改 Mod / 应用 / 公告数据 | [.agents/docs/references/data-authoring.md](.agents/docs/references/data-authoring.md) |
+| 写版本清单、`Skudef`、下载来源 | [.agents/docs/references/manifest-and-skudef.md](.agents/docs/references/manifest-and-skudef.md) |
+| 改模型字段、样式、语言、启动兼容性 | [.agents/docs/references/metadata-model.md](.agents/docs/references/metadata-model.md) |
+| 改解析库、查询 API、磁盘缓存 | [.agents/docs/references/library-api.md](.agents/docs/references/library-api.md) |
+| 改构建流水线、Imaging、部署 | [.agents/docs/references/build-and-release.md](.agents/docs/references/build-and-release.md) |
+| 了解分层、数据流、不变量 | [.agents/ARCHITECTURE.md](.agents/ARCHITECTURE.md) |
+| 写决策笔记、改文档结构 | [.agents/CONTRIBUTING.md](.agents/CONTRIBUTING.md) |
+| 查文件路径与行数 | [.agents/docs/generated/paths.md](.agents/docs/generated/paths.md) |
+| 查历史决定 | [.agents/docs/generated/notes-index.md](.agents/docs/generated/notes-index.md) |
+| 查术语 | [.agents/docs/glossary.md](.agents/docs/glossary.md) |
+| 查已知缺口 | [.agents/docs/exec-plans/tech-debt-tracker.md](.agents/docs/exec-plans/tech-debt-tracker.md) |
 
-> XML 里只有 Manifest 的 `File@Hash`/`Dependencies/Dll@Hash` 与 UpdateKind 的 `Updater@Hash` 带哈希，都由各自的生成方给出字面值；Image 与 Markdown **不写 Hash**，源 XSD 会直接拒绝。
+导航总表在 [.agents/docs/index.md](.agents/docs/index.md)。
 
-## 提交代码前的本地自检
+## 不变量
 
-在把代码推送到 Git 之前，务必在本地终端跑一遍自检：
+- 发布树只有静态文件，根 `metadata.xml` 里不能有 `Include`。
+- 完整 ID 由构建器生成；`Manifest`、`Image`、`Markdown` 的登记与引用只用短名。
+- 资源地址只来自登记节点的 `Source`，客户端不猜路径、不猜扩展名。
+- `SchemaVersion` 保持 `1.0`；改样式、加可选字段不提高版本。
+- `Package` 只带 `Version`、`ReleaseDate`、`Manifest`；更新说明写在实体的 `Posts`。
+- `Mod` 与 `Application` 必须各有 `zh`、`en` 两条 `DisplayName`；显示名、`Posts`、`Links` 都不从 `Base` 继承。
+- 写了 `Skudef` 就不许在 `File` 上写 `Mount`、`Language`、`Package`。
+- 缓存布局固定，路径映射是纯函数；网络请求只能走 `IMetadataTransfer`。
 
-```bash
-dotnet test Metadata.sln          # 确保所有单元测试全部绿灯通过
-dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Output
-```
+## 工作流程
 
-任何一项校验没通过，构建器都会**直接报错退出**，坚决不产出半截残缺的坏数据。最常见的报错包括：
+1. **定位**：先读对应专题文档与相关笔记，再看代码。别从零发明已有实现。
+2. **改动**：只改用户要求的部分。契约变更先看 `SchemaVersion` 是否受影响。
+3. **验证**：改代码跑 `dotnet test Metadata.sln`；改数据或构建器还要跑一次构建并检查 `Output/`；改文档跑 `node scripts/verify-docs.mjs`。
+4. **记录**：改行为、改契约、改流程时写一篇 `.agents/notes/implemented/<分类>/yyyy-mm-dd-主题.md`，格式见 CONTRIBUTING。
+5. **收尾**：临时脚本和测试产物用完就清走，不要留在仓库里。
 
-```text
-错误: 实体 ID 重复: "Corona"
-  - mods/corona/corona.xml (Mod)
-  - mods/fake/fake.xml   (Application)
+## 提交
 
-错误: 登记 ID "a/b:icon" 包含 ':'——前缀由构建器自动生成，请直接写短名
-
-错误: Image 资源不存在: images/nope.png (ID: ...)
-
-错误: Mod 'Demo': 缺少 en DisplayName
-错误: Application 'RA3BattleNet': DisplayName Language 重复: zh
-```
-
-
-## Mod 启动兼容性
-
-`Mod@IsAddon="true"` 声明不改变联机逻辑的附属内容，缺省 `false`。任何 Mod 都能作主 Mod；附属的普通启动使用原版身份，显式“作为主 Mod 启动”仍走常规 Mod 身份。
-
-```xml
-<Mod ID="VisualAddon" IsAddon="true">
-  <!-- CurrentVersion、显示名、Style 等按现有顺序填写 -->
-  <Compatibility>
-    <Main Mod="Corona"><Version>3.258</Version></Main>
-    <Addon Mod="OtherVisualAddon" Compatible="false"/>
-  </Compatibility>
-  <Packages>
-    <Package Version="1.0">
-      <Manifest>manifest-100</Manifest>
-      <Compatibility/>
-    </Package>
-  </Packages>
-</Mod>
-```
-
-`Compatibility` 在 Mod 下位于 Style 之后、Packages 之前；Package 下位于 Manifest 之后。`Main` 是允许的主 Mod ID；未声明时默认不兼容任何主 Mod。附属默认兼容原版与其他附属；任一方 `Addon@Compatible="false"` 都拒绝该组合。`Version` 可列出目标的精确支持版本，不匹配只提示，不禁止启动。Package 声明完整替换 Mod 默认规则，空节点清空规则；省略沿用默认规则。兼容 ID 大小写不敏感，不添加资源前缀，不能引用自身、未知目标或重复目标；Addon 目标必须声明 IsAddon。`vanilla` 保留给原版，不能作为 Mod ID。规则不从 Base 继承。
-
-库通过 `mod.IsAddon` 和 `mod.LaunchCompatibility(version)` 暴露此信息。作者须确保附属确实不改变联机逻辑，声明本身无法证明文件行为。
+使用 Conventional Commits：`<emoji> <type>(<scope>): 中文标题`，只暂存本次涉及的路径。

@@ -19,4 +19,4 @@
 
 如果多个 Mod 想共用同一套界面按钮样式或背景，可以使用继承机制：
 把公共样式写在单独 XML 文件的 `<Base ID="..." Kind="Mod">` 标签里，具体 Mod 的 XML 里直接写 `InheritFrom="<公共Base的ID>"`，里面只写自己的个性化差异部分即可。
-详细介绍可以查阅仓库根目录下的 [README.md](../../README.md) 和 [AGENTS.md](../../AGENTS.md)。
+逐步说明、字段规则与常见报错见 [写数据指南](../../.agents/docs/references/data-authoring.md)。

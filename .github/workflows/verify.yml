@@ -1,0 +1,41 @@
+name: 校验文档与构建
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: 文档、测试与构建
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Node 环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 校验笔记结构、生成物新鲜度与文档链接
+        run: node scripts/verify-docs.mjs
+
+      - name: 配置 .NET 环境
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: 运行单元测试
+        run: dotnet test Metadata.sln --nologo
+
+      - name: 构建源数据并校验产物
+        run: dotnet run --project Ra3.BattleNet.Metadata --no-launch-profile -- build --src=./Metadata --dst=./Output
