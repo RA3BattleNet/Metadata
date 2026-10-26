@@ -12,7 +12,7 @@
         <Version>1.9.9.20</Version>
         <DisplayName Language="zh">红色警戒3战网服务</DisplayName>
         <DisplayName Language="en">Ra3BattleNet</DisplayName>
-        <TransferAd>true</TransferAd>
+        <TransferAd>false</TransferAd>
         <Packages>
             <Package Version="1.9.9.20">
                 <ReleaseDate>2026-10-27</ReleaseDate>
