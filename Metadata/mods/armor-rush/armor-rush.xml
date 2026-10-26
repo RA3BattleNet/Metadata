@@ -7,6 +7,9 @@
         <Include Source="manifests/manifests.xml" />
     </Includes>
 
+    <Markdown ID="intro-zh" Source="posts/introduction-zh.md" />
+    <Markdown ID="intro-en" Source="posts/introduction-en.md" />
+
     <Image ID="ar-logo" Source="images/ar-logo.webp" />
     <Image ID="ar-banner" Source="images/ar-banner.webp" />
     <Image ID="ar-bg1" Source="images/ar-bg1.webp" />
@@ -79,6 +82,21 @@
                 <Manifest>manifest-3370</Manifest>
             </Package>
         </Packages>
-        <Posts/>
+        <Posts>
+            <Post Type="introduction" DateTime="2026-10-26T00:00:00+08:00">
+                <Titles>
+                    <Title Language="zh">模组介绍</Title>
+                    <Title Language="en">Introduction</Title>
+                </Titles>
+                <Descriptions>
+                    <Description Language="zh">自2014年由ZY开创、持续更新至3.0的大型MOD，大幅重构原版战斗逻辑，让战斗更激烈爽快。</Description>
+                    <Description Language="en">A large-scale mod started by ZY in 2014 and updated through 3.0. It heavily reworks vanilla combat so battles are fiercer and more satisfying.</Description>
+                </Descriptions>
+                <Contents>
+                    <Content Language="zh">intro-zh</Content>
+                    <Content Language="en">intro-en</Content>
+                </Contents>
+            </Post>
+        </Posts>
     </Mod>
 </Metadata>
