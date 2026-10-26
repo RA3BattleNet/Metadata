@@ -141,8 +141,14 @@ public class StageATests
             var apps = doc.Root!.Elements("Application").ToList();
 
             var ra3 = apps.Single(a => (string?)a.Attribute("ID") == "RA3BattleNet");
+            var declared = XDocument.Load(Path.Combine(src, "apps", "ra3battlenet", "ra3battlenet.xml"))
+                .Descendants("Application").Single(a => (string?)a.Attribute("ID") == "RA3BattleNet")
+                .Element("TransferAd");
+            declared.Should().NotBeNull("测试样本必须声明 TransferAd 才能验证展平");
             ra3.Element("TransferAd").Should().NotBeNull();
-            ra3.Element("TransferAd")!.Value.Should().Be("true");
+            // true / false 都合法，只要求展平后与声明值一致
+            bool.TryParse(ra3.Element("TransferAd")!.Value, out _).Should().BeTrue();
+            ra3.Element("TransferAd")!.Value.Should().Be(declared!.Value);
 
             var content = apps.Single(a => (string?)a.Attribute("ID") == "content");
             content.Element("TransferAd").Should().BeNull("未声明 TransferAd 的应用保持缺失兼容");
