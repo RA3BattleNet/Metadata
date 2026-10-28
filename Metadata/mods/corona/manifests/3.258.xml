@@ -6,7 +6,7 @@
     <Includes>
     </Includes>
     <Manifest ID="manifest-3258" HashAlgorithm="CRC32C">
-        <Skudef GameVersion="1.12">
+        <Skudef GameVersion="1.12" FileName="corona_3.258.skudef">
             <AddConfig LocalFile="CustomConfig.txt" Optional="true" />
             <AddBig File="Disabler.big" Package="disable-sky-and-patches" />
             <AddBig File="HighResShadow.big" Package="hd-shadow" />
