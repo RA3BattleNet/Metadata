@@ -1,7 +1,7 @@
 # Command & Conquer: Red Alert 3 – Armor Rush
 ## A large-scale mod with a playstyle of its own
 
-Started by ZY in 2014 and updated continuously through version 3.0, Armor Rush is a large-scale mod. It substantially reworks Red Alert 3's combat logic, making battles fiercer and more satisfying.
+Armor Rush is a large-scale mod Started by ZY in 2014 and updated continuously through version 3.0. It substantially reworks Red Alert 3's combat logic, making battles fiercer and more satisfying.
 
 ---
 
