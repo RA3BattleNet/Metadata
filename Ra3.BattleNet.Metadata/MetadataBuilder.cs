@@ -12,6 +12,9 @@ public static class MetadataBuilder
 {
     public const string DefaultSchemaVersion = "1.0";
 
+    /// <summary>LoadSource 的内部修订号：源文件没有发布修订，标记为本地读取，不代表任何构建产物。</summary>
+    private const string LocalSourceContentRevision = "local-source";
+
     private static readonly Regex LeftoverVariablePattern = new(@"\$\{[^}]+\}", RegexOptions.Compiled);
     private static readonly Regex MountTokenPattern = new(@"^[A-Za-z0-9_-]+$", RegexOptions.Compiled);
     private static readonly Regex GameVersionPattern = new(@"^\d+\.\d+$", RegexOptions.Compiled);
@@ -107,6 +110,33 @@ public static class MetadataBuilder
             }
             throw;
         }
+    }
+
+    /// <summary>
+    /// 从本地作者源文件加载：入口可以带 <c>Includes</c>、<c>Base</c>/<c>InheritFrom</c> 与短 ID，
+    /// 在内存里完成展平与继承合并后返回普通 <see cref="Metadata"/> 树。
+    /// </summary>
+    /// <param name="entryPath">入口 XML，例如某个 Mod 自己的 <c>corona.xml</c> 或独立叶子清单。</param>
+    /// <param name="sourceRoot">
+    /// Include 与相对 Source 的允许根目录；缺省为入口文件所在目录。
+    /// 与构建一致：ID 前缀是文件相对此根、去 <c>.xml</c> 的路径。
+    /// </param>
+    /// <remarks>
+    /// 只读：不写任何文件，不解析 <c>${ENV:...}</c> 等构建期变量，不做 XSD 校验。
+    /// 单模组读取没有整棵目录，因此不执行跨实体 Compatibility 引用校验；Build 仍然校验。
+    /// 资源 <c>Source</c> 保持相对 <paramref name="sourceRoot"/> 的路径，可直接交给
+    /// <see cref="MetadataResourceUri.Resolve"/>（基准应为该源根；缺省时就是入口文件所在目录）。
+    /// 入口、Include 与资源路径越出 <paramref name="sourceRoot"/> 时在读取目标前抛出
+    /// <see cref="InvalidOperationException"/>。需要发布物的严格入口请用 <see cref="Load"/>。
+    /// </remarks>
+    public static Metadata LoadSource(string entryPath, string? sourceRoot = null)
+    {
+        var root = string.IsNullOrWhiteSpace(sourceRoot)
+            ? Path.GetDirectoryName(Path.GetFullPath(entryPath))!
+            : sourceRoot;
+
+        return MetadataParser.Load(MetadataFlattener.Flatten(
+            entryPath, root, MetadataSchema.Current, LocalSourceContentRevision, validateCompatibility: false));
     }
 
     /// <summary>

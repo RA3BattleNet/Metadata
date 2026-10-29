@@ -52,6 +52,30 @@ var plan = ManifestMountPlanner.Build(
     localConfigExists: _ => false);
 ```
 
+### 读本地作者源文件（未发布）
+
+```csharp
+// 入口可以是带 Includes / Base / InheritFrom / 短 ID 的源文件；源根缺省为入口所在目录
+var source = MetadataBuilder.LoadSource("./Metadata/mods/corona/corona.xml");
+// 也可以显式给源根：ID 前缀与资源路径都相对它
+var leaf = MetadataBuilder.LoadSource("./Metadata/mods/corona/manifests/3.258.xml", "./Metadata/mods/corona");
+```
+
+`LoadSource` 在内存里展平 Include、合并继承、限定登记 ID，返回普通 `Metadata` 树：不写任何文件，不替换 `${TIMESTAMP}` / `${ENV:...}`，不做 XSD 与跨实体 `Compatibility` 校验（单模组没有整棵目录），也不要求其他 Mod 存在。
+
+- 源根缺省是入口文件所在目录；登记 ID 的前缀同样是文件相对源根、去 `.xml` 的路径，与构建一致。
+- 资源 `Source` 改写为相对源根的路径：先按定义文件目录解释，不存在再按源根解释；两项都必须落在源根内，越界直接抛 `InvalidOperationException`，不会去探测、读取目标。
+- 入口、Include 与资源路径越出源根同样在读取前拒绝；不跟随跨根链接。
+- Include 进来的独立清单只留下登记 stub（ID 已限定、`Source` 相对源根）。`<Manifest ID Source>` 手写 stub 保留入口文件前缀，单独读叶子时前缀来自文件路径，两者可能不同，按 `ManifestRegistration(ID)` 精确查找前先用 `MetadataFlattener.LocalId` 对齐局部名。
+- 需要发布物的严格校验（XSD、Compatibility、变量残留）时仍用 `Load` / `LoadFromFile`；它们拒绝任何含 `Include` 的源树。
+
+已展平的内存文档可直接解析，不需要写临时文件：
+
+```csharp
+var doc = new XDocument(new XElement("Metadata", savedManifestElement));
+var root = MetadataParser.Load(doc);   // 根必须是 Metadata，且不得含 Include / Includes / Module
+```
+
 ## 三、查询 API
 
 | 方法 | 作用 |

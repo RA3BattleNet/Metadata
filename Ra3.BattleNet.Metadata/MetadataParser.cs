@@ -49,11 +49,24 @@ public static class MetadataParser
     {
         using var reader = XmlReader.Create(stream, ReaderSettings);
         var doc = XDocument.Load(reader);
-        if (doc.Root == null || doc.Root.Name.LocalName != "Metadata")
+        return Load(doc);
+    }
+
+    /// <summary>
+    /// 从内存中的 XML 文档解析元数据树。根必须是 <c>Metadata</c>；
+    /// 与文件入口一样拒绝 Include/Includes/Module，只接受已展平的文档。
+    /// 调用方可以先把内存节点包进新的 <c>Metadata</c> 根再解析，不需要写临时文件。
+    /// </summary>
+    public static Metadata Load(XDocument document)
+    {
+        if (document == null)
+            throw new ArgumentNullException(nameof(document));
+
+        if (document.Root == null || document.Root.Name.LocalName != "Metadata")
             throw new XmlException("无效的 XML 结构: 缺少根节点或根节点名称不是 'Metadata'");
 
         var metadata = new Metadata();
-        metadata.ParseElement(doc.Root);
+        metadata.ParseElement(document.Root);
         return metadata;
     }
 }
