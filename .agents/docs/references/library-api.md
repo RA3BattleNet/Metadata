@@ -76,6 +76,29 @@ var doc = new XDocument(new XElement("Metadata", savedManifestElement));
 var root = MetadataParser.Load(doc);   // 根必须是 Metadata，且不得含 Include / Includes / Module
 ```
 
+### 导回作者源格式，以及单独解析清单
+
+`LoadSource` 的反向操作和清单读取也在库里，宿主不再自己压短 ID、改 `Source` 或对齐前缀。
+
+```csharp
+// 整份 Mod：保留所有版本与 CurrentVersion；发布地址为空时保留相对 Source
+var whole = MetadataSourceExporter.ExportWhole(root, "Corona", "https://metadata.ra3battle.net/metadata.xml");
+// 单版本：只留这一版，并把它设成 CurrentVersion
+var one = MetadataSourceExporter.ExportVersion(root, "Corona", "3.259");
+
+// 本地声明里的版本清单：内联直接返回，stub 则按 Source 读叶子并按 LocalId 对齐
+var manifest = MetadataSourceManifest.Resolve(localRoot, declarationPath, package.Raw);
+
+// 独立清单节点或文本，不必再套假的 Metadata 根
+var entry = MetadataParser.ParseManifest(manifestElement);
+var same = MetadataParser.ParseManifest("<Manifest ID=\"m1\" ... />");
+
+// 反方向：把解析出的节点还原成 XML，抄清单原文时用
+var xml = MetadataXml.Write(manifest!);
+```
+
+`ExportWhole` / `ExportVersion` 只做纯转换：不写盘、不发请求、不改动传入的树。带 `Url` 的图片只保留外链，不猜 `Source`；返回的是语义等价的源格式，不恢复发布时丢掉的注释与拆分。
+
 ## 三、查询 API
 
 | 方法 | 作用 |

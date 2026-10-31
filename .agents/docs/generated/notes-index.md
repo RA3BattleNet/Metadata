@@ -2,10 +2,11 @@
 
 > 自动生成，勿手改。重新生成：`node scripts/verify-docs.mjs --write`。
 
-共 11 篇。按状态排序：提案 → 已实施 → 已否决。
+共 12 篇。按状态排序：提案 → 已实施 → 已否决。
 
 | 日期 | 状态 | 分类 | 标题 | 问题 |
 |---|---|---|---|---|
+| 2026-10-31 | implemented | feature | [源格式的导出与清单解析收进库](../../notes/implemented/feature/2026-10-31-source-format-host-api.md) | LoadSource 让宿主能读作者源文件之后，Desktop 仍自己实现了三类源格式逻辑：把在线展平树反向导出成单 Mod 作者声明（ModSourceDeclaration，315 行）、按 stub 找叶子清单并与 LocalId 对齐（ResolveManifestNode）、把独立 Manifest 节点包一层假 Metadata 根再解析。 |
 | 2026-10-28 | implemented | feature | [本地作者源文件内存读取](../../notes/implemented/feature/2026-10-28-local-mod-source-load.md) | Desktop 需要直接读作者磁盘上的 Mod 源文件（corona.xml、独立清单、管理目录里的 mod.xml），但库只提供两条路：MetadataBuilder.Build 要求整棵源树、XSD 与输出目录，MetadataParser.Load 又只接受已展平产物。 |
 | 2026-10-25 | implemented | process | [文档拆分为人类入口与 Agent 地图](../../notes/implemented/process/2026-10-25-agent-first-docs.md) | README.md 303 行、AGENTS.md 226 行，两个文件都在同时承担四类内容：作者写数据的教程、解析库 API、缓存行为、构建与发布流程。 |
 | 2026-10-12 | implemented | architecture | [正文先下载到本地文件再解析与发布](../../notes/implemented/architecture/2026-10-12-metadata-transfer-to-local-file.md) | 库原先自己内联 HttpClient，把响应正文读成字节再写缓存：传输不可替换（宿主无法插手代理、重试或平台网络栈），也没法“先把正文落到本地再解析”。 |
