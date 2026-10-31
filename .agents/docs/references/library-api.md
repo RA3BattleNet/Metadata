@@ -52,6 +52,53 @@ var plan = ManifestMountPlanner.Build(
     localConfigExists: _ => false);
 ```
 
+### 读本地作者源文件（未发布）
+
+```csharp
+// 入口可以是带 Includes / Base / InheritFrom / 短 ID 的源文件；源根缺省为入口所在目录
+var source = MetadataBuilder.LoadSource("./Metadata/mods/corona/corona.xml");
+// 也可以显式给源根：ID 前缀与资源路径都相对它
+var leaf = MetadataBuilder.LoadSource("./Metadata/mods/corona/manifests/3.258.xml", "./Metadata/mods/corona");
+```
+
+`LoadSource` 在内存里展平 Include、合并继承、限定登记 ID，返回普通 `Metadata` 树：不写任何文件，不替换 `${TIMESTAMP}` / `${ENV:...}`，不做 XSD 与跨实体 `Compatibility` 校验（单模组没有整棵目录），也不要求其他 Mod 存在。
+
+- 源根缺省是入口文件所在目录；登记 ID 的前缀同样是文件相对源根、去 `.xml` 的路径，与构建一致。
+- 资源 `Source` 改写为相对源根的路径：先按定义文件目录解释，不存在再按源根解释；两项都必须落在源根内，越界直接抛 `InvalidOperationException`，不会去探测、读取目标。
+- 入口、Include 与资源路径越出源根同样在读取前拒绝；不跟随跨根链接。
+- Include 进来的独立清单只留下登记 stub（ID 已限定、`Source` 相对源根）。`<Manifest ID Source>` 手写 stub 保留入口文件前缀，单独读叶子时前缀来自文件路径，两者可能不同，按 `ManifestRegistration(ID)` 精确查找前先用 `MetadataFlattener.LocalId` 对齐局部名。
+- 需要发布物的严格校验（XSD、Compatibility、变量残留）时仍用 `Load` / `LoadFromFile`；它们拒绝任何含 `Include` 的源树。
+
+已展平的内存文档可直接解析，不需要写临时文件：
+
+```csharp
+var doc = new XDocument(new XElement("Metadata", savedManifestElement));
+var root = MetadataParser.Load(doc);   // 根必须是 Metadata，且不得含 Include / Includes / Module
+```
+
+### 导回作者源格式，以及单独解析清单
+
+`LoadSource` 的反向操作和清单读取也在库里，宿主不再自己压短 ID、改 `Source` 或对齐前缀。
+
+```csharp
+// 整份 Mod：保留所有版本与 CurrentVersion；发布地址为空时保留相对 Source
+var whole = MetadataSourceExporter.ExportWhole(root, "Corona", "https://metadata.ra3battle.net/metadata.xml");
+// 单版本：只留这一版，并把它设成 CurrentVersion
+var one = MetadataSourceExporter.ExportVersion(root, "Corona", "3.259");
+
+// 本地声明里的版本清单：内联直接返回，stub 则按 Source 读叶子并按 LocalId 对齐
+var manifest = MetadataSourceManifest.Resolve(localRoot, declarationPath, package.Raw);
+
+// 独立清单节点或文本，不必再套假的 Metadata 根
+var entry = MetadataParser.ParseManifest(manifestElement);
+var same = MetadataParser.ParseManifest("<Manifest ID=\"m1\" ... />");
+
+// 反方向：把解析出的节点还原成 XML，抄清单原文时用
+var xml = MetadataXml.Write(manifest!);
+```
+
+`ExportWhole` / `ExportVersion` 只做纯转换：不写盘、不发请求、不改动传入的树。带 `Url` 的图片只保留外链，不猜 `Source`；返回的是语义等价的源格式，不恢复发布时丢掉的注释与拆分。
+
 ## 三、查询 API
 
 | 方法 | 作用 |
