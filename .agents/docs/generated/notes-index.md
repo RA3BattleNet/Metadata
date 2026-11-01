@@ -2,13 +2,14 @@
 
 > 自动生成，勿手改。重新生成：`node scripts/verify-docs.mjs --write`。
 
-共 15 篇。按状态排序：提案 → 已实施 → 已否决。
+共 16 篇。按状态排序：提案 → 已实施 → 已否决。
 
 | 日期 | 状态 | 分类 | 标题 | 问题 |
 |---|---|---|---|---|
 | 2026-11-06 | implemented | feature | [WebView2 zstd 包采用双层内容指纹](../../notes/implemented/feature/2026-11-06-webview2-raw-fingerprint.md) | 旧 WebView2 清单以 Compression="zip"、HashAlgorithm="None" 描述解包目录，不能验证下载物和待安装 ZIP 的内容。 |
 | 2026-11-04 | implemented | process | [Cloudflare 部署统一使用 Workers 静态资源](../../notes/implemented/process/2026-11-04-cloudflare-workers-deployment.md) | Cloudflare 后台项目是 Workers，但 npm 发布和本地服务仍调用 Pages 命令。 |
 | 2026-11-04 | implemented | process | [分支预览迁移到 Worker Previews](../../notes/implemented/process/2026-11-04-worker-previews.md) | 此前部署决定使用 wrangler versions upload 创建版本预览 URL，用户现在选择 Cloudflare 新的 Worker Previews 分支预览机制。 |
+| 2026-11-01 | implemented | feature | [统一元数据读取入口](../../notes/implemented/feature/2026-11-01-unified-metadata-reader.md) | 元数据读取此前存在两条独立路径：MetadataBuilder.Load 只接受已展平的发布物，遇到 Include 直接报错； |
 | 2026-10-31 | implemented | feature | [源格式的导出与清单解析收进库](../../notes/implemented/feature/2026-10-31-source-format-host-api.md) | LoadSource 让宿主能读作者源文件之后，Desktop 仍自己实现了三类源格式逻辑：把在线展平树反向导出成单 Mod 作者声明（ModSourceDeclaration，315 行）、按 stub 找叶子清单并与 LocalId 对齐（ResolveManifestNode）、把独立 Manifest 节点包一层假 Metadata 根再解析。 |
 | 2026-10-28 | implemented | feature | [本地作者源文件内存读取](../../notes/implemented/feature/2026-10-28-local-mod-source-load.md) | Desktop 需要直接读作者磁盘上的 Mod 源文件（corona.xml、独立清单、管理目录里的 mod.xml），但库只提供两条路：MetadataBuilder.Build 要求整棵源树、XSD 与输出目录，MetadataParser.Load 又只接受已展平产物。 |
 | 2026-10-25 | implemented | process | [文档拆分为人类入口与 Agent 地图](../../notes/implemented/process/2026-10-25-agent-first-docs.md) | README.md 303 行、AGENTS.md 226 行，两个文件都在同时承担四类内容：作者写数据的教程、解析库 API、缓存行为、构建与发布流程。 |

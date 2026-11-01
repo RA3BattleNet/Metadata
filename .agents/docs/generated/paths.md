@@ -31,16 +31,19 @@
 | `Ra3.BattleNet.Metadata/Cache/MetadataDiskCache.cs` | 734 |
 | `Ra3.BattleNet.Metadata/Cache/MetadataFreshness.cs` | 18 |
 | `Ra3.BattleNet.Metadata/Cache/RootSnapshotResult.cs` | 23 |
+| `Ra3.BattleNet.Metadata/HttpXmlSource.cs` | 209 |
 | `Ra3.BattleNet.Metadata/ImagePostProcessor.cs` | 72 |
 | `Ra3.BattleNet.Metadata/ImagingInvoker.cs` | 129 |
+| `Ra3.BattleNet.Metadata/IMetadataXmlSource.cs` | 36 |
 | `Ra3.BattleNet.Metadata/LanguageTag.cs` | 29 |
 | `Ra3.BattleNet.Metadata/ManifestMountPlanner.cs` | 156 |
 | `Ra3.BattleNet.Metadata/ManifestRawFingerprint.cs` | 33 |
 | `Ra3.BattleNet.Metadata/MarkdownValidator.cs` | 88 |
 | `Ra3.BattleNet.Metadata/Metadata.cs` | 120 |
-| `Ra3.BattleNet.Metadata/MetadataBuilder.cs` | 842 |
+| `Ra3.BattleNet.Metadata/MetadataBuilder.cs` | 926 |
 | `Ra3.BattleNet.Metadata/MetadataColor.cs` | 43 |
-| `Ra3.BattleNet.Metadata/MetadataFlattener.cs` | 400 |
+| `Ra3.BattleNet.Metadata/MetadataDetector.cs` | 21 |
+| `Ra3.BattleNet.Metadata/MetadataFlattener.cs` | 450 |
 | `Ra3.BattleNet.Metadata/MetadataInheritance.cs` | 304 |
 | `Ra3.BattleNet.Metadata/MetadataParser.cs` | 106 |
 | `Ra3.BattleNet.Metadata/MetadataQueryExtensions.cs` | 339 |
@@ -49,8 +52,11 @@
 | `Ra3.BattleNet.Metadata/MetadataSchema.cs` | 21 |
 | `Ra3.BattleNet.Metadata/MetadataSourceExporter.cs` | 302 |
 | `Ra3.BattleNet.Metadata/MetadataSourceManifest.cs` | 52 |
+| `Ra3.BattleNet.Metadata/MetadataSourceOptions.cs` | 27 |
+| `Ra3.BattleNet.Metadata/MetadataValidator.cs` | 112 |
 | `Ra3.BattleNet.Metadata/MetadataXml.cs` | 34 |
 | `Ra3.BattleNet.Metadata/ModCompatibility.cs` | 61 |
+| `Ra3.BattleNet.Metadata/PhysicalFileXmlSource.cs` | 33 |
 | `Ra3.BattleNet.Metadata/Program.cs` | 94 |
 | `Ra3.BattleNet.Metadata/SchemaValidator.cs` | 132 |
 | `Ra3.BattleNet.Metadata/VariableResolver.cs` | 81 |
@@ -60,6 +66,8 @@
 | 文件 | 说明 |
 |---|---|
 | `Ra3.BattleNet.Metadata.Tests/CacheJsonContractTests.cs` | MSTest 测试 |
+| `Ra3.BattleNet.Metadata.Tests/EquivalenceBaselineTests.cs` | MSTest 测试 |
+| `Ra3.BattleNet.Metadata.Tests/HttpSourceTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/IdScopeTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/ImagingTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/IncludeTests.cs` | MSTest 测试 |
@@ -74,6 +82,9 @@
 | `Ra3.BattleNet.Metadata.Tests/MetadataClientTransferTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/MetadataTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/ModCompatibilityTests.cs` | MSTest 测试 |
+| `Ra3.BattleNet.Metadata.Tests/OpenMethodTests.cs` | MSTest 测试 |
+| `Ra3.BattleNet.Metadata.Tests/PathSecurityTests.cs` | MSTest 测试 |
+| `Ra3.BattleNet.Metadata.Tests/PerformanceTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/PostHeadImageTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/PostTypeTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/PublishSurfaceTests.cs` | MSTest 测试 |
@@ -85,6 +96,7 @@
 | `Ra3.BattleNet.Metadata.Tests/StyleResourceTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/StyleTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/UpdaterEndpointTests.cs` | MSTest 测试 |
+| `Ra3.BattleNet.Metadata.Tests/ValidationTests.cs` | MSTest 测试 |
 
 ## 原始数据树 `Metadata/`
 
