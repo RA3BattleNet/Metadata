@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -549,5 +550,244 @@ public class SourceLoadTests
         foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
             snapshot[Path.GetRelativePath(root, file).Replace('\\', '/')] = File.ReadAllBytes(file);
         return snapshot;
+    }
+
+    [TestMethod]
+    public void LoadSource_DiamondInclude_ExpandsSharedFileOnce()
+    {
+        var root = CreateTempDir();
+        try
+        {
+            // entry → a → shared/c，entry → b → shared/c，entry 还直接 Include 了一次 shared/c。
+            WriteFile(root, "entry.xml", """
+<Metadata>
+  <Includes>
+    <Include Source="a.xml" />
+    <Include Source="b.xml" />
+    <Include Source="shared/c.xml" />
+  </Includes>
+</Metadata>
+""");
+            WriteFile(root, "a.xml", """
+<Metadata>
+  <Includes>
+    <Include Source="shared/c.xml" />
+  </Includes>
+  <Image ID="a-icon" Source="a.png" />
+</Metadata>
+""");
+            WriteFile(root, "b.xml", """
+<Metadata>
+  <Includes>
+    <Include Source="shared/c.xml" />
+  </Includes>
+</Metadata>
+""");
+            WriteFile(root, "shared/c.xml", """
+<Metadata>
+  <Image ID="shared-icon" Source="shared.png" />
+  <Mod ID="Shared" />
+</Metadata>
+""");
+            WriteFile(root, "a.png", "png");
+            WriteFile(root, "shared/shared.png", "png");
+
+            var loaded = MetadataBuilder.LoadSource(Path.Combine(root, "entry.xml"));
+
+            // 实体只登记一次：重复展开不会触发「实体 ID 重复」。
+            loaded.Mods().Should().ContainSingle(m => m.Id == "Shared");
+            // 节点只插入一次：菱形 Include 不复制子树。
+            loaded.GetAllElements("Image")
+                .Count(i => MetadataFlattener.LocalId(i.Get("ID")) == "shared-icon")
+                .Should().Be(1);
+            loaded.GetAllElements("Image").Should().HaveCount(2);
+        }
+        finally
+        {
+            DeleteTemp(root);
+        }
+    }
+
+    [TestMethod]
+    public void LoadSource_DuplicateRegistrationIdInSameFile_Throws()
+    {
+        var root = CreateTempDir();
+        try
+        {
+            WriteFile(root, "mod.xml", """
+<Metadata>
+  <Image ID="icon" Source="icon.png" />
+  <Image ID="icon" Source="icon.png" />
+</Metadata>
+""");
+
+            var act = () => MetadataBuilder.LoadSource(Path.Combine(root, "mod.xml"));
+
+            act.Should().Throw<InvalidOperationException>()
+                .WithMessage("*登记 ID 重复*")
+                .WithMessage("*mod.xml*")
+                .WithMessage("*icon*");
+        }
+        finally
+        {
+            DeleteTemp(root);
+        }
+    }
+
+    [TestMethod]
+    public void LoadSource_DuplicateRegistrationIdCaseOnlyInSameFile_Throws()
+    {
+        var root = CreateTempDir();
+        try
+        {
+            WriteFile(root, "mod.xml", """
+<Metadata>
+  <Image ID="icon" Source="icon.png" />
+  <Image ID="ICON" Source="icon.png" />
+</Metadata>
+""");
+
+            var act = () => MetadataBuilder.LoadSource(Path.Combine(root, "mod.xml"));
+
+            act.Should().Throw<InvalidOperationException>()
+                .WithMessage("*登记 ID 重复*")
+                .WithMessage("*ICON*");
+        }
+        finally
+        {
+            DeleteTemp(root);
+        }
+    }
+
+    [TestMethod]
+    public void LoadSource_DuplicateRegistrationIdAcrossKindsInSameFile_Throws()
+    {
+        var root = CreateTempDir();
+        try
+        {
+            WriteFile(root, "mod.xml", """
+<Metadata>
+  <Image ID="pic" Source="pic.png" />
+  <Markdown ID="PIC" Source="pic.md" />
+</Metadata>
+""");
+
+            var act = () => MetadataBuilder.LoadSource(Path.Combine(root, "mod.xml"));
+
+            act.Should().Throw<InvalidOperationException>()
+                .WithMessage("*登记 ID 重复*")
+                .WithMessage("*PIC*");
+        }
+        finally
+        {
+            DeleteTemp(root);
+        }
+    }
+
+    [TestMethod]
+    public void LoadSource_SameShortIdAcrossIncludedFiles_NotAConflict()
+    {
+        var root = CreateTempDir();
+        try
+        {
+            WriteFile(root, "metadata.xml", """
+<Metadata>
+  <Includes>
+    <Include Source="a/mod.xml" />
+    <Include Source="b/mod.xml" />
+  </Includes>
+</Metadata>
+""");
+            WriteFile(root, "a/mod.xml", """
+<Metadata>
+  <Image ID="shared-icon" Source="icon.png" />
+</Metadata>
+""");
+            WriteFile(root, "b/mod.xml", """
+<Metadata>
+  <Image ID="shared-icon" Source="icon.png" />
+</Metadata>
+""");
+            WriteFile(root, "a/icon.png", "png");
+            WriteFile(root, "b/icon.png", "png");
+
+            var loaded = MetadataBuilder.LoadSource(Path.Combine(root, "metadata.xml"));
+
+            // 跨文件同短名不算冲突：前缀不同，限定 ID 各自唯一。
+            loaded.Images().Select(i => i.Id).Should().BeEquivalentTo("a/mod:shared-icon", "b/mod:shared-icon");
+        }
+        finally
+        {
+            DeleteTemp(root);
+        }
+    }
+
+    [TestMethod]
+    public void Flatten_WithCustomXmlSource_UsesOnlyTheInterface()
+    {
+        // 路径是 / 开头的抽象字符串，磁盘上不存在同名文件：展平成功即证明文件系统调用都走了接口。
+        var source = new MemoryXmlSource();
+        source.AddXml("/mem/entry.xml", """
+<Metadata>
+  <Includes>
+    <Include Source="page.xml" />
+  </Includes>
+</Metadata>
+""");
+        source.AddXml("/mem/page.xml", """
+<Metadata>
+  <Image ID="icon" Source="images/icon.png" />
+</Metadata>
+""");
+        source.AddFile("/mem/images/icon.png");
+
+        var doc = MetadataFlattener.Flatten(
+            source, "/mem/entry.xml", "/mem", "1.0", "rev", validateCompatibility: false);
+
+        doc.Root!.Attribute("SchemaVersion")!.Value.Should().Be("1.0");
+        doc.Root!.Attribute("ContentRevision")!.Value.Should().Be("rev");
+        doc.Descendants().Should().OnlyContain(e => e.Name.LocalName != "Include");
+        var image = doc.Descendants("Image").Single();
+        image.Attribute("ID")!.Value.Should().Be("page:icon");
+        image.Attribute("Source")!.Value.Should().Be("images/icon.png");
+    }
+
+    /// <summary>内存只读源：/ 开头的抽象路径，完全不碰磁盘。</summary>
+    private sealed class MemoryXmlSource : IMetadataXmlSource
+    {
+        private readonly Dictionary<string, XDocument> _documents = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _existing = new(StringComparer.OrdinalIgnoreCase);
+
+        public void AddXml(string path, string xml)
+        {
+            _existing.Add(path);
+            _documents[path] = XDocument.Parse(xml);
+        }
+
+        public void AddFile(string path) => _existing.Add(path);
+
+        public bool Exists(string path) => _existing.Contains(path);
+
+        // 返回副本：展平会就地改写节点，源文档必须保持原样。
+        public XDocument LoadDocument(string path) => new(_documents[path]);
+
+        public string Combine(string basePath, string relativePath) =>
+            $"{basePath.TrimEnd('/')}/{relativePath.TrimStart('/')}";
+
+        public string? GetDirectoryName(string path)
+        {
+            var i = path.LastIndexOf('/');
+            return i <= 0 ? null : path[..i];
+        }
+
+        public string GetRelativePath(string fromPath, string toPath)
+        {
+            var prefix = fromPath.TrimEnd('/') + "/";
+            return toPath.StartsWith(prefix, StringComparison.Ordinal) ? toPath[prefix.Length..] : toPath;
+        }
+
+        public string GetFullPath(string path) => path.TrimEnd('/');
+
+        public bool IsPathRooted(string path) => path.StartsWith('/');
     }
 }

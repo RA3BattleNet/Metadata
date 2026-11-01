@@ -5,6 +5,7 @@ namespace Ra3.BattleNet.Metadata;
 /// <summary>
 /// 将带 Include 的源 XML 展平为单一数据树（不内联资源文件正文）。
 /// 资源登记 ID 展平为全局唯一：{路径前缀}:{localId}，路径前缀为定义文件相对源根、去 .xml 的路径。
+/// 文件系统访问全部收敛到 <see cref="IMetadataXmlSource"/>，本地文件只是其中一种实现。
 /// </summary>
 public static class MetadataFlattener
 {
@@ -13,10 +14,10 @@ public static class MetadataFlattener
     /// 入口、Include 与被登记资源一律限制在 sourceRoot 内，越界路径在读取目标前直接拒绝。
     /// </summary>
     public static XDocument Flatten(string entryPath, string sourceRoot, string schemaVersion, string contentRevision) =>
-        Flatten(entryPath, sourceRoot, schemaVersion, contentRevision, validateCompatibility: true);
+        Flatten(new PhysicalFileXmlSource(), entryPath, sourceRoot, schemaVersion, contentRevision, validateCompatibility: true);
 
     /// <summary>
-    /// 展平实现。<paramref name="validateCompatibility"/> 为 false 时跳过跨实体 Compatibility 校验：
+    /// 展平实现（本地文件源）。<paramref name="validateCompatibility"/> 为 false 时跳过跨实体 Compatibility 校验：
     /// 单独读一个模组目录时，Compatibility 引用的其他模组本来就不在这棵树里。
     /// </summary>
     internal static XDocument Flatten(
@@ -24,18 +25,31 @@ public static class MetadataFlattener
         string sourceRoot,
         string schemaVersion,
         string contentRevision,
+        bool validateCompatibility) =>
+        Flatten(new PhysicalFileXmlSource(), entryPath, sourceRoot, schemaVersion, contentRevision, validateCompatibility);
+
+    /// <summary>
+    /// 展平实现（指定只读源）。entryPath 与 sourceRoot 是不透明字符串，路径语义由 <paramref name="source"/> 解释。
+    /// </summary>
+    internal static XDocument Flatten(
+        IMetadataXmlSource source,
+        string entryPath,
+        string sourceRoot,
+        string schemaVersion,
+        string contentRevision,
         bool validateCompatibility)
     {
+        ArgumentNullException.ThrowIfNull(source);
         if (string.IsNullOrWhiteSpace(entryPath))
             throw new ArgumentException("入口文件不能为空", nameof(entryPath));
         if (string.IsNullOrWhiteSpace(sourceRoot))
             throw new ArgumentException("源目录不能为空", nameof(sourceRoot));
 
-        var sourceRootFull = Path.GetFullPath(sourceRoot);
-        var entryFull = Path.GetFullPath(entryPath);
-        EnsureWithinRoot(entryFull, sourceRootFull, "入口文件");
+        var sourceRootFull = source.GetFullPath(sourceRoot);
+        var entryFull = source.GetFullPath(entryPath);
+        EnsureWithinRoot(source, entryFull, sourceRootFull, "入口文件");
 
-        var session = new FlattenSession(sourceRootFull);
+        var session = new FlattenSession(source, sourceRootFull);
         var root = LoadAndExpand(entryFull, session);
 
         // Include 展开后、写出版本前：合并 Base/InheritFrom，发布物无继承痕迹
@@ -75,9 +89,13 @@ public static class MetadataFlattener
     }
 
     /// <summary>由定义文件绝对路径生成路径前缀（相对 sourceRoot、/ 分隔、无扩展名）。</summary>
-    public static string PathPrefix(string absoluteFilePath, string sourceRoot)
+    public static string PathPrefix(string absoluteFilePath, string sourceRoot) =>
+        PathPrefix(new PhysicalFileXmlSource(), absoluteFilePath, sourceRoot);
+
+    /// <summary>由定义文件绝对路径生成路径前缀（源实现负责路径规范化）。</summary>
+    internal static string PathPrefix(IMetadataXmlSource source, string absoluteFilePath, string sourceRoot)
     {
-        var rel = ToRootRelative(Path.GetFullPath(absoluteFilePath), Path.GetFullPath(sourceRoot));
+        var rel = ToRootRelative(source, source.GetFullPath(absoluteFilePath), source.GetFullPath(sourceRoot));
         if (rel.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
             rel = rel[..^4];
         return rel.Replace('\\', '/');
@@ -132,27 +150,29 @@ public static class MetadataFlattener
         if (!session.Processing.Add(full))
             throw new InvalidOperationException($"检测到循环引用: {full}");
 
-        if (!File.Exists(full))
+        if (!session.Source.Exists(full))
             throw new FileNotFoundException($"找不到文件: {full}");
 
-        var doc = XDocument.Load(full);
+        var doc = session.Source.LoadDocument(full);
         var root = doc.Root ?? throw new InvalidOperationException($"无效 XML: {full}");
         if (root.Name.LocalName != "Metadata")
             throw new InvalidOperationException($"根节点必须是 Metadata: {full}");
 
-        var baseDir = Path.GetDirectoryName(full)
+        var baseDir = session.Source.GetDirectoryName(full)
             ?? throw new InvalidOperationException($"无法确定目录: {full}");
-        var prefix = PathPrefix(full, session.SourceRootFull);
+        var prefix = PathPrefix(session.Source, full, session.SourceRootFull);
 
         // 展开前单趟：校验本文件手写 ID（登记/实体禁止 ':' 前缀）并记录顶层实体来源
         ValidateAndRecordOwnIds(root, full, session);
         ExpandElement(root, baseDir, session);
         // 展开后单趟：改写 Source、限定登记 ID，并同步建立引用作用域映射
-        var scope = ProcessRegistrations(root, baseDir, prefix, session);
+        var scope = ProcessRegistrations(root, full, baseDir, prefix, session);
         // 最后一趟独立改写引用：前向引用要求作用域映射已完整
         RewriteIdReferences(root, scope);
 
         session.Processing.Remove(full);
+        // 展开完成的文件记下来：同一会话再 Include 同一文件时直接跳过（菱形 Include）
+        session.Expanded.Add(full);
         return root;
     }
 
@@ -162,7 +182,7 @@ public static class MetadataFlattener
     /// </summary>
     private static void ValidateAndRecordOwnIds(XElement root, string fullPath, FlattenSession session)
     {
-        var rel = ToRootRelative(fullPath, session.SourceRootFull);
+        var rel = ToRootRelative(session.Source, fullPath, session.SourceRootFull);
         foreach (var el in root.DescendantsAndSelf())
         {
             var id = el.Attribute("ID")?.Value;
@@ -224,11 +244,18 @@ public static class MetadataFlattener
 
     private static void InsertInclude(XElement includeEl, string baseDir, FlattenSession session)
     {
+        var source = session.Source;
         var rel = includeEl.Attribute("Source")?.Value;
         if (string.IsNullOrWhiteSpace(rel))
             throw new InvalidOperationException("Include 缺少 Source");
 
-        var target = ResolveWithinRoot(baseDir, rel, session.SourceRootFull, "Include");
+        var target = ResolveWithinRoot(source, baseDir, rel, session.SourceRootFull, "Include");
+
+        // 菱形 Include（A→B→C 且 A→C）与重复 Include：同一会话内只展开一次，不再登记节点/实体；
+        // 真正的循环在上面的 Processing 栈里仍然会被拦下，因为环上的文件还没展开完。
+        if (session.Expanded.Contains(target))
+            return;
+
         var includedRoot = LoadAndExpand(target, session);
 
         var anchor = includeEl.Parent is { Name.LocalName: "Includes" } host
@@ -254,11 +281,11 @@ public static class MetadataFlattener
                     continue;
                 }
 
-                var sourceRel = ToRootRelative(target, session.SourceRootFull);
+                var sourceRel = ToRootRelative(source, target, session.SourceRootFull);
                 // 叶子 Manifest 经自身展平已限定（构建期产物）；贡献者手写前缀由 QualifyId 拒绝
                 var qualified = id.Contains(':', StringComparison.Ordinal)
                     ? id
-                    : QualifyId(PathPrefix(target, session.SourceRootFull), id);
+                    : QualifyId(PathPrefix(source, target, session.SourceRootFull), id);
                 var stub = new XElement("Manifest",
                     new XAttribute("ID", qualified),
                     new XAttribute("Source", sourceRel));
@@ -275,9 +302,13 @@ public static class MetadataFlattener
     /// {路径前缀}:{localId}，并按文档顺序同步建立 short localId → qualifiedId 作用域映射
     /// （完整限定 ID 始终可查；同文件作用域内短名冲突则移出短名键）。
     /// </summary>
-    private static Dictionary<string, string> ProcessRegistrations(XElement root, string baseDir, string pathPrefix, FlattenSession session)
+    private static Dictionary<string, string> ProcessRegistrations(
+        XElement root, string fullPath, string baseDir, string pathPrefix, FlattenSession session)
     {
         var map = new Dictionary<string, string>(StringComparer.Ordinal);
+        // 本文件自己声明的登记短名：同一文件内必须唯一，只差大小写也算重复
+        var ownIds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var el in root.DescendantsAndSelf())
         {
             if (!IsRegistrationNode(el))
@@ -292,6 +323,14 @@ public static class MetadataFlattener
             // 再按当前文件目录解释一次会把 root 相对路径误读成 baseDir 相对路径。
             if (!id.Contains(':', StringComparison.Ordinal))
             {
+                if (ownIds.TryGetValue(id, out var firstId))
+                {
+                    throw new InvalidOperationException(
+                        $"登记 ID 重复: \"{id}\"（已登记 \"{firstId}\"）: "
+                        + ToRootRelative(session.Source, fullPath, session.SourceRootFull));
+                }
+                ownIds[id] = id;
+
                 RewriteSource(el, baseDir, session);
                 id = idAttr!.Value = QualifyId(pathPrefix, id);
             }
@@ -326,17 +365,18 @@ public static class MetadataFlattener
         if (!string.IsNullOrWhiteSpace(el.Attribute("Url")?.Value))
             return;
 
+        var source = session.Source;
         var raw = sourceAttr.Value;
-        var fromBase = ResolveWithinRoot(baseDir, raw, session.SourceRootFull, "资源 Source");
-        if (File.Exists(fromBase))
+        var fromBase = ResolveWithinRoot(source, baseDir, raw, session.SourceRootFull, "资源 Source");
+        if (source.Exists(fromBase))
         {
-            sourceAttr.Value = ToRootRelative(fromBase, session.SourceRootFull);
+            sourceAttr.Value = ToRootRelative(source, fromBase, session.SourceRootFull);
             return;
         }
 
-        var fromRoot = ResolveWithinRoot(session.SourceRootFull, raw, session.SourceRootFull, "资源 Source");
-        if (File.Exists(fromRoot))
-            sourceAttr.Value = ToRootRelative(fromRoot, session.SourceRootFull);
+        var fromRoot = ResolveWithinRoot(source, session.SourceRootFull, raw, session.SourceRootFull, "资源 Source");
+        if (source.Exists(fromRoot))
+            sourceAttr.Value = ToRootRelative(source, fromRoot, session.SourceRootFull);
     }
 
     private static void RewriteIdReferences(XElement root, Dictionary<string, string> scope)
@@ -358,9 +398,9 @@ public static class MetadataFlattener
         // 找不到：留给 ValidateHard 报断引用（可能是笔误）
     }
 
-    private static string ToRootRelative(string absolutePath, string sourceRoot)
+    private static string ToRootRelative(IMetadataXmlSource source, string absolutePath, string sourceRoot)
     {
-        var rel = Path.GetRelativePath(sourceRoot, absolutePath).Replace('\\', '/');
+        var rel = source.GetRelativePath(sourceRoot, absolutePath).Replace('\\', '/');
         if (rel.StartsWith("..", StringComparison.Ordinal))
             throw new InvalidOperationException($"资源不在源目录内: {absolutePath}");
         return rel;
@@ -370,30 +410,40 @@ public static class MetadataFlattener
     /// 把相对路径按 baseDir 解析，并要求结果仍在源根内。越界路径（<c>..</c>、绝对路径、跨盘）
     /// 在此直接拒绝，调用方不会再去探测或读取目标。
     /// </summary>
-    private static string ResolveWithinRoot(string baseDir, string relativePath, string sourceRootFull, string kind)
+    private static string ResolveWithinRoot(
+        IMetadataXmlSource source, string baseDir, string relativePath, string sourceRootFull, string kind)
     {
-        var full = Path.GetFullPath(Path.Combine(baseDir, relativePath.Replace('\\', '/')));
-        EnsureWithinRoot(full, sourceRootFull, kind);
+        var full = source.GetFullPath(source.Combine(baseDir, relativePath));
+        EnsureWithinRoot(source, full, sourceRootFull, kind);
         return full;
     }
 
-    private static void EnsureWithinRoot(string fullPath, string sourceRootFull, string kind)
+    private static void EnsureWithinRoot(
+        IMetadataXmlSource source, string fullPath, string sourceRootFull, string kind)
     {
-        var relative = Path.GetRelativePath(sourceRootFull, fullPath);
-        // 跨盘时 GetRelativePath 原样返回绝对路径，IsPathRooted 拦下；同一磁盘只可能以 .. 开头。
-        if (Path.IsPathRooted(relative)
+        var relative = source.GetRelativePath(sourceRootFull, fullPath);
+        // 跨盘 / 跨 URL 主机时 GetRelativePath 原样返回绝对形式，IsPathRooted 拦下；
+        // 同一根下只可能以 .. 开头（两种分隔符都查，路径串语义不绑定平台）。
+        if (source.IsPathRooted(relative)
             || relative == ".."
-            || relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            || relative.StartsWith("..\\", StringComparison.Ordinal)
+            || relative.StartsWith("../", StringComparison.Ordinal))
             throw new InvalidOperationException($"{kind} 越出源目录: {fullPath}");
     }
 
-    /// <summary>单次展平过程的共享状态：源根、展开栈（循环检测）、实体 ID 来源表。</summary>
+    /// <summary>单次展平过程的共享状态：只读源、源根、展开栈（循环检测）、已展开文件、实体 ID 来源表。</summary>
     private sealed class FlattenSession
     {
-        public FlattenSession(string sourceRootFull) => SourceRootFull = sourceRootFull;
+        public FlattenSession(IMetadataXmlSource source, string sourceRootFull)
+        {
+            Source = source;
+            SourceRootFull = sourceRootFull;
+        }
 
+        public IMetadataXmlSource Source { get; }
         public string SourceRootFull { get; }
         public HashSet<string> Processing { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public HashSet<string> Expanded { get; } = new(StringComparer.OrdinalIgnoreCase);
         public Dictionary<string, List<string>> EntitySources { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 }

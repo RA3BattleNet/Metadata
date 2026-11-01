@@ -134,16 +134,100 @@ public static class MetadataBuilder
     /// <see cref="MetadataResourceUri.Resolve"/>（基准应为该源根；缺省时就是入口文件所在目录）。
     /// 入口、Include 与资源路径越出 <paramref name="sourceRoot"/> 时在读取目标前抛出
     /// <see cref="InvalidOperationException"/>。需要发布物的严格入口请用 <see cref="Load"/>。
+    /// 等价于 <see cref="Open"/> 传 <see cref="MetadataSourceOptions.ForceSourceTree"/>：
+    /// 没有 Include 的入口也照样展平、限定 ID。
     /// </remarks>
-    public static Metadata LoadSource(string entryPath, string? sourceRoot = null)
+    public static Metadata LoadSource(string entryPath, string? sourceRoot = null) =>
+        Open(entryPath, new MetadataSourceOptions { SourceRoot = sourceRoot, ForceSourceTree = true });
+
+    /// <summary>
+    /// 统一读取入口：自动识别作者源树（带 <c>Include</c>）与已展平的发布物，都返回普通 <see cref="Metadata"/> 树。
+    /// </summary>
+    /// <param name="pathOrUrl">
+    /// 本地入口路径（含 <c>file://</c> 形式）或 HTTP(S) 入口地址；注入自定义源时由该源解释入口。
+    /// </param>
+    /// <param name="options">
+    /// 读取选项。缺省时：入口探测到 <c>Include</c> 才展平、否则按发布物解析；不做引用校验。
+    /// </param>
+    /// <remarks>
+    /// 源树模式与 <see cref="LoadSource"/> 口径一致：内存展平 Include、合并继承、限定短 ID，
+    /// <c>ContentRevision</c> 固定 <c>local-source</c>，跳过跨实体 Compatibility 校验；只读不写盘。
+    /// HTTP(S) 入口用 <see cref="HttpXmlSource"/> 读（内部创建的源用完即释放），远端源树的 Include 同样递归展平。
+    /// </remarks>
+    public static Metadata Open(string pathOrUrl, MetadataSourceOptions? options = null)
     {
-        var root = string.IsNullOrWhiteSpace(sourceRoot)
-            ? Path.GetDirectoryName(Path.GetFullPath(entryPath))!
-            : sourceRoot;
+        if (string.IsNullOrWhiteSpace(pathOrUrl))
+            throw new ArgumentException("路径或 URL 不能为空", nameof(pathOrUrl));
+
+        var settings = options ?? new MetadataSourceOptions();
+        var metadata = settings.CustomSource is { } customSource
+            ? OpenWithSource(customSource, pathOrUrl, settings)
+            : IsHttpUrl(pathOrUrl)
+                ? OpenFromHttp(pathOrUrl, settings)
+                : OpenLocal(pathOrUrl, settings);
+
+        if (settings.ValidateReferences)
+            MetadataValidator.EnsureReferences(metadata);
+
+        return metadata;
+    }
+
+    /// <summary>
+    /// HTTP 入口：按入口所在目录建源（<see cref="HttpXmlSource"/> 的 baseUri 语义是目录），
+    /// 源实例用完即释放。入口文件 URL 是绝对地址，源里照样按绝对 URL 解析。
+    /// </summary>
+    private static Metadata OpenFromHttp(string entryUrl, MetadataSourceOptions options)
+    {
+        using var source = new HttpXmlSource(new Uri(new Uri(entryUrl), "."));
+        return OpenWithSource(source, entryUrl, options);
+    }
+
+    /// <summary>
+    /// 指定只读源入口（自定义源或 HTTP 源）：先读一遍探测 Include，源树走展平，发布物直接解析已读文档。
+    /// </summary>
+    private static Metadata OpenWithSource(IMetadataXmlSource source, string entryPath, MetadataSourceOptions options)
+    {
+        var document = source.LoadDocument(entryPath);
+        if (!options.ForceSourceTree && !MetadataDetector.HasInclude(document))
+            return MetadataParser.Load(document);
+
+        var sourceRoot = string.IsNullOrWhiteSpace(options.SourceRoot)
+            ? source.GetDirectoryName(source.GetFullPath(entryPath))
+                ?? throw new InvalidOperationException($"无法确定源目录: {entryPath}")
+            : options.SourceRoot;
 
         return MetadataParser.Load(MetadataFlattener.Flatten(
-            entryPath, root, MetadataSchema.Current, LocalSourceContentRevision, validateCompatibility: false));
+            source, entryPath, sourceRoot, MetadataSchema.Current, LocalSourceContentRevision, validateCompatibility: false));
     }
+
+    /// <summary>本地路径入口：先读一遍探测 Include（解析错误照常抛出），源树走展平，发布物按文件直接解析。</summary>
+    private static Metadata OpenLocal(string pathOrUrl, MetadataSourceOptions options)
+    {
+        // 与 Load 的既有口径一致：file:// 形式先还原成本地路径
+        var localPath = Uri.TryCreate(pathOrUrl, UriKind.Absolute, out var uri) && uri.IsFile
+            ? uri.LocalPath
+            : pathOrUrl;
+
+        var source = new PhysicalFileXmlSource();
+        var entryPath = source.GetFullPath(localPath);
+        var document = source.LoadDocument(entryPath);
+
+        if (!options.ForceSourceTree && !MetadataDetector.HasInclude(document))
+            return MetadataParser.LoadFromFile(entryPath);
+
+        var sourceRoot = string.IsNullOrWhiteSpace(options.SourceRoot)
+            ? source.GetDirectoryName(entryPath)
+                ?? throw new InvalidOperationException($"无法确定入口目录: {entryPath}")
+            : options.SourceRoot;
+
+        return MetadataParser.Load(MetadataFlattener.Flatten(
+            source, entryPath, sourceRoot, MetadataSchema.Current, LocalSourceContentRevision, validateCompatibility: false));
+    }
+
+    /// <summary>是否是 HTTP(S) 绝对地址；盘符路径与 <c>file://</c> 形式不算，交给本地分支。</summary>
+    private static bool IsHttpUrl(string pathOrUrl) =>
+        Uri.TryCreate(pathOrUrl, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
     /// <summary>
     /// 从展平树收集被引用资源（Image/Markdown/Manifest 登记节点的 Source 文件；Url-only 图跳过），复制到 Output。
