@@ -10,6 +10,7 @@
             <KindOf>APPLICATION</KindOf>
             <Sources>
                 <Source Type="HTTP" Url="https://update.ra3battle.net/app/contents2/LiveContent_9.9.8.6.zip.zst" />
+                <Source Type="BT" Url="https://file.cor-games.com/srv/ra3battlenet/content/LiveContent_9.9.8.6.zip.zst.torrent" />
             </Sources>
         </File>
     </Manifest>
