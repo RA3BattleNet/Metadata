@@ -22,7 +22,13 @@ public static class MetadataBuilder
     /// <summary>本地配置文件必须是纯文件名：无路径分隔符、无通配/保留字符、无空格与控制字符、不是 . 或 ..</summary>
     private static readonly Regex ModSkudefLocalFilePattern = new(@"^(?!\.\.?$)[^\\/:*?""<>|\x00-\x1f ]+$", RegexOptions.Compiled);
 
+    /// <summary>十六进制哈希字符集；长度另按算法校验。</summary>
+    private static readonly Regex HexHashPattern = new("^[0-9A-Fa-f]+$", RegexOptions.Compiled);
+
     private const string DefaultHashAlgorithm = "CRC32C";
+
+    /// <summary>不做内容哈希校验的算法值：清单用 None 声明，File@Hash 必须省略或为空。</summary>
+    private const string NoHashAlgorithm = "NONE";
 
     /// <summary>各算法的十六进制哈希长度。</summary>
     private static readonly Dictionary<string, int> HashHexLengths = new(StringComparer.OrdinalIgnoreCase)
@@ -562,12 +568,13 @@ public static class MetadataBuilder
             return;
 
         var algo = string.IsNullOrWhiteSpace(algoAttr) ? DefaultHashAlgorithm : algoAttr.Trim().ToUpperInvariant();
-        if (!HashHexLengths.ContainsKey(algo))
+        if (algo != NoHashAlgorithm && !HashHexLengths.ContainsKey(algo))
         {
-            errors.Add($"{rel} (Manifest ID: {id}): HashAlgorithm 非法: {algoAttr}（仅支持 CRC32C/MD5/SHA256）");
+            errors.Add($"{rel} (Manifest ID: {id}): HashAlgorithm 非法: {algoAttr}（仅支持 CRC32C/MD5/SHA256/None）");
             algo = DefaultHashAlgorithm;
         }
-        var hashLen = HashHexLengths[algo];
+        var noHash = algo == NoHashAlgorithm;
+        var hashLen = noHash ? 0 : HashHexLengths[algo];
 
         var seenFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var file in files)
@@ -576,10 +583,23 @@ public static class MetadataBuilder
             var where = $"{rel} (Manifest ID: {id}) File \"{fileName}\"";
 
             var hash = file.Attribute("Hash")?.Value ?? string.Empty;
-            if (hash.Length != hashLen)
+            if (noHash)
+            {
+                if (hash.Length != 0)
+                    errors.Add($"{where}: HashAlgorithm=None 时不能写 File@Hash（实际 {hash.Length} 位）");
+            }
+            else if (hash.Length != hashLen)
+            {
                 errors.Add($"{where}: Hash 长度应为 {hashLen}（{algo}），实际 {hash.Length}");
+            }
+            else if (!HexHashPattern.IsMatch(hash))
+            {
+                errors.Add($"{where}: Hash 必须是十六进制字符串（{algo}）: {hash}");
+            }
             else if (hash.All(c => char.ToUpperInvariant(c) == char.ToUpperInvariant(hash[0])))
+            {
                 errors.Add($"{where}: Hash 为占位值（全部同一字符）");
+            }
 
             var relativePath = ChildValue(file, "RelativePath");
             if (relativePath.StartsWith("..", StringComparison.Ordinal) || IsAbsolutePath(relativePath))
@@ -604,6 +624,10 @@ public static class MetadataBuilder
                     errors.Add($"{where}: 声明 Compression 时必须写 DownloadName");
                 else if (string.Equals(downloadName, fileName, StringComparison.OrdinalIgnoreCase))
                     errors.Add($"{where}: DownloadName 与 FileName 相同，解压源与安装名不能同名");
+
+                // zip 解压产物是目录，目录无法计算清单哈希，因此只能搭配 HashAlgorithm=None
+                if (string.Equals(compression.Trim(), "zip", StringComparison.OrdinalIgnoreCase) && !noHash)
+                    errors.Add($"{where}: Compression=\"zip\" 必须搭配 HashAlgorithm=\"None\"（zip 解压产物是目录，无法计算目录哈希）");
             }
 
             var sources = file.Elements()
@@ -666,8 +690,11 @@ public static class MetadataBuilder
                 errors.Add($"{where}: Dll Name 重复");
 
             var hash = dll.Attribute("Hash")?.Value ?? string.Empty;
-            if (hash.Length != hashLen)
+            // None 清单不做内容哈希校验，Dll 哈希也不参与长度校验
+            if (!noHash && hash.Length != hashLen)
+            {
                 errors.Add($"{where}: Hash 长度应为 {hashLen}（{algo}），实际 {hash.Length}");
+            }
         }
     }
 

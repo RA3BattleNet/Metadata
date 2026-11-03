@@ -29,11 +29,11 @@
 
 | 节点或属性 | 必填 | 含义 |
 |---|---|---|
-| `Manifest@HashAlgorithm` | 否 | `CRC32C`（缺省）、`MD5`、`SHA256` |
-| `File@Hash` | 是 | **解压安装后**最终文件的哈希，算法由 `HashAlgorithm` 决定 |
-| `File@Size` | 否 | 网络压缩包大小，正整数 |
+| `Manifest@HashAlgorithm` | 否 | `CRC32C`（缺省）、`MD5`、`SHA256` 或 `None`；`None` 表示不做内容哈希与大小校验 |
+| `File@Hash` | 否 | **解压安装后**最终文件的哈希，算法由 `HashAlgorithm` 决定；`None` 时必须省略或为空字符串，其它算法必填 |
+| `File@Size` | 否 | 网络压缩包大小，正整数；`None` 算法下客户端不比对 |
 | `File@DownloadName` | 否 | 服务器上的压缩包名；不写则与 `FileName` 相同 |
-| `File@Compression` | 否 | 压缩算法，目前只支持 `zstd` |
+| `File@Compression` | 否 | 压缩算法：`zstd`（解压成单个文件）或 `zip`（解压成目录） |
 | `File/FileName` | 是 | 安装后的文件名，也是 `AddBig` 引用的名字 |
 | `File/RelativePath` | 是 | 安装位置，标准相对路径，全清单唯一 |
 | `File/KindOf` | 是 | 文件类别字符串，库只透传，不做语义判断 |
@@ -44,7 +44,9 @@
 
 另有一类尚未实现的声明：`Manifest/SubManifest`（`RelativePath` + `ID`）在 XSD 里合法，但解析库和构建器都不读取它，客户端也不解析。要新增依赖关系时先讨论，不要指望它自动生效。
 
-`Compression="zstd"` 时必须同时写 `DownloadName`，且不能与 `FileName` 相同；`DownloadName` 只能是纯文件名，不能带路径分隔符。
+`Compression="zstd"` 或 `Compression="zip"` 时必须同时写 `DownloadName`，且不能与 `FileName` 相同；`DownloadName` 只能是纯文件名，不能带路径分隔符。
+
+`HashAlgorithm="None"` 只用于无需内容校验的运行时分发包（例如 WebView2 运行时）：客户端跳过大小与哈希比对，`File@Hash` 必须省略或为空字符串。`zip` 的产物是目录，目录没有可用的清单哈希，因此 `Compression="zip"` 只能搭配 `HashAlgorithm="None"`，写 `CRC32C`/`MD5`/`SHA256` 会被构建拒绝。`zstd` 仍按解压后的单文件校验，规则不变。
 
 ## 三、Skudef 怎么写
 
@@ -68,7 +70,8 @@
 
 ## 四、构建时会查什么
 
-- 哈希长度与 `HashAlgorithm` 匹配；`File@Hash` 必填。
+- 哈希长度与 `HashAlgorithm` 匹配，且是十六进制字符串；非 `None` 算法下 `File@Hash` 必填，`None` 下必须省略或为空。
+- `Compression="zip"` 必须搭配 `HashAlgorithm="None"`；声明压缩时必须写 `DownloadName` 且与 `FileName` 不同。
 - `RelativePath` 唯一、是标准相对路径；`DownloadName` 是纯文件名。
 - `Dependencies/Dll@Name` 不重复。
 - 写了 `Skudef` 时：`GameVersion` 形如 `1.12`、至少一条挂载指令、`FileName` 全清单唯一、`AddBig@File` 指向真实存在的 `FileName` 且只指一次、所有文件都被挂载到、`AddConfig@LocalFile` 是纯文件名、`File` 上无残留挂载属性。

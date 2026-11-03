@@ -117,10 +117,10 @@ public sealed record ManifestSourceEntry(string Type, string Url);
 /// </summary>
 /// <param name="FileName">安装名（解压后的文件名）。</param>
 /// <param name="RelativePath">相对安装根的路径。</param>
-/// <param name="Hash">解压后安装文件的 CRC32C。</param>
+/// <param name="Hash">解压后安装文件的哈希；HashAlgorithm 为 None 时为空字符串。</param>
 /// <param name="Size">下载物字节数；缺失或无法解析为 null。</param>
 /// <param name="DownloadName">下载名；清单未声明时为 null（等同 <paramref name="FileName"/>）。</param>
-/// <param name="Compression">下载物的压缩格式（小写）；清单未声明时为 null。</param>
+/// <param name="Compression">下载物的压缩格式（小写，zstd 或 zip）；清单未声明时为 null。</param>
 /// <param name="KindOf">文件种类标记（原样保留）。</param>
 /// <param name="Sources">下载来源列表；清单未声明时为空列表。</param>
 /// <param name="Raw">原始元数据节点。</param>
@@ -174,7 +174,7 @@ public sealed record ManifestSkudefEntry(string GameVersion, IReadOnlyList<Manif
 /// 叶子清单实体。
 /// </summary>
 /// <param name="Id">清单 ID。</param>
-/// <param name="HashAlgorithm">哈希算法；缺失按 CRC32C。</param>
+/// <param name="HashAlgorithm">哈希算法（大写）：CRC32C、MD5、SHA256 或 NONE；缺失按 CRC32C，NONE 表示不做内容哈希校验。</param>
 /// <param name="Files">文件条目列表。</param>
 /// <param name="Dependencies">依赖 DLL 列表。</param>
 /// <param name="Skudef">清单声明的 skudef；没写时为 null（客户端按旧算法生成）。</param>

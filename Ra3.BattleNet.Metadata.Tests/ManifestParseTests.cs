@@ -207,6 +207,43 @@ public class ManifestParseTests
     }
 
     [TestMethod]
+    public void ToManifestEntry_NoneAlgorithmZipCompression_ParsesEmptyHash()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"manifest-none-{Guid.NewGuid():N}.xml");
+        try
+        {
+            File.WriteAllText(temp, """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-none" HashAlgorithm="None">
+    <File DownloadName="WebView2Runtime.zip" Compression="zip">
+      <FileName>WebView2Runtime</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>WEBVIEWRUNTIME</KindOf>
+      <Sources>
+        <Source Type="BT" Url="https://example.com/WebView2Runtime.zip.torrent" />
+      </Sources>
+    </File>
+  </Manifest>
+</Metadata>
+""");
+            var entry = Metadata.LoadFromFile(temp).Find("Manifest")!.ToManifestEntry();
+
+            entry.HashAlgorithm.Should().Be("NONE");
+            var file = entry.Files.Should().ContainSingle().Subject;
+            file.Hash.Should().BeEmpty("None 算法不做内容哈希校验");
+            file.Size.Should().BeNull();
+            file.DownloadName.Should().Be("WebView2Runtime.zip");
+            file.Compression.Should().Be("zip");
+            file.Sources.Should().ContainSingle().Which.Url.Should().EndWith(".torrent");
+        }
+        finally
+        {
+            if (File.Exists(temp)) File.Delete(temp);
+        }
+    }
+
+    [TestMethod]
     public void ManifestRegistration_ResolvesRegisteredId_AndNullWhenMissing()
     {
         var src = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Metadata"));

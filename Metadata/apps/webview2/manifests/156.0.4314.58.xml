@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <!-- WebView2 运行时是免校验运行时分发包：HashAlgorithm="None" 表示客户端不做大小与哈希比对。
+         Compression="zip" 的产物是目录，因此不能声明 Hash；FileName 是解压后的目标目录名，
+         DownloadName 是种子里的 ZIP 文件名，两者必须不同。 -->
+    <Manifest ID="manifest-webview2-156" HashAlgorithm="None">
+        <File DownloadName="WebView2Runtime.zip" Compression="zip">
+            <FileName>WebView2Runtime</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>WEBVIEWRUNTIME</KindOf>
+            <Sources>
+                <Source Type="BT" Url="https://file.cor-games.com/srv/redist/WebView2Runtime.zip.torrent" />
+            </Sources>
+        </File>
+    </Manifest>
+</Metadata>

@@ -109,6 +109,28 @@ public class ManifestValidationTests
         }
     }
 
+    /// <summary>写临时源树（schema + 入口 + 一个清单文件）跑构建，断言构建成功。</summary>
+    private static void AssertBuildSucceeds(string manifestXml)
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"manifest-ok-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        var dst = Path.Combine(temp, "out");
+        try
+        {
+            SeedSchemas(src);
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), "<Metadata />");
+            File.WriteAllText(Path.Combine(src, "manifest.xml"), manifestXml);
+
+            MetadataBuilder.Build(src, dst, contentRevision: "x");
+            File.Exists(Path.Combine(dst, "metadata.xml")).Should().BeTrue();
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
     [TestMethod]
     public void Build_PlaceholderHash_HardFails()
     {
@@ -297,6 +319,108 @@ public class ManifestValidationTests
             if (Directory.Exists(temp))
                 Directory.Delete(temp, recursive: true);
         }
+    }
+
+    [TestMethod]
+    public void Build_NoneAlgorithmWithoutHash_Succeeds()
+    {
+        AssertBuildSucceeds(ManifestXml("""
+    <File DownloadName="WebView2Runtime.zip" Compression="zip">
+      <FileName>WebView2Runtime</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>WEBVIEWRUNTIME</KindOf>
+      <Sources><Source Type="BT" Url="https://example.com/WebView2Runtime.zip.torrent" /></Sources>
+    </File>
+""", hashAlgorithm: "None"));
+    }
+
+    [TestMethod]
+    public void Build_NoneAlgorithmWithEmptyHash_Succeeds()
+    {
+        AssertBuildSucceeds(ManifestXml("""
+    <File Hash="" DownloadName="WebView2Runtime.zip" Compression="zip">
+      <FileName>WebView2Runtime</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>WEBVIEWRUNTIME</KindOf>
+      <Sources><Source Type="BT" Url="https://example.com/WebView2Runtime.zip.torrent" /></Sources>
+    </File>
+""", hashAlgorithm: "None"));
+    }
+
+    [TestMethod]
+    public void Build_NoneAlgorithmWithHash_HardFails()
+    {
+        AssertBuildFails(
+            ManifestXml(FileBlock("9B623C7C", HttpSource("https://example.com/a.bin")), hashAlgorithm: "None"),
+            "不能写 File@Hash");
+    }
+
+    [TestMethod]
+    public void Build_NonNoneAlgorithmWithoutHash_HardFails()
+    {
+        AssertBuildFails(
+            ManifestXml($"""
+    <File>
+      <FileName>a.bin</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      {HttpSource("https://example.com/a.bin")}
+    </File>
+"""),
+            "长度应为 8");
+    }
+
+    [TestMethod]
+    public void Build_NonHexHash_HardFails()
+    {
+        AssertBuildFails(
+            ManifestXml(FileBlock("ZZZZZZZZ", HttpSource("https://example.com/a.bin"))),
+            "必须是十六进制");
+    }
+
+    [TestMethod]
+    public void Build_ZipWithHashAlgorithm_HardFails()
+    {
+        AssertBuildFails(
+            ManifestXml($"""
+    <File Hash="9B623C7C" DownloadName="a.zip" Compression="zip">
+      <FileName>a</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      {HttpSource("https://example.com/a.zip")}
+    </File>
+"""),
+            "必须搭配 HashAlgorithm=\"None\"");
+    }
+
+    [TestMethod]
+    public void Build_ZipWithoutDownloadName_HardFails()
+    {
+        AssertBuildFails(
+            ManifestXml($"""
+    <File Compression="zip">
+      <FileName>a</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      {HttpSource("https://example.com/a.zip")}
+    </File>
+""", hashAlgorithm: "None"),
+            "必须写 DownloadName");
+    }
+
+    [TestMethod]
+    public void Build_ZipDownloadNameEqualsFileName_HardFails()
+    {
+        AssertBuildFails(
+            ManifestXml($"""
+    <File DownloadName="a.zip" Compression="zip">
+      <FileName>a.zip</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>MOD;</KindOf>
+      {HttpSource("https://example.com/a.zip")}
+    </File>
+""", hashAlgorithm: "None"),
+            "不能同名");
     }
 
     [TestMethod]

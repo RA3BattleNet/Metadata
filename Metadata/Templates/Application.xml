@@ -40,4 +40,19 @@
       <KindOf>APP;</KindOf>
     </File>
   </Manifest>
+
+  <!-- 免校验运行时分发包（例如 WebView2 运行时）：
+       HashAlgorithm="None" 表示客户端不比对大小与哈希，File@Hash 必须省略或为空字符串；
+       Compression="zip" 的产物是目录，因此只能搭配 HashAlgorithm="None"，且必须写 DownloadName 且与 FileName 不同。
+  <Manifest ID="manifest-200" HashAlgorithm="None">
+    <File DownloadName="Runtime.zip" Compression="zip">
+      <FileName>Runtime</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>RUNTIME;</KindOf>
+      <Sources>
+        <Source Type="BT" Url="https://example.com/Runtime.zip.torrent" />
+      </Sources>
+    </File>
+  </Manifest>
+  -->
 </Metadata>

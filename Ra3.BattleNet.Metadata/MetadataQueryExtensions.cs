@@ -187,7 +187,8 @@ public static class MetadataQueryExtensions
         var id = manifestNode.Get("ID") ?? string.Empty;
         var algo = manifestNode.Get("HashAlgorithm");
         algo = string.IsNullOrWhiteSpace(algo) ? "CRC32C" : algo.Trim().ToUpperInvariant();
-        if (algo is not ("CRC32C" or "MD5" or "SHA256"))
+        // NONE 表示不校验内容哈希；此时文件条目 Hash 为空字符串
+        if (algo is not ("CRC32C" or "MD5" or "SHA256" or "NONE"))
             throw new InvalidOperationException($"Manifest '{id}' 的 HashAlgorithm 非法: {algo}");
 
         var files = manifestNode.Children

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Includes>
+        <Include Source="manifests/manifests.xml" />
+    </Includes>
+
+    <!-- WebView2 固定版本运行时：客户端缺运行库或系统运行库损坏时，按此清单下载 ZIP 并解压到私有目录 -->
+    <Application ID="webview2">
+        <Version>156.0.4314.58</Version>
+        <DisplayName Language="zh">WebView2 运行时</DisplayName>
+        <DisplayName Language="en">WebView2 Runtime</DisplayName>
+        <Packages>
+            <Package Version="156.0.4314.58">
+                <Manifest>manifest-webview2-156</Manifest>
+            </Package>
+        </Packages>
+        <Posts/>
+    </Application>
+</Metadata>

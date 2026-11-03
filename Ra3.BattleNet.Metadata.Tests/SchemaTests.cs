@@ -63,6 +63,34 @@ public class SchemaTests
     }
 
     [TestMethod]
+    public void SourceSchema_AcceptsNoneAlgorithmAndZipCompression()
+    {
+        var schema = Path.Combine(RepoRoot, "Metadata", SchemaValidator.SourceSchemaFileName);
+        var path = Path.Combine(Path.GetTempPath(), $"schema-none-zip-{Guid.NewGuid():N}.xml");
+        try
+        {
+            File.WriteAllText(path, """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-none" HashAlgorithm="None">
+    <File DownloadName="WebView2Runtime.zip" Compression="zip">
+      <FileName>WebView2Runtime</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>WEBVIEWRUNTIME</KindOf>
+      <Sources><Source Type="BT" Url="https://example.com/WebView2Runtime.zip.torrent" /></Sources>
+    </File>
+  </Manifest>
+</Metadata>
+""");
+            SchemaValidator.ValidateFile(path, schema).Should().BeEmpty("None 与 zip 是合法取值，且 File@Hash 可省略");
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [TestMethod]
     public void Build_ApplicationMissingId_FailsSourceSchema()
     {
         var temp = Path.Combine(Path.GetTempPath(), $"schema-bad-{Guid.NewGuid():N}");
