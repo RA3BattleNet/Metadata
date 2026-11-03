@@ -27,7 +27,7 @@
 | `Ra3.BattleNet.Metadata/Cache/IMetadataTransfer.cs` | 41 |
 | `Ra3.BattleNet.Metadata/Cache/LeafResult.cs` | 34 |
 | `Ra3.BattleNet.Metadata/Cache/MetadataCacheJsonContext.cs` | 16 |
-| `Ra3.BattleNet.Metadata/Cache/MetadataClient.cs` | 1697 |
+| `Ra3.BattleNet.Metadata/Cache/MetadataClient.cs` | 1702 |
 | `Ra3.BattleNet.Metadata/Cache/MetadataDiskCache.cs` | 734 |
 | `Ra3.BattleNet.Metadata/Cache/MetadataFreshness.cs` | 18 |
 | `Ra3.BattleNet.Metadata/Cache/RootSnapshotResult.cs` | 23 |
@@ -37,12 +37,12 @@
 | `Ra3.BattleNet.Metadata/ManifestMountPlanner.cs` | 156 |
 | `Ra3.BattleNet.Metadata/MarkdownValidator.cs` | 88 |
 | `Ra3.BattleNet.Metadata/Metadata.cs` | 120 |
-| `Ra3.BattleNet.Metadata/MetadataBuilder.cs` | 805 |
+| `Ra3.BattleNet.Metadata/MetadataBuilder.cs` | 832 |
 | `Ra3.BattleNet.Metadata/MetadataColor.cs` | 43 |
 | `Ra3.BattleNet.Metadata/MetadataFlattener.cs` | 400 |
 | `Ra3.BattleNet.Metadata/MetadataInheritance.cs` | 304 |
 | `Ra3.BattleNet.Metadata/MetadataParser.cs` | 106 |
-| `Ra3.BattleNet.Metadata/MetadataQueryExtensions.cs` | 336 |
+| `Ra3.BattleNet.Metadata/MetadataQueryExtensions.cs` | 337 |
 | `Ra3.BattleNet.Metadata/MetadataQueryModels.cs` | 197 |
 | `Ra3.BattleNet.Metadata/MetadataResourceUri.cs` | 31 |
 | `Ra3.BattleNet.Metadata/MetadataSchema.cs` | 21 |
@@ -94,4 +94,4 @@
 
 Mod 实体目录（15 个）：`armor-rush`、`arona-eva`、`corona`、`easternloong`、`eisenreich`、`keva`、`moeva`、`moui`、`neuro-eva`、`neuro-eva-ar`、`olga-eva`、`ra3-censorship-patch`、`rie`、`tnw`、`uimod`
 
-Application 实体目录（2 个）：`content`、`ra3battlenet`
+Application 实体目录（3 个）：`content`、`ra3battlenet`、`webview2`

@@ -8,6 +8,7 @@
         <!-- 子模块 -->
         <Include Source="ra3battlenet/ra3battlenet.xml" />
         <Include Source="content/content.xml" />
+        <Include Source="webview2/webview2.xml" />
         <!-- <Include Source="coronalauncher/coronalauncher.xml" /> -->
     </Includes>
 </Metadata>

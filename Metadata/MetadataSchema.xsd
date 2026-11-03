@@ -356,7 +356,7 @@
     <xs:attribute name="Url" type="xs:string"/>
   </xs:complexType>
 
-  <!-- 源侧叶子清单：含 File 表（Updater 生成）；HashAlgorithm 缺省按 CRC32C。
+  <!-- 源侧叶子清单：含 File 表（Updater 生成）；HashAlgorithm 缺省按 CRC32C，None 表示不做内容哈希校验。
        Skudef 声明挂载顺序与加载条件，写在 File 表前面；写了 Skudef 就不能再在 File 上写 Mount/Language/Package -->
   <xs:complexType name="ManifestFullType">
     <xs:sequence>
@@ -398,17 +398,22 @@
     <xs:attribute name="Optional" type="xs:boolean"/>
   </xs:complexType>
 
+  <!-- None 表示不校验内容哈希与大小，只用于无需内容校验的运行时分发包（如 WebView2 运行时）。
+       此时 File@Hash 必须省略或为空字符串；压缩声明仍要写 DownloadName。 -->
   <xs:simpleType name="HashAlgorithmType">
     <xs:restriction base="xs:string">
       <xs:enumeration value="CRC32C"/>
       <xs:enumeration value="MD5"/>
       <xs:enumeration value="SHA256"/>
+      <xs:enumeration value="None"/>
     </xs:restriction>
   </xs:simpleType>
 
   <!-- FileName 是安装名（解压后的名字），DownloadName 是下载物的服务端文件名（缺省等于 FileName）；
        Hash 描述解压后的安装文件（FileName），Size 描述下载物（DownloadName 对应的字节）；
-       Compression 表示校验通过后解压成 FileName -->
+       Compression 表示校验通过后解压成 FileName。
+       Hash 可选：非 None 算法必填且长度符合算法；None 算法必须省略或为空。
+       zip 的产物是目录，因此 zip 必须搭配 HashAlgorithm="None"，不能写 Hash。 -->
   <xs:complexType name="FileType">
     <xs:sequence>
       <xs:element name="FileName" type="xs:string"/>
@@ -417,7 +422,7 @@
       <xs:element name="Sources" type="SourcesType" minOccurs="0"/>
       <xs:element name="PatchInfo" type="PatchInfoType" minOccurs="0"/>
     </xs:sequence>
-    <xs:attribute name="Hash" type="xs:string" use="required"/>
+    <xs:attribute name="Hash" type="xs:string"/>
     <xs:attribute name="Size" type="xs:long"/>
     <xs:attribute name="DownloadName" type="xs:string"/>
     <xs:attribute name="Compression" type="CompressionType"/>
@@ -427,9 +432,11 @@
     <xs:attribute name="Package" type="xs:string"/>
   </xs:complexType>
 
+  <!-- zstd 解压成单个文件；zip 解压成目录（因此必须搭配 HashAlgorithm="None"）。 -->
   <xs:simpleType name="CompressionType">
     <xs:restriction base="xs:string">
       <xs:enumeration value="zstd"/>
+      <xs:enumeration value="zip"/>
     </xs:restriction>
   </xs:simpleType>
 

@@ -1503,11 +1503,16 @@ public sealed class MetadataClient : IDisposable
             return false;
         }
 
+        // HashAlgorithm=None 的清单不做内容哈希校验，文件名之外不再要求 Hash
+        var requiresHash = !string.Equals(entry.HashAlgorithm, "NONE", StringComparison.OrdinalIgnoreCase);
         foreach (var file in entry.Files)
         {
-            if (string.IsNullOrWhiteSpace(file.FileName) || string.IsNullOrWhiteSpace(file.Hash))
+            if (string.IsNullOrWhiteSpace(file.FileName)
+                || (requiresHash && string.IsNullOrWhiteSpace(file.Hash)))
             {
-                error = $"清单 {entry.Id} 的文件缺少 FileName 或 Hash";
+                error = requiresHash
+                    ? $"清单 {entry.Id} 的文件缺少 FileName 或 Hash"
+                    : $"清单 {entry.Id} 的文件缺少 FileName";
                 entry = null;
                 return false;
             }

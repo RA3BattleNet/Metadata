@@ -45,7 +45,7 @@ public class PublishSurfaceTests
                     .Should().Equal(File.ReadAllBytes(Path.Combine(src, relative)));
             }
             File.Exists(Path.Combine(dst, "mods", "corona", "manifests", "3.259.xml")).Should().BeTrue();
-            File.Exists(Path.Combine(dst, "apps", "ra3battlenet", "manifests", "1.9.9.11.xml")).Should().BeTrue();
+            File.Exists(Path.Combine(dst, "apps", "ra3battlenet", "manifests", "1.9.9.22.xml")).Should().BeTrue();
 
             // _redirects 自动带出
             File.Exists(Path.Combine(dst, "_redirects")).Should().BeTrue();

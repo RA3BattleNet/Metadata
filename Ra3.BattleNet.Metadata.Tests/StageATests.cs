@@ -1,4 +1,4 @@
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -49,34 +49,34 @@ public class StageATests
             var registries = loaded.GetAllElements("Manifest")
                 .Where(m => !string.IsNullOrEmpty(m.Get("ID"))).ToList();
             var manifest = registries
-                .First(m => MetadataFlattener.LocalId(m.Get("ID")) == "manifest-1.9.9.11");
+                .First(m => MetadataFlattener.LocalId(m.Get("ID")) == "manifest-1.9.9.22");
             manifest.Get("ID")!.Should().Contain(":");
-            manifest.Get("ID")!.Should().EndWith(":manifest-1.9.9.11");
+            manifest.Get("ID")!.Should().EndWith(":manifest-1.9.9.22");
             var source = manifest.Get("Source");
             source.Should().NotBeNullOrWhiteSpace();
-            source!.Replace('\\', '/').Should().EndWith("manifests/1.9.9.11.xml");
+            source!.Replace('\\', '/').Should().EndWith("manifests/1.9.9.22.xml");
             source.Should().NotContain("apps.xml");
             var manifestPath = Path.Combine(dst, source.Replace('/', Path.DirectorySeparatorChar));
             File.Exists(manifestPath).Should().BeTrue();
-            File.ReadAllText(manifestPath).Should().Contain("<File").And.Contain("Ra3BattleNet_Setup_1.9.9.11.exe");
+            File.ReadAllText(manifestPath).Should().Contain("<File").And.Contain("Ra3BattleNet_Setup_1.9.9.22.exe");
 
             var coronaManifest = loaded.GetAllElements("Manifest")
                 .First(m => MetadataFlattener.LocalId(m.Get("ID")!) == "manifest-3259");
             coronaManifest.Get("Source")!.Replace('\\', '/').Should().EndWith("manifests/3.259.xml");
 
-            // 引用已改写为限定 ID
+            // 引用已改写为限定 ID（示例数据里只剩 Mod 带新闻）
             var app = loaded.Applications().Single(a => a.Id == "RA3BattleNet");
-            var appXml = Path.Combine(src, "apps", "ra3battlenet", "ra3battlenet.xml");
-            var appDoc = XDocument.Load(appXml);
-            var localContentId = appDoc.Descendants("Application")
-                .Single(a => a.Attribute("ID")!.Value == "RA3BattleNet")
+            var modDoc = XDocument.Load(Path.Combine(src, "mods", "corona", "corona.xml"));
+            var modXml = Path.Combine(src, "mods", "corona", "corona.xml");
+            var localContentId = modDoc.Descendants("Mod")
+                .Single(m => m.Attribute("ID")!.Value == "Corona")
                 .Element("Posts")!
                 .Elements("Post").Elements("Contents").Elements("Content")
-                .Single(c => string.Equals((string?)c.Attribute("Language"), "zh", StringComparison.OrdinalIgnoreCase))
+                .First(c => string.Equals((string?)c.Attribute("Language"), "zh", StringComparison.OrdinalIgnoreCase))
                 .Value.Trim();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var pending = new Queue<string>();
-            pending.Enqueue(appXml);
+            pending.Enqueue(modXml);
             XElement? registration = null;
             string? registrationFile = null;
             while (pending.Count > 0)
@@ -104,16 +104,16 @@ public class StageATests
             var sourceBody = File.ReadAllText(Path.GetFullPath(Path.Combine(
                 Path.GetDirectoryName(registrationFile!)!,
                 registration!.Attribute("Source")!.Value)));
-            var publishedContentId = app.Raw.Find("Posts")!
+            var publishedContentId = loaded.Mods().Single(m => m.Id == "Corona").Raw.Find("Posts")!
                 .GetAllElements("Content")
-                .Single(c => string.Equals(c.Get("Language"), "zh", StringComparison.OrdinalIgnoreCase))
+                .First(c => string.Equals(c.Get("Language"), "zh", StringComparison.OrdinalIgnoreCase))
                 .Value!;
             MetadataFlattener.LocalId(publishedContentId).Should().Be(localContentId);
             var markdown = loaded.Markdowns().Single(m => m.Id == publishedContentId);
             File.ReadAllText(Path.Combine(dst, markdown.Source!.Replace('/', Path.DirectorySeparatorChar)))
                 .Should().Be(sourceBody);
 
-            app.Packages.Single(p => p.Version == "1.9.9.11").ManifestId.Should().Be(manifest.Get("ID"));
+            app.Packages.Single(p => p.Version == "1.9.9.22").ManifestId.Should().Be(manifest.Get("ID"));
             var corona = loaded.Mods().Single(m => m.Id == "Corona");
             var icon = loaded.Images().Single(image => image.Id == corona.Icon);
             var sourceDoc = XDocument.Load(Path.Combine(src, "mods", "corona", "corona.xml"));

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <!-- 预留标记 -->
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Includes>
+        <!-- 子模块 -->
+        <!-- 注册 Manifest 文件 -->
+        <Include Source="156.0.4314.58.xml" />
+    </Includes>
+</Metadata>
