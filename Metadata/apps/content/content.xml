@@ -12,26 +12,6 @@
         <DisplayName Language="zh">游戏资源</DisplayName>
         <DisplayName Language="en">Game Resources</DisplayName>
         <Packages>
-            <Package Version="9.9.8.1">
-                <ReleaseDate>2026-10-11</ReleaseDate>
-                <Manifest>manifest-9.9.8.1</Manifest>
-            </Package>
-            <Package Version="9.9.8.2">
-                <ReleaseDate>2026-10-18</ReleaseDate>
-                <Manifest>manifest-9.9.8.2</Manifest>
-            </Package>
-            <Package Version="9.9.8.3">
-                <ReleaseDate>2026-10-20</ReleaseDate>
-                <Manifest>manifest-9.9.8.3</Manifest>
-            </Package>
-            <Package Version="9.9.8.4">
-                <ReleaseDate>2026-10-21</ReleaseDate>
-                <Manifest>manifest-9.9.8.4</Manifest>
-            </Package>
-            <Package Version="9.9.8.5">
-                <ReleaseDate>2026-10-23</ReleaseDate>
-                <Manifest>manifest-9.9.8.5</Manifest>
-            </Package>
             <Package Version="9.9.8.6">
                 <ReleaseDate>2026-10-31</ReleaseDate>
                 <Manifest>manifest-9.9.8.6</Manifest>
@@ -41,31 +21,6 @@
         <UpdateKind ID="content" DisplayName="游戏资源" Current="9.9.8.6"
                     BaseUrl="https://update.ra3battle.net/app/contents2/"
                     FallbackBaseUrl="">
-            <Updater Version="9.9.8.1"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-9.9.8.1.xml"
-                     Hash="ACE6B61C6A6442D9753EDF05188F174A"
-                     Size="155424"
-                     ReleaseDate="2026-10-11" />
-            <Updater Version="9.9.8.2"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-9.9.8.2.xml"
-                     Hash="F8ECC346763BE365F5CEC47CE1166E70"
-                     Size="153956"
-                     ReleaseDate="2026-10-18" />
-            <Updater Version="9.9.8.3"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-9.9.8.3.xml"
-                     Hash="1C77900F2B916670B30ABE6509F02174"
-                     Size="155151"
-                     ReleaseDate="2026-10-20" />
-            <Updater Version="9.9.8.4"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-9.9.8.4.xml"
-                     Hash="C54991F5751C4E340A9008DEC79E38F5"
-                     Size="155151"
-                     ReleaseDate="2026-10-21" />
-            <Updater Version="9.9.8.5"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-9.9.8.5.xml"
-                     Hash="0E66A25056C4448241E72AAEA74374B0"
-                     Size="155151"
-                     ReleaseDate="2026-10-23" />
             <Updater Version="9.9.8.6"
                      Source="https://update.ra3battle.net/app/contents2/manifests/manifest-9.9.8.6.xml"
                      Hash="B4FDCE39F100671965E53DE52716B217"

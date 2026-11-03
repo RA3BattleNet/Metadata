@@ -9,124 +9,21 @@
     </Includes>
 
     <Application ID="RA3BattleNet">
-        <Version>1.9.9.20</Version>
+        <Version>1.9.9.22</Version>
         <DisplayName Language="zh">红色警戒3战网服务</DisplayName>
         <DisplayName Language="en">Ra3BattleNet</DisplayName>
         <TransferAd>false</TransferAd>
         <Packages>
-            <Package Version="1.9.9.20">
-                <ReleaseDate>2026-10-27</ReleaseDate>
-                <Manifest>manifest-1.9.9.20</Manifest>
-            </Package>
-            <Package Version="1.9.9.19">
-                <ReleaseDate>2026-10-24</ReleaseDate>
-                <Manifest>manifest-1.9.9.19</Manifest>
-            </Package>
-            <Package Version="1.9.9.16">
-                <ReleaseDate>2026-10-18</ReleaseDate>
-                <Manifest>manifest-1.9.9.16</Manifest>
-            </Package>
-            <Package Version="1.9.9.12">
-                <ReleaseDate>2026-10-07</ReleaseDate>
-                <Manifest>manifest-1.9.9.12</Manifest>
-            </Package>
-            <Package Version="1.9.9.11">
-                <ReleaseDate>2026-10-02</ReleaseDate>
-                <Manifest>manifest-1.9.9.11</Manifest>
+            <Package Version="1.9.9.22">
+                <ReleaseDate>2026-11-03</ReleaseDate>
+                <Manifest>manifest-1.9.9.22</Manifest>
             </Package>
         </Packages>
-        <Posts>
-            <Post DateTime="2026-10-02T00:00:00+08:00">
-                <Titles>
-                    <Title Language="zh">版本更新 1.9.9.11</Title>
-                    <Title Language="en">Update 1.9.9.11</Title>
-                </Titles>
-                <Descriptions>
-                    <Description Language="zh">初版测试。</Description>
-                    <Description Language="en">Initial test.</Description>
-                </Descriptions>
-                <Contents>
-                    <Content Language="zh">news-zh-1.9.9.11</Content>
-                    <Content Language="en">news-en-1.9.9.11</Content>
-                </Contents>
-            </Post>
-        </Posts>
+        <Posts/>
     
         <UpdateKind ID="RA3BattleNet" DisplayName="客户端程序" Current="1.9.9.22"
                     BaseUrl="https://update.ra3battle.net/app/RA3BattleNet/"
                     FallbackBaseUrl="">
-            <Updater Version="1.9.9.9"
-                     Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-1.9.9.9.xml"
-                     Hash="43AC5BF7E7B5954E43733048E80D064D"
-                     Size="17115"
-                     ReleaseDate="2026-09-30"
-                     Commit="v1.9.9.9" />
-            <Updater Version="1.9.9.10"
-                     Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-1.9.9.10.xml"
-                     Hash="1860AE912769A69AE5288B85EDF028AE"
-                     Size="17604"
-                     ReleaseDate="2026-10-01"
-                     Commit="v1.9.9.10" />
-            <Updater Version="1.9.9.11"
-                     Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-1.9.9.11.xml"
-                     Hash="975D855C578B493B9CCE71B345052AE3"
-                     Size="18283"
-                     ReleaseDate="2026-10-02"
-                     Commit="v1.9.9.11" />
-            <Updater Version="1.9.9.12"
-                     Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-1.9.9.12.xml"
-                     Hash="CAD0392E2382C99586AB1D0F0BD82295"
-                     Size="67823"
-                     ReleaseDate="2026-10-07"
-                     Commit="v1.9.9.12" />
-            <Updater Version="1.9.9.13"
-                     Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-1.9.9.13.xml"
-                     Hash="7474A0E1556F26AFE3615FD6A8824C34"
-                     Size="68069"
-                     ReleaseDate="2026-10-08"
-                     Commit="v1.9.9.13" />
-            <Updater Version="1.9.9.14"
-                     Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-1.9.9.14.xml"
-                     Hash="F20538BC46D314B034BD8F3C95C6E58E"
-                     Size="68760"
-                     ReleaseDate="2026-10-11"
-                     Commit="v1.9.9.14" />
-            <Updater Version="1.9.9.15"
-                     Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-1.9.9.15.xml"
-                     Hash="76933F1E92E1A8767FE2B7EE6523E617"
-                     Size="69239"
-                     ReleaseDate="2026-10-15"
-                     Commit="v1.9.9.15" />
-            <Updater Version="1.9.9.16"
-                     Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-1.9.9.16.xml"
-                     Hash="EB04FF4A792E390E80F3AEF1DD2C4CD6"
-                     Size="69008"
-                     ReleaseDate="2026-10-18"
-                     Commit="v1.9.9.16" />
-            <Updater Version="1.9.9.17"
-                     Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-1.9.9.17.xml"
-                     Hash="F5DA430758300AE1D5C73694AE7A0518"
-                     Size="69008"
-                     ReleaseDate="2026-10-19"
-                     Commit="v1.9.9.17" />
-            <Updater Version="1.9.9.19"
-                     Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-1.9.9.19.xml"
-                     Hash="E9C38706B0392F28B5B806D0D93E889D"
-                     Size="55058"
-                     ReleaseDate="2026-10-24"
-                     Commit="v1.9.9.19" />
-            <Updater Version="1.9.9.20"
-                     Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-1.9.9.20.xml"
-                     Hash="A25F6B4DE674CB1BC62113125DC383F6"
-                     Size="69384"
-                     ReleaseDate="2026-10-26"
-                     Commit="v1.9.9.20" />
-            <Updater Version="1.9.9.21"
-                     Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-1.9.9.21.xml"
-                     Hash="0D454D073A552F8D41E8401F606C13D0"
-                     Size="69384"
-                     ReleaseDate="2026-10-27"
-                     Commit="v1.9.9.21" />
             <Updater Version="1.9.9.22"
                      Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-1.9.9.22.xml"
                      Hash="2550EAD9DA370F396B5FC964BE6271A3"
