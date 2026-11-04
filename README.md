@@ -37,7 +37,7 @@ dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Ou
 | 本地构建产物 | `npm run build` |
 | 构建并转 WebP（与线上一致） | `npm run build:release` |
 | 本地起静态服务看产物 | `npm run preview` |
-| 发布到 Cloudflare Pages | `npm run deploy` |
+| 发布到 Cloudflare Workers | `npm run deploy` |
 | 检查文档与笔记 | `node scripts/verify-docs.mjs` |
 
 发版到 EdgeOne 由 `.github/workflows/deploy.yml` 在推送 `main` 时自动执行。细节见[构建与发布](.agents/docs/references/build-and-release.md)。

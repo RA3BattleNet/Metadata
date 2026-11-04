@@ -9,7 +9,7 @@ dotnet test Metadata.sln                                            # 单元测�
 dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Output
 npm run build           # 同上，走 package.json 脚本
 npm run build:release   # 构建 + 图片转 WebP（等价 npm run build:webp）
-npm run deploy          # 构建后发布到 Cloudflare Pages
+npm run deploy          # 构建后发布到 Cloudflare Workers
 npm run preview         # 本地用 wrangler 起静态服务看产物
 ```
 
@@ -36,11 +36,31 @@ npm run preview         # 本地用 wrangler 起静态服务看产物
 | 目标 | 入口 | 说明 |
 |---|---|---|
 | EdgeOne | `.github/workflows/deploy.yml` | push 到 `main` 后执行 `bash build.sh --webp --content-revision=${{ github.sha }}`，再 `npx edgeone makers deploy ./Output` |
-| Cloudflare Pages | `npm run deploy`（`wrangler.toml`） | 本地或 CI 执行 `wrangler pages deploy Output` |
+| Cloudflare Workers | `npm run deploy`（`wrangler.toml`） | 本地构建后执行 `wrangler deploy`，静态资源来自 `Output/` |
 
 `build.sh` 自己下载 .NET 10 到 `./dotnet`，再调用命令行构建；`--content-revision=` 用来把提交标识写进根节点。
 
 `_redirects`、`edgeone.json`、`editor.html` 如果存在于源目录，会原样复制到输出。
+
+### Cloudflare Workers Git 构建
+
+仓库只使用 Workers 静态资源，不使用 Pages，也不需要 JavaScript 透传入口。`wrangler.toml` 的 `[assets]` 指向 `./Output`，不配置 `[build]`，避免后台构建后 Wrangler 再构建一次。
+
+| 后台设置 | 值 |
+|---|---|
+| 根目录 | 仓库根目录，不是内部的 `Metadata/` |
+| 构建命令 | `bash build.sh --webp` |
+| 生产部署命令 | `npx wrangler deploy` |
+| 预览分支命令 | `npx wrangler versions upload` |
+| 生产分支 | `main` |
+| 预览分支 | 启用非生产分支构建，包含需要预览的分支 |
+| Node 环境变量 | 生产与预览都设置 `NODE_VERSION=22` |
+
+开启 Worker 的 Preview URLs 后访问上传版本的预览地址；`versions upload` 不切换生产流量。不要把 `npm run deploy` 填进后台构建命令，它包含生产发布操作。
+
+本地先安装 .NET 10 SDK：`npm run preview` 构建后启动 Workers 本地服务，`npm run dev` 直接服务已有 `Output/`。`_redirects` 在 Workers 静态资源中继续负责将 `/` 重定向到 `/metadata.xml`。
+
+参考：[Workers 构建配置](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)、[预览地址](https://developers.cloudflare.com/workers/configuration/previews/)。
 
 ## 五、测试
 
