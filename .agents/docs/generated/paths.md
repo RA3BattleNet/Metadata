@@ -94,6 +94,6 @@
 | `Metadata/apps/` | 一级目录 |
 | `Metadata/mods/` | 一级目录 |
 
-Mod 实体目录（15 个）：`armor-rush`、`arona-eva`、`corona`、`easternloong`、`eisenreich`、`keva`、`moeva`、`moui`、`neuro-eva`、`neuro-eva-ar`、`olga-eva`、`ra3-censorship-patch`、`rie`、`tnw`、`uimod`
+Mod 实体目录（16 个）：`armor-rush`、`arona-eva`、`corona`、`easternloong`、`eisenreich`、`keva`、`moeva`、`moui`、`neuro-eva`、`neuro-eva-ar`、`olga-eva`、`ra3-censorship-patch`、`remix`、`rie`、`tnw`、`uimod`
 
 Application 实体目录（3 个）：`content`、`ra3battlenet`、`webview2`
