@@ -2,6 +2,8 @@
 
 Status: implemented
 
+预览机制由 [Worker Previews 迁移](2026-11-04-worker-previews.md) 取代；本篇保留首次迁移时的版本预览选择及验证记录。Workers 静态资源、生产部署与本地服务的决定继续有效。
+
 ## Problem
 
 Cloudflare 后台项目是 Workers，但 npm 发布和本地服务仍调用 Pages 命令。Wrangler 的自定义构建还会在已有构建后重复执行 Linux SDK 安装脚本，导致 Windows 本地预览失败。

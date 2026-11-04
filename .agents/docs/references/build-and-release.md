@@ -51,16 +51,20 @@ npm run preview         # 本地用 wrangler 起静态服务看产物
 | 根目录 | 仓库根目录，不是内部的 `Metadata/` |
 | 构建命令 | `bash build.sh --webp` |
 | 生产部署命令 | `npx wrangler deploy` |
-| 预览分支命令 | `npx wrangler versions upload` |
+| 预览分支命令 | `npx wrangler preview` |
 | 生产分支 | `main` |
-| 预览分支 | 启用非生产分支构建，包含需要预览的分支 |
+| 预览分支 | 开启 Enable Preview Builds，非生产分支（如 `remix`）运行预览构建 |
 | Node 环境变量 | 生产与预览都设置 `NODE_VERSION=22` |
 
-开启 Worker 的 Preview URLs 后访问上传版本的预览地址；`versions upload` 不切换生产流量。不要把 `npm run deploy` 填进后台构建命令，它包含生产发布操作。
+`wrangler.toml` 必须包含 `[previews]`；本项目只有静态资源，因此该块为空，`[assets]` 与兼容日期仍放在顶层。不要把 `npm run deploy` 填进后台构建命令，它包含生产发布操作。
+
+已接入 Builds 的旧 Worker 需要在 Settings > Builds 的 Set up Worker Previews 横幅中选择 Set up，再确认 Switch to Worker Previews。该切换不可逆；确认后预览命令必须调用 `npx wrangler preview`，不再使用 `versions upload`。生产分支保持 `main`，预览不替换生产部署。
+
+先将含 `[previews]` 的 main 提交同步到已有功能分支，再触发分支构建。Preview 名称默认来自 Git 分支；成功后使用返回的 Preview URL 访问该分支最新部署，Unique Deployment URL 对应单次部署。无需为本项目导入生产变量、密钥或存储绑定。
 
 本地先安装 .NET 10 SDK：`npm run preview` 构建后启动 Workers 本地服务，`npm run dev` 直接服务已有 `Output/`。`_redirects` 在 Workers 静态资源中继续负责将 `/` 重定向到 `/metadata.xml`。
 
-参考：[Workers 构建配置](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)、[预览地址](https://developers.cloudflare.com/workers/configuration/previews/)。
+参考：[构建分支与一次性切换](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/)、[Worker Previews 入门](https://developers.cloudflare.com/workers/previews/get-started/)、[Preview 配置](https://developers.cloudflare.com/workers/previews/configuration/)。
 
 ## 五、测试
 
