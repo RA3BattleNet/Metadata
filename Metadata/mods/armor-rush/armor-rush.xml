@@ -24,7 +24,7 @@
         <DisplayName Language="zh">装甲冲击</DisplayName>
         <DisplayName Language="en">Armor Rush</DisplayName>
         <Style>
-            <Logo Position="BottomLeft" OffsetY="0" OffsetX="0">ar-banner</Logo>
+            <Logo Position="BottomLeft" Width="600" OffsetY="0" OffsetX="0">ar-banner</Logo>
             <Controls>
                 <PrimaryLabel>
                     <Color>#F4F4F5</Color>

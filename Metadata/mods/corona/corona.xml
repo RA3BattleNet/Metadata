@@ -24,7 +24,7 @@
         <DisplayName Language="zh">日冕</DisplayName>
         <DisplayName Language="en">Corona</DisplayName>
         <Style>
-            <Logo Width="400" Position="Center" OffsetX="0" OffsetY="0">corona-banner</Logo>
+            <Logo Width="600" Position="Center" OffsetX="0" OffsetY="0">corona-banner</Logo>
             <Controls>
                 <PrimaryLabel>
                     <Color Format="ARGB">#FFFFFFFF</Color>
