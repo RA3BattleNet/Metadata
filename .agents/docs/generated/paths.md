@@ -35,15 +35,16 @@
 | `Ra3.BattleNet.Metadata/ImagingInvoker.cs` | 129 |
 | `Ra3.BattleNet.Metadata/LanguageTag.cs` | 29 |
 | `Ra3.BattleNet.Metadata/ManifestMountPlanner.cs` | 156 |
+| `Ra3.BattleNet.Metadata/ManifestRawFingerprint.cs` | 33 |
 | `Ra3.BattleNet.Metadata/MarkdownValidator.cs` | 88 |
 | `Ra3.BattleNet.Metadata/Metadata.cs` | 120 |
-| `Ra3.BattleNet.Metadata/MetadataBuilder.cs` | 832 |
+| `Ra3.BattleNet.Metadata/MetadataBuilder.cs` | 842 |
 | `Ra3.BattleNet.Metadata/MetadataColor.cs` | 43 |
 | `Ra3.BattleNet.Metadata/MetadataFlattener.cs` | 400 |
 | `Ra3.BattleNet.Metadata/MetadataInheritance.cs` | 304 |
 | `Ra3.BattleNet.Metadata/MetadataParser.cs` | 106 |
-| `Ra3.BattleNet.Metadata/MetadataQueryExtensions.cs` | 337 |
-| `Ra3.BattleNet.Metadata/MetadataQueryModels.cs` | 197 |
+| `Ra3.BattleNet.Metadata/MetadataQueryExtensions.cs` | 339 |
+| `Ra3.BattleNet.Metadata/MetadataQueryModels.cs` | 199 |
 | `Ra3.BattleNet.Metadata/MetadataResourceUri.cs` | 31 |
 | `Ra3.BattleNet.Metadata/MetadataSchema.cs` | 21 |
 | `Ra3.BattleNet.Metadata/MetadataSourceExporter.cs` | 302 |
@@ -66,6 +67,7 @@
 | `Ra3.BattleNet.Metadata.Tests/LanguageTagTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/ManifestMountPlannerTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/ManifestParseTests.cs` | MSTest 测试 |
+| `Ra3.BattleNet.Metadata.Tests/ManifestRawFingerprintTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/ManifestValidationTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/MetadataClientImageTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/MetadataClientTests.cs` | MSTest 测试 |

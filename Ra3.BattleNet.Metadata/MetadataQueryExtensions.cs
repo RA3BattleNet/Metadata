@@ -207,7 +207,9 @@ public static class MetadataQueryExtensions
                 Raw: file,
                 Mount: string.IsNullOrWhiteSpace(file.Get("Mount")) ? "base" : file.Get("Mount")!.Trim().ToLowerInvariant(),
                 Language: file.Get("Language"),
-                Package: file.Get("Package")))
+                Package: file.Get("Package"),
+                RawHash: file.Get("RawHash"),
+                RawHashAlgorithm: ManifestRawFingerprint.Validate(file.Get("RawHash"), file.Get("RawHashAlgorithm"), algo)))
             .ToList();
 
         var dependencies = manifestNode.Find("Dependencies")?.Children

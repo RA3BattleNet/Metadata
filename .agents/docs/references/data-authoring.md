@@ -106,7 +106,7 @@ Metadata/
 - **`Base` 不能定义 `Posts`、`Links`、`DisplayName`**；这些属于实体自己，不继承。
 - **正文外跳链接写在 Markdown 里**，不要给 `Post` 加 `Url` 或 `Version`。
 - **`Changelogs` 已经删除**，没有兼容层。版本更新说明就是一条 `Post`。
-- **`HashAlgorithm="None"` 只用于无需内容校验的运行时分发包**（例如 WebView2 运行时）：`File@Hash` 必须省略或为空，客户端跳过大小与哈希比对。`Compression="zip"` 的产物是目录，只能搭配 `None`，且必须写 `DownloadName` 且与 `FileName` 不同。
+- **WebView2 使用双层指纹**：`SHA256` + `zstd`，`RawHash` 对应下载物 `.zip.zst`，`Hash` 对应解压后的 ZIP；客户端校验后解包。库仍保留通用 `Compression="zip"` + `HashAlgorithm="None"` 能力，规则见 [版本清单](manifest-and-skudef.md)。
 
 显示名、语言标签、样式字段、启动兼容性的完整规则见 [metadata-model.md](metadata-model.md)。
 

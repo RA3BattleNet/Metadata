@@ -3,16 +3,14 @@
     <Tags>
         <Commit>${TIMESTAMP}</Commit>
     </Tags>
-    <!-- WebView2 运行时是免校验运行时分发包：HashAlgorithm="None" 表示客户端不做大小与哈希比对。
-         Compression="zip" 的产物是目录，因此不能声明 Hash；FileName 是解压后的目标目录名，
-         DownloadName 是种子里的 ZIP 文件名，两者必须不同。 -->
-    <Manifest ID="manifest-webview2-156" HashAlgorithm="None">
-        <File DownloadName="WebView2Runtime.zip" Compression="zip">
-            <FileName>WebView2Runtime</FileName>
+    <!-- RawHash 校验下载的 zstd；Hash 校验解压后的 ZIP。ZIP 根直接包含运行时文件，客户端另行解包安装。 -->
+    <Manifest ID="manifest-webview2-156" HashAlgorithm="SHA256">
+        <File Hash="31de4e57a19017eee55e6f66ddb9f6c217f944716dee2cd14a37f72dfbbe831b" RawHash="b601d79b38720d174c17b6affed3506f01c5033d20a42d1f90fe5745f1b8d021" RawHashAlgorithm="SHA256" Size="233263294" DownloadName="WebView2Runtime.zip.zst" Compression="zstd">
+            <FileName>WebView2Runtime.zip</FileName>
             <RelativePath>/</RelativePath>
             <KindOf>WEBVIEWRUNTIME</KindOf>
             <Sources>
-                <Source Type="BT" Url="https://file.cor-games.com/srv/redist/WebView2Runtime.zip.torrent" />
+                <Source Type="BT" Url="https://file.cor-games.com/srv/redist/WebView2Runtime.zip.zst.torrent" />
             </Sources>
         </File>
     </Manifest>

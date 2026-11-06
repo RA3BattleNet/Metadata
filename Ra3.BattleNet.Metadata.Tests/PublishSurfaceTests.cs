@@ -123,6 +123,22 @@ public class PublishSurfaceTests
             entry.Files.Should().NotBeEmpty();
             entry.Files.Should().OnlyContain(f => f.Sources.Count > 0);
             entry.Files.Should().Contain(f => f.DownloadName != null);
+
+            var runtime = MetadataBuilder.Load(Path.Combine(dst, "apps", "webview2", "manifests", "156.0.4314.58.xml"))
+                .Find("Manifest")!.ToManifestEntry();
+            runtime.HashAlgorithm.Should().Be("SHA256");
+            var file = runtime.Files.Should().ContainSingle().Subject;
+            file.FileName.Should().Be("WebView2Runtime.zip");
+            file.DownloadName.Should().Be("WebView2Runtime.zip.zst");
+            file.Compression.Should().Be("zstd");
+            file.Size.Should().Be(233263294);
+            file.Hash.Should().Be("31de4e57a19017eee55e6f66ddb9f6c217f944716dee2cd14a37f72dfbbe831b");
+            file.RawHash.Should().Be("b601d79b38720d174c17b6affed3506f01c5033d20a42d1f90fe5745f1b8d021");
+            file.RawHashAlgorithm.Should().Be("SHA256");
+            file.Sources.Should().ContainSingle().Which.Url.Should()
+                .Be("https://file.cor-games.com/srv/redist/WebView2Runtime.zip.zst.torrent");
+            var exported = MetadataXml.Write(file.Raw);
+            exported.Should().Contain($"RawHash=\"{file.RawHash}\"").And.Contain("RawHashAlgorithm=\"SHA256\"");
         }
         finally
         {

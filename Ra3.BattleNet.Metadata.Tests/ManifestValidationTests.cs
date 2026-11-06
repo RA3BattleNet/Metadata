@@ -379,6 +379,71 @@ public class ManifestValidationTests
     }
 
     [TestMethod]
+    public void Build_RawHashCannotInheritNone()
+    {
+        var body = FileBlock("", HttpSource("https://example.com/a.bin"))
+            .Replace("<File ", "<File RawHash=\"3507CD54\" ", StringComparison.Ordinal);
+        AssertBuildFails(ManifestXml(body, "None"), "不能继承 None");
+    }
+
+    [TestMethod]
+    public void Build_RawFingerprintWithoutManifestAlgorithm_StillValidates()
+    {
+        var xml = ManifestXml(FileBlock("9B623C7C", "", sizeAttribute: " RawHash=\"ZZZZZZZZ\""))
+            .Replace(" HashAlgorithm=\"CRC32C\"", "", StringComparison.Ordinal);
+        AssertBuildFails(xml, "RawHash 必须是十六进制");
+    }
+
+    [TestMethod]
+    [DataRow("RawHashAlgorithm=\"SHA256\"", "必须同时声明 RawHash")]
+    [DataRow("RawHash=\"12345678\" RawHashAlgorithm=\"SHA256\"", "长度应为 64")]
+    [DataRow("RawHash=\"ZZZZZZZZ\"", "必须是十六进制")]
+    [DataRow("RawHash=\"\"", "长度应为 8")]
+    public void Build_InvalidRawFingerprint_HardFails(string attributes, string message)
+    {
+        var body = FileBlock("9B623C7C", HttpSource("https://example.com/a.bin"))
+            .Replace("<File ", $"<File {attributes} ", StringComparison.Ordinal);
+        AssertBuildFails(ManifestXml(body), message);
+    }
+
+    [TestMethod]
+    [DataRow("MD5")]
+    [DataRow("None")]
+    [DataRow("CRC64")]
+    public void Build_InvalidExplicitRawAlgorithm_IsRejectedBySchema(string algorithm)
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"raw-schema-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        var dst = Path.Combine(temp, "out");
+        try
+        {
+            SeedSchemas(src);
+            var body = FileBlock("9B623C7C", HttpSource("https://example.com/a.bin"),
+                sizeAttribute: $" RawHash=\"3507CD54\" RawHashAlgorithm=\"{algorithm}\"");
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), ManifestXml(body));
+            var act = () => MetadataBuilder.Build(src, dst, contentRevision: "x");
+            act.Should().Throw<InvalidOperationException>().WithMessage("*RawHashAlgorithm*");
+            Directory.Exists(dst).Should().BeFalse();
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    [DataRow("RawHash=\"3507CD54\"")]
+    [DataRow("RawHash=\"3507CD54\" RawHashAlgorithm=\"CRC32C\"")]
+    [DataRow("RawHash=\"b601d79b38720d174c17b6affed3506f01c5033d20a42d1f90fe5745f1b8d021\" RawHashAlgorithm=\"SHA256\"")]
+    public void Build_ValidRawFingerprint_Succeeds(string attributes)
+    {
+        var body = FileBlock("9B623C7C", HttpSource("https://example.com/a.bin"))
+            .Replace("<File ", $"<File {attributes} ", StringComparison.Ordinal);
+        AssertBuildSucceeds(ManifestXml(body));
+    }
+
+    [TestMethod]
     public void Build_ZipWithHashAlgorithm_HardFails()
     {
         AssertBuildFails(

@@ -398,8 +398,8 @@
     <xs:attribute name="Optional" type="xs:boolean"/>
   </xs:complexType>
 
-  <!-- None 表示不校验内容哈希与大小，只用于无需内容校验的运行时分发包（如 WebView2 运行时）。
-       此时 File@Hash 必须省略或为空字符串；压缩声明仍要写 DownloadName。 -->
+  <!-- None 表示不校验安装内容哈希与大小；File@Hash 必须省略或为空字符串。
+       下载物可另用 RawHash 声明指纹；压缩声明仍要写 DownloadName。 -->
   <xs:simpleType name="HashAlgorithmType">
     <xs:restriction base="xs:string">
       <xs:enumeration value="CRC32C"/>
@@ -411,7 +411,8 @@
 
   <!-- FileName 是安装名（解压后的名字），DownloadName 是下载物的服务端文件名（缺省等于 FileName）；
        Hash 描述解压后的安装文件（FileName），Size 描述下载物（DownloadName 对应的字节）；
-       Compression 表示校验通过后解压成 FileName。
+       RawHash 可选，描述下载物字节；RawHashAlgorithm 显式仅 SHA256/CRC32C，缺省继承 Manifest 算法。
+       Compression 表示解压成 FileName；WebView2 的 FileName 是待进一步解包的 ZIP。
        Hash 可选：非 None 算法必填且长度符合算法；None 算法必须省略或为空。
        zip 的产物是目录，因此 zip 必须搭配 HashAlgorithm="None"，不能写 Hash。 -->
   <xs:complexType name="FileType">
@@ -423,6 +424,8 @@
       <xs:element name="PatchInfo" type="PatchInfoType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="Hash" type="xs:string"/>
+    <xs:attribute name="RawHash" type="xs:string"/>
+    <xs:attribute name="RawHashAlgorithm" type="RawHashAlgorithmType"/>
     <xs:attribute name="Size" type="xs:long"/>
     <xs:attribute name="DownloadName" type="xs:string"/>
     <xs:attribute name="Compression" type="CompressionType"/>
@@ -431,6 +434,13 @@
     <xs:attribute name="Language" type="xs:string"/>
     <xs:attribute name="Package" type="xs:string"/>
   </xs:complexType>
+
+  <xs:simpleType name="RawHashAlgorithmType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="SHA256"/>
+      <xs:enumeration value="CRC32C"/>
+    </xs:restriction>
+  </xs:simpleType>
 
   <!-- zstd 解压成单个文件；zip 解压成目录（因此必须搭配 HashAlgorithm="None"）。 -->
   <xs:simpleType name="CompressionType">

@@ -127,7 +127,9 @@ public sealed record ManifestSourceEntry(string Type, string Url);
 /// <param name="Mount">挂载角色，小写；清单未声明时为 base。</param>
 /// <param name="Language">语言包标记；仅 language 角色使用。</param>
 /// <param name="Package">可选包标记；仅 optional 角色使用。</param>
-public sealed record ManifestFileEntry(string FileName, string RelativePath, string Hash, long? Size, string? DownloadName, string? Compression, string KindOf, IReadOnlyList<ManifestSourceEntry> Sources, Metadata Raw, string? Mount, string? Language, string? Package);
+/// <param name="RawHash">下载物原始字节的可选哈希；缺失时保持旧行为。</param>
+/// <param name="RawHashAlgorithm">原始哈希的有效大写算法；有 RawHash 时缺省继承 Manifest.HashAlgorithm。</param>
+public sealed record ManifestFileEntry(string FileName, string RelativePath, string Hash, long? Size, string? DownloadName, string? Compression, string KindOf, IReadOnlyList<ManifestSourceEntry> Sources, Metadata Raw, string? Mount, string? Language, string? Package, string? RawHash = null, string? RawHashAlgorithm = null);
 
 /// <summary>
 /// 清单依赖 DLL 实体。
