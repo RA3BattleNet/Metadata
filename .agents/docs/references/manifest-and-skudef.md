@@ -30,7 +30,9 @@
 | 节点或属性 | 必填 | 含义 |
 |---|---|---|
 | `Manifest@HashAlgorithm` | 否 | `CRC32C`（缺省）、`MD5`、`SHA256` 或 `None`；`None` 表示不做内容哈希与大小校验 |
-| `File@Hash` | 否 | **解压安装后**最终文件的哈希，算法由 `HashAlgorithm` 决定；`None` 时必须省略或为空字符串，其它算法必填 |
+| `File@Hash` | 否 | 声明的解压后单文件哈希，WebView2 对应 ZIP 而非安装目录；算法由 `HashAlgorithm` 决定，`None` 时省略或为空，其它算法必填 |
+| `File@RawHash` | 否 | 下载物原始字节的哈希，例如 `.zip.zst` 的 zstd 字节；省略不改变旧包行为 |
+| `File@RawHashAlgorithm` | 否 | 显式值只允许 `SHA256` / `CRC32C`；不写时继承 Manifest 算法；不能脱离 `RawHash` 单独声明 |
 | `File@Size` | 否 | 网络压缩包大小，正整数；`None` 算法下客户端不比对 |
 | `File@DownloadName` | 否 | 服务器上的压缩包名；不写则与 `FileName` 相同 |
 | `File@Compression` | 否 | 压缩算法：`zstd`（解压成单个文件）或 `zip`（解压成目录） |
@@ -46,7 +48,9 @@
 
 `Compression="zstd"` 或 `Compression="zip"` 时必须同时写 `DownloadName`，且不能与 `FileName` 相同；`DownloadName` 只能是纯文件名，不能带路径分隔符。
 
-`HashAlgorithm="None"` 只用于无需内容校验的运行时分发包（例如 WebView2 运行时）：客户端跳过大小与哈希比对，`File@Hash` 必须省略或为空字符串。`zip` 的产物是目录，目录没有可用的清单哈希，因此 `Compression="zip"` 只能搭配 `HashAlgorithm="None"`，写 `CRC32C`/`MD5`/`SHA256` 会被构建拒绝。`zstd` 仍按解压后的单文件校验，规则不变。
+`HashAlgorithm="None"` 表示客户端跳过安装内容的大小与哈希比对，`File@Hash` 必须省略或为空字符串。库保留 `zip` / `None` 通用能力：`zip` 的产物是目录，不能计算清单文件哈希，因此 `Compression="zip"` 只能搭配 `None`。WebView2 不走此路径：它使用 `SHA256` + `zstd`，`RawHash` 校验下载的 `WebView2Runtime.zip.zst`，`Hash` 校验解压后的 `WebView2Runtime.zip`（706254803 字节），随后客户端才解包 ZIP；ZIP 内容无包裹目录。
+
+`RawHash` 必须是符合有效算法长度的十六进制：SHA256 为 64 位、CRC32C 为 8 位；缺省继承 MD5 时为 32 位，不能继承 `None`。查询模型 `RawHashAlgorithm` 返回有效大写算法，不改写原 XML。添加这两个可选属性不提高 `SchemaVersion`，现有非 WebView2 包无需补填。
 
 ## 三、Skudef 怎么写
 
@@ -71,6 +75,7 @@
 ## 四、构建时会查什么
 
 - 哈希长度与 `HashAlgorithm` 匹配，且是十六进制字符串；非 `None` 算法下 `File@Hash` 必填，`None` 下必须省略或为空。
+- 下载物 `RawHash` 的长度与十六进制有效；显式 `RawHashAlgorithm` 仅 `SHA256`/`CRC32C`，且必须同时声明 `RawHash`。
 - `Compression="zip"` 必须搭配 `HashAlgorithm="None"`；声明压缩时必须写 `DownloadName` 且与 `FileName` 不同。
 - `RelativePath` 唯一、是标准相对路径；`DownloadName` 是纯文件名。
 - `Dependencies/Dll@Name` 不重复。

@@ -17,6 +17,41 @@ public class MetadataClientTests
     private const string RootUrl = "https://metadata.example/metadata.xml";
 
     [TestMethod]
+    public async Task RawFingerprint_SurvivesDiskCacheReopen()
+    {
+        using var fixture = Fixture.Create();
+        var leafXml = LeafXml("app-leaf").Replace("<File ", "<File RawHash=\"3507CD54\" ", StringComparison.Ordinal);
+        fixture.Handler.Next = (request, _) => Task.FromResult(Xml(
+            request.RequestUri!.AbsoluteUri == RootUrl ? RootXml() : leafXml));
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+        var uri = MetadataResourceUri.Resolve(RootUrl, "apps/leaf.xml");
+        var loaded = await fixture.Client.GetLeafAsync(root, "1.0.0", uri);
+        loaded.Entry!.Files[0].RawHash.Should().Be("3507CD54");
+        loaded.Entry.Files[0].RawHashAlgorithm.Should().Be("CRC32C");
+
+        using var reopened = new MetadataClient(fixture.Cache, TimeSpan.FromSeconds(5));
+        var snapshot = await reopened.OpenSnapshotAsync(RootUrl);
+        var cached = await reopened.GetCachedLeafAsync(snapshot, "1.0.0", uri);
+        cached.Status.Should().Be(MetadataFreshness.Stale);
+        cached.Entry!.Files[0].RawHash.Should().Be("3507CD54");
+        cached.Entry.Files[0].RawHashAlgorithm.Should().Be("CRC32C");
+    }
+
+    [TestMethod]
+    public async Task InvalidRawFingerprint_IsRejectedBeforeCaching()
+    {
+        using var fixture = Fixture.Create();
+        var leafXml = LeafXml("app-leaf").Replace("<File ", "<File RawHash=\"ZZZZZZZZ\" ", StringComparison.Ordinal);
+        fixture.Handler.Next = (request, _) => Task.FromResult(Xml(
+            request.RequestUri!.AbsoluteUri == RootUrl ? RootXml() : leafXml));
+        var root = await fixture.Client.RefreshRootAsync(RootUrl);
+        var leaf = await fixture.Client.GetLeafAsync(root, "1.0.0", MetadataResourceUri.Resolve(RootUrl, "apps/leaf.xml"));
+        leaf.Status.Should().Be(MetadataFreshness.Unavailable);
+        leaf.Error.Should().Contain("RawHash");
+        leaf.Entry.Should().BeNull();
+    }
+
+    [TestMethod]
     public async Task OpenSnapshot_WithoutCache_IsUnavailableAndDoesNotUseNetwork()
     {
         using var fixture = Fixture.Create();

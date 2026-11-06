@@ -560,10 +560,11 @@ public static class MetadataBuilder
         var algoAttr = manifest.Attribute("HashAlgorithm")?.Value;
         var skudef = manifest.Elements().FirstOrDefault(e => e.Name.LocalName == "Skudef");
 
-        // 新格式触发条件：声明 HashAlgorithm、写了 Skudef，或任一 File 带 Sources
+        // 新格式触发条件也包含下载物指纹，不能借旧格式绕过校验
         var isNewFormat = algoAttr != null
             || skudef != null
-            || files.Any(f => f.Elements().Any(e => e.Name.LocalName == "Sources"));
+            || files.Any(f => f.Attribute("RawHash") != null || f.Attribute("RawHashAlgorithm") != null
+                || f.Elements().Any(e => e.Name.LocalName == "Sources"));
         if (!isNewFormat)
             return;
 
@@ -599,6 +600,15 @@ public static class MetadataBuilder
             else if (hash.All(c => char.ToUpperInvariant(c) == char.ToUpperInvariant(hash[0])))
             {
                 errors.Add($"{where}: Hash 为占位值（全部同一字符）");
+            }
+
+            try
+            {
+                ManifestRawFingerprint.Validate(file.Attribute("RawHash")?.Value, file.Attribute("RawHashAlgorithm")?.Value, algo);
+            }
+            catch (InvalidOperationException ex)
+            {
+                errors.Add($"{where}: {ex.Message}");
             }
 
             var relativePath = ChildValue(file, "RelativePath");

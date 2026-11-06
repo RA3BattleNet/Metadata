@@ -117,6 +117,8 @@ var xml = MetadataXml.Write(manifest!);
 | `ManifestMountPlanner.Build(...)` | 算出挂载指令序列 |
 | `LanguageTag.Matches` / `Select` | 语言族比较 / 取第一条语言能对上的条目 |
 
+`ManifestFileEntry.RawHash` 是可选下载物指纹；存在时 `RawHashAlgorithm` 返回有效大写算法（缺省继承 `ManifestEntry.HashAlgorithm`），不存在时两者为 `null`。构建与查询共用原始哈希校验，缓存叶子读取也会拒绝非法声明。叶子构建、缓存 XML 与 `MetadataXml.Write` 按原始属性保留这两个字段；发布根 schema 只定义 Manifest 存根，不包含 File，故新增属性仅进入源/叶子 schema。
+
 ## 四、带缓存的读取（`MetadataClient`）
 
 ```csharp

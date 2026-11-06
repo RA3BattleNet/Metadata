@@ -291,7 +291,7 @@ public class SourceFormatApiTests
     {
         var node = XElement.Parse("""
 <Manifest ID="m1" HashAlgorithm="SHA256">
-  <File Hash="AABB"><FileName>a.lyi</FileName><RelativePath>data</RelativePath></File>
+  <File Hash="AABB" RawHash="3507CD54" RawHashAlgorithm="CRC32C"><FileName>a.lyi</FileName><RelativePath>data</RelativePath></File>
   <Dependencies><Dll Name="Lyi.dll" Hash="CCDD" /></Dependencies>
 </Manifest>
 """);
@@ -301,6 +301,10 @@ public class SourceFormatApiTests
         entry.HashAlgorithm.Should().Be("SHA256");
         entry.Files.Single().FileName.Should().Be("a.lyi");
         entry.Dependencies.Single().Name.Should().Be("Lyi.dll");
+        entry.Files.Single().RawHash.Should().Be("3507CD54");
+        entry.Files.Single().RawHashAlgorithm.Should().Be("CRC32C");
+        var exported = MetadataXml.Write(entry.Files.Single().Raw);
+        exported.Should().Contain("RawHash=\"3507CD54\"").And.Contain("RawHashAlgorithm=\"CRC32C\"");
 
         MetadataParser.ParseManifest(node.ToString()).Files.Single().RelativePath.Should().Be("data");
         MetadataParser.ParseManifest("<Metadata>" + node + "</Metadata>").Id.Should().Be("m1");
