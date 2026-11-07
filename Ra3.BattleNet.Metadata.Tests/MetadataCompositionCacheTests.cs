@@ -227,6 +227,35 @@ public sealed class MetadataCompositionCacheTests
         (await reopened.OpenSnapshotAsync(server.Root)).Document!.Mods().Single().Id.Should().Be("recovered");
     }
 
+    [TestMethod]
+    public async Task CachedLocalPackage_DecodesPathIds_AndExpandsLocalIncludesWithoutNetwork()
+    {
+        using var server = new Server();
+        var directory = NewDirectory();
+        var path = Path.Combine(directory, "metadata.xml");
+        var leaf = Path.Combine(directory, "leaf.xml");
+        File.WriteAllText(path, """
+            <Metadata SchemaVersion="1.0" IdFormat="path" SourceBase="document">
+              <Mod ID="M"><Packages><Package Version="1"><Manifest>scope/item</Manifest></Package></Packages></Mod>
+              <Manifest ID="scope/item" Source="leaf.xml" />
+            </Metadata>
+            """);
+        var body = "<Metadata IdFormat=\"path\" SourceBase=\"document\"><Manifest ID=\"scope/item\" HashAlgorithm=\"None\"><File><FileName>local.bin</FileName></File></Manifest></Metadata>";
+        File.WriteAllText(leaf, body);
+        using var client = new MetadataClient("", TimeSpan.FromSeconds(5), enableDiskCache: false);
+        var snapshot = await client.RefreshRootAsync(path);
+        var package = snapshot.Document!.Mods().Single().Packages.Single();
+        var flat = await client.GetCachedPackageAsync(snapshot, package);
+        flat.Status.Should().Be(MetadataFreshness.Stale);
+        flat.Entry!.Id.Should().Be("scope:item");
+        File.WriteAllText(leaf, "<Metadata IdFormat=\"legacy\" SourceBase=\"document\"><Include Source=\"body.xml\" /></Metadata>");
+        File.WriteAllText(Path.Combine(directory, "body.xml"), body);
+        (await client.GetCachedPackageAsync(snapshot, package)).Entry!.Files.Single().FileName.Should().Be("local.bin");
+        File.WriteAllText(leaf, $"<Metadata><Include Source=\"{new Uri(new Uri(server.Root), "remote.xml")}\" /></Metadata>");
+        (await client.GetCachedPackageAsync(snapshot, package)).Status.Should().Be(MetadataFreshness.Unavailable);
+        server.Requests.Should().BeEmpty();
+    }
+
     private static string Child(string id) => $"<Metadata><Mod ID=\"{id}\" /></Metadata>";
     private static string NewDirectory()
     {

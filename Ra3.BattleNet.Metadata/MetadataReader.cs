@@ -214,7 +214,10 @@ public static class MetadataReader
                 return;
             }
             if (IsHttp(path) && Uri.TryCreate(raw, UriKind.Absolute, out var uri) && uri.IsFile)
-                throw new InvalidOperationException("HTTP metadata cannot register local resources");
+            {
+                if (constrain) throw new InvalidOperationException("HTTP metadata cannot register local resources");
+                return;
+            }
             var directory = _source.GetDirectoryName(path)!;
             var target = _source.GetFullPath(_source.Combine(directory, raw));
             if (constrain) EnsureWithinRoot(_source, target, boundary, "资源 Source");

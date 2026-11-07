@@ -122,6 +122,33 @@ public sealed class MetadataReaderTests
     }
 
     [TestMethod]
+    public void Read_UnmarkedHttpFlatPreservesFileResourceSourcesWithoutLoadingThem()
+    {
+        var source = new MemorySource();
+        source.Add("entry.xml", """
+<Metadata SchemaVersion="1.0"><Image ID="icon" Source="file:///local/icon.png"/><Markdown ID="post" Source="file:///local/post.md"/><Mod ID="Demo"><Icon>icon</Icon></Mod></Metadata>
+""");
+        var result = Read(source);
+        result.Root.Images().Single().Source.Should().Be("file:///local/icon.png");
+        result.Document.Descendants("Markdown").Single().Attribute("Source")!.Value.Should().Be("file:///local/post.md");
+        source.Loads.Should().Equal(MemorySource.Root + "entry.xml");
+        source.Probes.Should().BeEmpty();
+    }
+
+    [TestMethod]
+    public void Read_NormalizedHttpDocumentStillRejectsFileResourceSources()
+    {
+        var source = new MemorySource();
+        source.Add("entry.xml", """
+<Metadata IdFormat="legacy" SourceBase="document"><Image ID="icon" Source="file:///local/icon.png"/></Metadata>
+""");
+        var act = () => Read(source);
+        act.Should().Throw<InvalidOperationException>();
+        source.Loads.Should().Equal(MemorySource.Root + "entry.xml");
+        source.Probes.Should().BeEmpty();
+    }
+
+    [TestMethod]
     public void Read_CanonicalDuplicatesAcrossDocuments_Fail()
     {
         var source = new MemorySource();

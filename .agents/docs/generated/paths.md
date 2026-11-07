@@ -27,7 +27,7 @@
 | `Ra3.BattleNet.Metadata/Cache/IMetadataTransfer.cs` | 41 |
 | `Ra3.BattleNet.Metadata/Cache/LeafResult.cs` | 34 |
 | `Ra3.BattleNet.Metadata/Cache/MetadataCacheJsonContext.cs` | 16 |
-| `Ra3.BattleNet.Metadata/Cache/MetadataClient.cs` | 1835 |
+| `Ra3.BattleNet.Metadata/Cache/MetadataClient.cs` | 1872 |
 | `Ra3.BattleNet.Metadata/Cache/MetadataDiskCache.cs` | 840 |
 | `Ra3.BattleNet.Metadata/Cache/MetadataFreshness.cs` | 18 |
 | `Ra3.BattleNet.Metadata/Cache/RootSnapshotResult.cs` | 23 |
@@ -52,7 +52,7 @@
 | `Ra3.BattleNet.Metadata/MetadataParser.cs` | 106 |
 | `Ra3.BattleNet.Metadata/MetadataQueryExtensions.cs` | 339 |
 | `Ra3.BattleNet.Metadata/MetadataQueryModels.cs` | 199 |
-| `Ra3.BattleNet.Metadata/MetadataReader.cs` | 364 |
+| `Ra3.BattleNet.Metadata/MetadataReader.cs` | 367 |
 | `Ra3.BattleNet.Metadata/MetadataResourceUri.cs` | 31 |
 | `Ra3.BattleNet.Metadata/MetadataSchema.cs` | 21 |
 | `Ra3.BattleNet.Metadata/MetadataSourceExporter.cs` | 313 |

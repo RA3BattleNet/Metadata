@@ -478,12 +478,27 @@ public sealed class MetadataClient : IDisposable
             : ProjectCached(loaded, manifestId);
     }
 
-    private async Task<LeafDoc?> ReadLiveFileLeafAsync(Uri leaf, CancellationToken ct)
+    private Task<LeafDoc?> ReadLiveFileLeafAsync(Uri leaf, CancellationToken ct)
     {
-        var transfer = await ReadFileAsync(leaf, ct).ConfigureAwait(false);
-        if (!transfer.Ok || transfer.Bytes is null)
-            return null;
-        return ParseLeafDocument(leaf, transfer.Bytes, MetadataDiskCache.Sha256Hex(transfer.Bytes));
+        ct.ThrowIfCancellationRequested();
+        try
+        {
+            var source = new OfflineSource(new CapturedSource(leaf, []), _disk);
+            var read = MetadataReader.Read(leaf.AbsoluteUri, new MetadataSourceOptions { CustomSource = source, InlineManifests = true });
+            if (!TryAcceptLeaf(read.Root, out _))
+                return Task.FromResult<LeafDoc?>(null);
+            return Task.FromResult<LeafDoc?>(new LeafDoc
+            {
+                Source = leaf,
+                Document = read.Root,
+                Status = MetadataFreshness.Stale,
+            });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or XmlException
+            or InvalidOperationException or ArgumentException)
+        {
+            return Task.FromResult<LeafDoc?>(null);
+        }
     }
 
     private LeafDoc? RememberCachedLeaf(Uri leaf, byte[] bytes, string digest)
@@ -1197,6 +1212,28 @@ public sealed class MetadataClient : IDisposable
             var full = GetFullPath(path);
             return new Uri(full.EndsWith('/') ? full : full + "/");
         }
+    }
+
+    private sealed class OfflineSource(IMetadataXmlSource paths, MetadataDiskCache? disk) : IMetadataXmlSource
+    {
+        public bool Exists(string path)
+        {
+            var uri = MetadataDiskCache.CanonicalizeEntry(paths.GetFullPath(path));
+            return uri.IsFile ? File.Exists(uri.LocalPath) : disk?.TryReadRoot(uri) is not null;
+        }
+        public XDocument LoadDocument(string path)
+        {
+            var uri = MetadataDiskCache.CanonicalizeEntry(paths.GetFullPath(path));
+            if (!uri.IsFile)
+                return ReadXml(disk?.TryReadRoot(uri)?.Bytes ?? throw new IOException("No cached XML document for offline composition"));
+            using var stream = File.OpenRead(uri.LocalPath);
+            return ReadXml(stream);
+        }
+        public string Combine(string basePath, string relativePath) => paths.Combine(basePath, relativePath);
+        public string? GetDirectoryName(string path) => paths.GetDirectoryName(path);
+        public string GetRelativePath(string fromPath, string toPath) => paths.GetRelativePath(fromPath, toPath);
+        public string GetFullPath(string path) => paths.GetFullPath(path);
+        public bool IsPathRooted(string path) => paths.IsPathRooted(path);
     }
 
 
