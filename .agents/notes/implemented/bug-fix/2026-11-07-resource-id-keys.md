@@ -10,6 +10,8 @@ The [single-format decision](../simplification/2026-11-07-single-metadata-format
 
 Remove resource/entity colon rejection and path-segment validation from ID qualification. Existing full keys containing slash or colon are preserved verbatim. Newly scoped short IDs still use escaped scope/local to prevent collisions across definitions. Reference rewriting checks the complete registration set before scoped aliases. Keep duplicate/ambiguous-registration checks and exact external Manifest identity. ID strings are not Source addresses: actual file/URI containment and HTTP/local restrictions remain unchanged. No colon decoder, separator conversion, format detector or compatibility API is added.
 
+The follow-up defensive-code review found LocalId still manually rejected non-hex percent sequences while building aliases, preventing exact-key lookup. Remove that hand-written escape validator; Uri.UnescapeDataString still decodes generated short-name escapes without rejecting literal percent text. Also remove OfflineSource's unused disk parameter and unreachable remote raw-cache fallback. The source remains local-only and uses the existing shared Reader path containment; no network read or complete-snapshot fallback behavior changes.
+
 ## Alternatives considered
 
 - **Require republishing production with path IDs**: produces uniform-looking keys but rejects valid exact registrations for no consumer benefit. The user rejects this restriction.
@@ -27,3 +29,6 @@ Current production is readable without republishing XML. There is still one read
 - Actual MetadataClient root refresh and package preload loaded all 22 of 22 production Manifest bodies, zero failures.
 - Actual installed RisingStorm mod.xml read with reference validation and MetadataSourceManifest.Resolve succeeded: current version 077R, full Manifest with RisingStorm_077R.big.
 - No BIG download/hash validation, GUI or game launch is claimed.
+- Follow-up full suite after both review fixes: 428/428 passed. Existing full-ID regression now covers literal percent and escaped-percent suffixes as well as colon registrations and exact external body identity.
+- Actual probe: scope:icon%raw, scope/icon%raw and scope:icon%20 all retain exact registration/reference identity. Production root/reference validation and 22/22 external manifests passed again; installed RisingStorm declaration/full Manifest passed again.
+- Actual no-disk-cache local package read expanded a leaf Include and resolved a scope:manifest%raw body successfully. Existing cache regressions also cover local file changes and remote Include rejection without network access.

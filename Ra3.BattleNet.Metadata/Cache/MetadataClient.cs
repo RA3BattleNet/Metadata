@@ -451,7 +451,7 @@ public sealed class MetadataClient : IDisposable
         ct.ThrowIfCancellationRequested();
         try
         {
-            var source = new OfflineSource(new CapturedSource(leaf, []), _disk);
+            var source = new OfflineSource(new CapturedSource(leaf, []));
             var read = MetadataReader.Read(leaf.AbsoluteUri, new MetadataSourceOptions { SourceRoot = sourceRoot, CustomSource = source, InlineManifests = true });
             if (!TryAcceptLeaf(read.Root, out _))
                 return Task.FromResult<LeafDoc?>(null);
@@ -1095,18 +1095,18 @@ public sealed class MetadataClient : IDisposable
         }
     }
 
-    private sealed class OfflineSource(IMetadataXmlSource paths, MetadataDiskCache? disk) : IMetadataXmlSource
+    private sealed class OfflineSource(IMetadataXmlSource paths) : IMetadataXmlSource
     {
         public bool Exists(string path)
         {
             var uri = MetadataDiskCache.CanonicalizeEntry(paths.GetFullPath(path));
-            return uri.IsFile ? File.Exists(uri.LocalPath) : disk?.TryReadRoot(uri) is not null;
+            return uri.IsFile && File.Exists(uri.LocalPath);
         }
         public XDocument LoadDocument(string path)
         {
             var uri = MetadataDiskCache.CanonicalizeEntry(paths.GetFullPath(path));
             if (!uri.IsFile)
-                return ReadXml(disk?.TryReadRoot(uri)?.Bytes ?? throw new IOException("No cached XML document for offline composition"));
+                throw new IOException("Offline source only reads local XML documents");
             using var stream = File.OpenRead(uri.LocalPath);
             return ReadXml(stream);
         }

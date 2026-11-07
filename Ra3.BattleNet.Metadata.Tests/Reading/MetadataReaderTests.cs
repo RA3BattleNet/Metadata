@@ -21,14 +21,17 @@ public sealed class MetadataReaderTests
     }
 
     [TestMethod]
-    public void Read_ColonIdsMatchRegistrationsAndExternalManifestWithoutConversion()
+    [DataRow("")]
+    [DataRow("%raw")]
+    [DataRow("%20")]
+    public void Read_FullIdsMatchRegistrationsAndExternalManifestWithoutConversion(string suffix)
     {
         var source = new MemorySource();
-        source.Add("entry.xml", """
-<Metadata><Image ID="icon:main" Url="https://assets.test/icon.png"/><Markdown ID="posts/intro:zh" Source="intro.md"/><Mod ID="Demo:one"><Icon>icon:main</Icon><Packages><Package Version="1"><Manifest>releases/v1:manifest</Manifest></Package></Packages><Posts><Post><Contents><Content>posts/intro:zh</Content></Contents></Post></Posts></Mod><Manifest ID="releases/v1:manifest" Source="releases/v1.xml"/></Metadata>
+        source.Add("entry.xml", $"""
+<Metadata><Image ID="icon:main{suffix}" Url="https://assets.test/icon.png"/><Markdown ID="posts/intro:zh{suffix}" Source="intro.md"/><Mod ID="Demo:one"><Icon>icon:main{suffix}</Icon><Packages><Package Version="1"><Manifest>releases/v1:manifest{suffix}</Manifest></Package></Packages><Posts><Post><Contents><Content>posts/intro:zh{suffix}</Content></Contents></Post></Posts></Mod><Manifest ID="releases/v1:manifest{suffix}" Source="releases/v1.xml"/></Metadata>
 """);
-        source.Add("releases/v1.xml", """
-<Metadata><Manifest ID="releases/v1:manifest" HashAlgorithm="MD5"><File Hash="FAC06A274D4B9255F89EA90D621A4FF8" Size="42"><FileName>mod.big</FileName><RelativePath>/</RelativePath><KindOf>MOD;</KindOf></File></Manifest></Metadata>
+        source.Add("releases/v1.xml", $"""
+<Metadata><Manifest ID="releases/v1:manifest{suffix}" HashAlgorithm="MD5"><File Hash="FAC06A274D4B9255F89EA90D621A4FF8" Size="42"><FileName>mod.big</FileName><RelativePath>/</RelativePath><KindOf>MOD;</KindOf></File></Manifest></Metadata>
 """);
         var result = MetadataReader.Read(MemorySource.Root + "entry.xml", new MetadataSourceOptions
         {
@@ -38,11 +41,11 @@ public sealed class MetadataReaderTests
         });
         var mod = result.Root.Mods().Single();
         mod.Id.Should().Be("Demo:one");
-        mod.Icon.Should().Be("icon:main");
+        mod.Icon.Should().Be("icon:main" + suffix);
         result.Root.Images().Single(i => i.Id == mod.Icon).Url.Should().Be("https://assets.test/icon.png");
-        result.Root.Markdowns().Single().Id.Should().Be("posts/intro:zh");
-        mod.Package("1")!.Raw.Find("Manifest")!.Value.Should().Be("releases/v1:manifest");
-        result.Root.ManifestRegistration("releases/v1:manifest")!.Find("File")!.Find("FileName")!.Value.Should().Be("mod.big");
+        result.Root.Markdowns().Single().Id.Should().Be("posts/intro:zh" + suffix);
+        mod.Package("1")!.Raw.Find("Manifest")!.Value.Should().Be("releases/v1:manifest" + suffix);
+        result.Root.ManifestRegistration("releases/v1:manifest" + suffix)!.Find("File")!.Find("FileName")!.Value.Should().Be("mod.big");
     }
 
     [TestMethod]

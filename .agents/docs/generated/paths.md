@@ -56,7 +56,7 @@
 | `Ra3.BattleNet.Metadata/Reading/HttpXmlSource.cs` | 208 |
 | `Ra3.BattleNet.Metadata/Reading/IMetadataXmlSource.cs` | 35 |
 | `Ra3.BattleNet.Metadata/Reading/MetadataDocumentInfo.cs` | 52 |
-| `Ra3.BattleNet.Metadata/Reading/MetadataId.cs` | 48 |
+| `Ra3.BattleNet.Metadata/Reading/MetadataId.cs` | 34 |
 | `Ra3.BattleNet.Metadata/Reading/MetadataParser.cs` | 75 |
 | `Ra3.BattleNet.Metadata/Reading/MetadataReader.cs` | 296 |
 | `Ra3.BattleNet.Metadata/Reading/MetadataSourceManifest.cs` | 32 |
