@@ -8,6 +8,7 @@
 | 写版本清单、`Skudef`、下载来源 | [references/manifest-and-skudef.md](references/manifest-and-skudef.md) | 文件表不进大总表；写了 `Skudef` 就不许在 `File` 上写挂载属性 |
 | 改 XML 模型、样式、语言、启动兼容性 | [references/metadata-model.md](references/metadata-model.md) | `SchemaVersion` 保持 `1.0`；显示名 `zh`/`en` 必填 |
 | 改解析库、客户端查询、磁盘缓存 | [references/library-api.md](references/library-api.md) | 发布树布局是纯函数；下载边界只在 `IMetadataTransfer` |
+| Composable Metadata refactor and integration acceptance | [exec-plans/2026-11-07-composable-metadata.md](exec-plans/2026-11-07-composable-metadata.md) / [architecture decision](../notes/implemented/architecture/2026-11-07-composable-metadata.md) | Metadata verified; Desktop pending; one composition core; legacy publish unchanged; update existing PR #65 |
 | 改构建流水线、CI、发版 | [references/build-and-release.md](references/build-and-release.md) | 失败即清空输出；Imaging 只在发版跑 |
 | 了解代码分层与数据流 | [../ARCHITECTURE.md](../ARCHITECTURE.md) | 依赖只能单向 |
 | 查某个文件在哪、多少行 | [generated/paths.md](generated/paths.md) | 自动生成，以表为准 |

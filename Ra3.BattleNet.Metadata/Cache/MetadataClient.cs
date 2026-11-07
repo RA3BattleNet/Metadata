@@ -3,6 +3,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
+using System.Xml.Linq;
 using Ra3.BattleNet.Metadata;
 
 namespace Ra3.BattleNet.Metadata.Cache;
@@ -156,6 +157,45 @@ public sealed class MetadataClient : IDisposable
         return LoadCachedLeafAsync(leaf, manifestId, ct);
     }
 
+    public Task<LeafResult> GetPackageAsync(RootSnapshotResult snapshot, PackageEntry package, CancellationToken ct = default) =>
+        ReadPackageAsync(snapshot, package, cachedOnly: false, force: false, ct);
+
+    public Task<LeafResult> GetCachedPackageAsync(RootSnapshotResult snapshot, PackageEntry package, CancellationToken ct = default) =>
+        ReadPackageAsync(snapshot, package, cachedOnly: true, force: false, ct);
+
+    public Task<LeafResult> RefreshPackageAsync(RootSnapshotResult snapshot, PackageEntry package, CancellationToken ct = default) =>
+        ReadPackageAsync(snapshot, package, cachedOnly: false, force: true, ct);
+
+    private async Task<LeafResult> ReadPackageAsync(RootSnapshotResult snapshot, PackageEntry package, bool cachedOnly, bool force, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(package);
+        ct.ThrowIfCancellationRequested();
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (snapshot.Document is null || snapshot.OriginUri is null
+            || !EnumeratePackages(snapshot.Document).Any(candidate => ReferenceEquals(candidate.Raw, package.Raw)))
+            return LeafUnavailable(null, "Package does not belong to this snapshot");
+        var registration = snapshot.Document.ManifestRegistration(package.ManifestId ?? "");
+        if (registration is null)
+            return LeafUnavailable(null, "Package has no registered manifest");
+        if (!IsStub(registration))
+        {
+            if (!TryReadLeaf(snapshot.Document, package.ManifestId!, out var node, out var entry, out var error))
+                return LeafUnavailable(null, error ?? "Invalid inline manifest");
+            return new LeafResult(snapshot.Document, node, entry, null, snapshot.Status, snapshot.Error);
+        }
+        if (!TryResolvePackage(snapshot.Document, snapshot.OriginUri, package, out var canonical, out var manifestId))
+            return LeafUnavailable(null, "Package has no valid manifest Source");
+        var source = new Uri(canonical);
+        if (cachedOnly)
+        {
+            if (TryMemoryLeaf(source) is { } memory && (_disk is not null || !source.IsFile))
+                return ProjectCached(memory, manifestId);
+            return await LoadCachedLeafAsync(source, manifestId, ct).ConfigureAwait(false);
+        }
+        return Project(await EnsureLeafAsync(source, force, ct).ConfigureAwait(false), manifestId);
+    }
+
     /// <summary>
     /// 刷新快照里全部 Application 与 Mod 的当前和历史包叶子，并回报这一轮有几个叶子没拿到可用文档。
     /// 相同 Source 只拉一次。不读取图片、Markdown 或 Updater 清单。
@@ -168,8 +208,17 @@ public sealed class MetadataClient : IDisposable
         ct.ThrowIfCancellationRequested();
         ObjectDisposedException.ThrowIf(_disposed, this);
         var leaves = EnumerateLeaves(rootSnapshot);
+        var inline = rootSnapshot.Document is null ? new List<PackageEntry>() : EnumeratePackages(rootSnapshot.Document)
+            .Where(package => rootSnapshot.Document.ManifestRegistration(package.ManifestId ?? "") is { } manifest && !IsStub(manifest))
+            .DistinctBy(package => package.ManifestId, StringComparer.OrdinalIgnoreCase).ToList();
+        var inlineFailed = 0;
+        foreach (var package in inline)
+        {
+            if (!TryReadLeaf(rootSnapshot.Document!, package.ManifestId!, out _, out _, out _))
+                inlineFailed++;
+        }
         if (leaves.Count == 0)
-            return LeafPreloadSummary.Empty;
+            return new LeafPreloadSummary(inline.Count, inline.Count - inlineFailed, inlineFailed);
 
         var waits = new List<Task<LeafDoc>>(leaves.Count);
         foreach (var leaf in leaves)
@@ -196,8 +245,9 @@ public sealed class MetadataClient : IDisposable
         }
 
         var docs = await Task.WhenAll(waits).ConfigureAwait(false);
-        var failed = docs.Count(doc => doc.Document is null);
-        return new LeafPreloadSummary(docs.Length, docs.Length - failed, failed);
+        var failed = docs.Count(doc => doc.Document is null) + inlineFailed;
+        var total = docs.Length + inline.Count;
+        return new LeafPreloadSummary(total, total - failed, failed);
     }
 
     /// <summary>
@@ -480,61 +530,231 @@ public sealed class MetadataClient : IDisposable
     {
         ct.ThrowIfCancellationRequested();
         _disk?.BindPrimary(origin);
-        var disk = _disk?.TryReadRoot(origin);
-        if (disk is null)
-            return Task.FromResult(RootUnavailable(origin, "本地没有可用的根清单缓存"));
-
-        var memory = FindRoot(origin, disk.Digest) ?? ParseRootBytes(origin, disk.Bytes, disk.Digest);
-        if (memory is null)
-            return Task.FromResult(RootUnavailable(origin, "本地根清单缓存无法解析"));
-        return Task.FromResult(RootOf(memory, MetadataFreshness.Stale, error: null));
+        if (_disk?.HasForeignOwner(origin) == true)
+            return Task.FromResult(RootUnavailable(origin, "Cache URI ownership mismatch"));
+        lock (_gate)
+        {
+            if (_rootDocs.TryGetValue(origin.AbsoluteUri, out var remembered))
+                return Task.FromResult(RootOf(remembered, MetadataFreshness.Stale, error: null));
+        }
+        var memory = ReadCompleteRoot(origin);
+        return Task.FromResult(memory is null
+            ? RootUnavailable(origin, "No complete cached metadata")
+            : RootOf(memory, MetadataFreshness.Stale, error: null));
     }
 
     private async Task<RootSnapshotResult> RefreshRootCore(Uri origin, CancellationToken ct)
     {
         _disk?.BindPrimary(origin);
+        Dictionary<string, CapturedXml>? captured = null;
         try
         {
-            var disk = _disk?.TryReadRoot(origin);
-            var transfer = await TransferAsync(origin, disk is { Verified: true } ? disk.Stamp : null, ct).ConfigureAwait(false);
-            try
-            {
-                if (transfer.NotModified)
-                {
-                    var again = _disk?.TryReadRoot(origin);
-                    var memory = again is { Verified: true }
-                        ? FindRoot(origin, again.Digest) ?? ParseRootBytes(origin, again.Bytes, again.Digest)
-                        : null;
-                    if (memory is null)
-                    {
-                        // 304 不带正文，直接换成无条件重取。
-                        transfer = await TransferAsync(origin, validators: null, ct).ConfigureAwait(false);
-                        if (transfer.NotModified)
-                            return RootFallback(origin, "HTTP 304 但本地根清单无法解析");
-                    }
-                    else
-                    {
-                        return RootOf(memory, MetadataFreshness.Fresh, error: null);
-                    }
-                }
+            var (read, documents) = await CaptureGraphAsync(origin, ct).ConfigureAwait(false);
+            captured = documents;
+            var catalogError = CatalogError(read.Root);
+            if (catalogError is not null)
+                return RootFallback(origin, catalogError);
+            var digest = GraphDigest(origin, read, documents);
+            await CommitGraphAsync(origin, read, documents, digest, ct).ConfigureAwait(false);
+            return RootOf(RememberRoot(origin, read.Root, digest), MetadataFreshness.Fresh, error: null);
 
-                if (!transfer.Ok || (transfer.Bytes is null && transfer.Path is null))
-                    return RootFallback(origin, transfer.Error ?? "刷新根清单失败");
-                return await PublishRootAsync(origin, transfer, ct).ConfigureAwait(false);
-            }
-            finally
-            {
-                transfer.DiscardStagedFile();
-            }
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
             throw;
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException
+            or XmlException or InvalidOperationException or ArgumentException)
         {
             return RootFallback(origin, ex.Message);
         }
+        finally
+        {
+            DiscardGraph(captured);
+        }
+    }
+
+    private async Task<(MetadataReadResult Read, Dictionary<string, CapturedXml> Documents)> CaptureGraphAsync(Uri origin, CancellationToken ct, bool inlineManifests = false)
+    {
+        var documents = new Dictionary<string, CapturedXml>(StringComparer.Ordinal);
+        var source = new CapturedSource(origin, documents);
+        try
+        {
+            await CaptureAsync(origin, source.GetDirectoryName(origin.AbsoluteUri)!, ct).ConfigureAwait(false);
+            return (MetadataReader.Read(origin.AbsoluteUri, new MetadataSourceOptions { CustomSource = source, InlineManifests = inlineManifests }), documents);
+        }
+        catch
+        {
+            DiscardGraph(documents);
+            throw;
+        }
+
+        async Task CaptureAsync(Uri uri, string boundary, CancellationToken token)
+        {
+            if (documents.ContainsKey(uri.AbsoluteUri))
+                return;
+            var disk = _disk?.TryReadRoot(uri);
+            var transfer = await TransferAsync(uri, disk is { Verified: true } ? disk.Stamp : null, token).ConfigureAwait(false);
+            var retained = false;
+            try
+            {
+                XDocument? xml = null;
+                if (transfer.NotModified)
+                {
+                    disk = _disk?.TryReadRoot(uri);
+                    if (disk is not { Verified: true } || (xml = TryReadXml(disk.Bytes)) is null)
+                        transfer = await TransferAsync(uri, validators: null, token).ConfigureAwait(false);
+                }
+                var body = transfer.NotModified ? disk?.Bytes : transfer.Bytes;
+                if (!transfer.Ok || (body is null && transfer.Path is null))
+                    throw new IOException(transfer.Error ?? "Missing XML response body");
+                if (transfer.Path is { } staged)
+                {
+                    using var stream = File.OpenRead(staged);
+                    xml = ReadXml(stream);
+                }
+                else
+                    xml ??= ReadXml(body!);
+                var stamp = transfer.NotModified ? disk!.Stamp! : new CacheStamp
+                {
+                    Uri = uri.AbsoluteUri,
+                    Sha256 = transfer.Path is { } path ? MetadataDiskCache.Sha256FileHex(path) : MetadataDiskCache.Sha256Hex(body!),
+                    ETag = transfer.ETag,
+                    LastModified = transfer.LastModified,
+                };
+                documents.Add(uri.AbsoluteUri, new CapturedXml(uri, body, transfer.Path, xml, stamp));
+                retained = true;
+                foreach (var include in xml.Descendants().Where(element => element.Name.LocalName == "Include"
+                    || (inlineManifests && element.Name.LocalName == "Manifest" && element.Attribute("ID") is not null
+                        && element.Attribute("Source") is not null && !element.HasElements)))
+                {
+                    var target = MetadataReader.ResolveInclude(source, uri.AbsoluteUri,
+                        include.Attribute("Source")?.Value ?? "", boundary);
+                    var child = MetadataDiskCache.CanonicalizeEntry(target);
+                    var childBoundary = uri.IsFile && !child.IsFile ? source.GetDirectoryName(target)! : boundary;
+                    await CaptureAsync(child, childBoundary, token).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                if (!retained)
+                    transfer.DiscardStagedFile();
+            }
+        }
+    }
+
+    private async Task CommitGraphAsync(Uri origin, MetadataReadResult read, Dictionary<string, CapturedXml> documents, string digest, CancellationToken ct)
+    {
+        if (_disk is null)
+            return;
+        _disk.ValidateGraphPaths(documents.Values.Select(document => document.Uri));
+        if (NeedsComposition(origin, documents) && !_disk.HasComposition(origin)
+            && _disk.TryReadRoot(origin) is { } previous)
+        {
+            var prior = TryReadXml(previous.Bytes);
+            try
+            {
+                if (prior is not null && !MetadataDetector.HasComposition(prior) && !IsCatalog(MetadataParser.Load(prior)))
+                    prior = null;
+            }
+            catch (Exception ex) when (ex is XmlException or InvalidOperationException)
+            {
+                prior = null;
+            }
+            if (prior is not null && !MetadataDetector.HasComposition(prior) && prior.Root is { } priorRoot)
+            {
+                var priorDigest = MetadataDiskCache.Sha256Hex(Encoding.UTF8.GetBytes(priorRoot.ToString(SaveOptions.DisableFormatting)));
+                _disk.CommitComposition(origin, new XDocument(new XElement("Composition",
+                    new XAttribute("Origin", origin.AbsoluteUri), new XAttribute("Sha256", priorDigest),
+                    new XElement("Document", new XAttribute("Uri", origin.AbsoluteUri), new XAttribute("Sha256", previous.Digest)),
+                    new XElement("Root", new XElement(priorRoot)))));
+            }
+        }
+        foreach (var captured in documents.Values)
+        {
+            var path = _disk.RootBodyPath(captured.Uri);
+            try
+            {
+                if (captured.Path is { } staged)
+                    _disk.StageFile(path, captured.Uri.AbsoluteUri, staged);
+                else
+                    await _disk.StageAsync(path, captured.Uri.AbsoluteUri, captured.Bytes!, ct).ConfigureAwait(false);
+                _disk.Commit(path, captured.Stamp);
+            }
+            catch
+            {
+                _disk.Discard(path);
+                throw;
+            }
+        }
+        if (NeedsComposition(origin, documents))
+            _disk.CommitComposition(origin, new XDocument(new XElement("Composition",
+                new XAttribute("Origin", origin.AbsoluteUri), new XAttribute("Sha256", digest),
+                documents.Values.Select(item => new XElement("Document", new XAttribute("Uri", item.Uri.AbsoluteUri),
+                    new XAttribute("Sha256", item.Stamp.Sha256))),
+                new XElement("Root", new XElement(read.Document.Root!)))));
+    }
+
+    private bool NeedsComposition(Uri origin, Dictionary<string, CapturedXml> documents)
+    {
+        var raw = documents[origin.AbsoluteUri].Document;
+        return documents.Count > 1 || MetadataDetector.HasComposition(raw)
+            || raw.Root?.Attribute("IdFormat") is not null || raw.Root?.Attribute("SourceBase") is not null
+            || _disk?.HasComposition(origin) == true;
+    }
+
+    private string GraphDigest(Uri origin, MetadataReadResult read, Dictionary<string, CapturedXml> documents) =>
+        NeedsComposition(origin, documents)
+            ? MetadataDiskCache.Sha256Hex(Encoding.UTF8.GetBytes(read.Document.Root!.ToString(SaveOptions.DisableFormatting)))
+            : documents[origin.AbsoluteUri].Stamp.Sha256;
+
+    private static void DiscardGraph(Dictionary<string, CapturedXml>? documents)
+    {
+        if (documents is null)
+            return;
+        foreach (var captured in documents.Values)
+            if (captured.Path is { } path)
+                TryDeleteFile(path);
+    }
+
+    private static XDocument ReadXml(byte[] bytes)
+    {
+        using var stream = new MemoryStream(bytes, writable: false);
+        return ReadXml(stream);
+    }
+
+    internal static XDocument ReadXml(Stream stream)
+    {
+        using var reader = XmlReader.Create(stream, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
+        return XDocument.Load(reader);
+    }
+
+    private static XDocument? TryReadXml(byte[] bytes)
+    {
+        try { return ReadXml(bytes); }
+        catch (XmlException) { return null; }
+    }
+
+    private RootMemory? ReadCompleteRoot(Uri origin)
+    {
+        if (_disk?.HasForeignOwner(origin) == true)
+            return null;
+        var record = _disk?.TryReadComposition(origin)?.Root;
+        if (record is not null)
+        {
+            if (record.Name != "Composition" || (string?)record.Attribute("Origin") != origin.AbsoluteUri
+                || !record.Elements("Document").Any() || record.Element("Root")?.Element("Metadata") is not { } root)
+                return null;
+            var bytes = Encoding.UTF8.GetBytes(root.ToString(SaveOptions.DisableFormatting));
+            var digest = MetadataDiskCache.Sha256Hex(bytes);
+            if (!string.Equals(digest, (string?)record.Attribute("Sha256"), StringComparison.Ordinal))
+                return null;
+            return FindRoot(origin, digest) ?? ParseRootBytes(origin, bytes, digest);
+        }
+        if (_disk?.HasComposition(origin) == true)
+            return null;
+        var disk = _disk?.TryReadRoot(origin);
+        return disk is null ? null : FindRoot(origin, disk.Digest) ?? ParseRootBytes(origin, disk.Bytes, disk.Digest);
     }
 
     private async Task<ImageResult> FetchImageAsync(Uri uri, CancellationToken ct)
@@ -925,149 +1145,60 @@ public sealed class MetadataClient : IDisposable
 
     private async Task<LeafDoc> FetchLeafDocumentAsync(Uri leaf, CancellationToken ct)
     {
-        var key = leaf.AbsoluteUri;
+        Dictionary<string, CapturedXml>? captured = null;
         try
         {
-            var disk = _disk?.TryReadLeaf(leaf);
-            var transfer = await TransferAsync(leaf, disk is { Verified: true } ? disk.Stamp : null, ct).ConfigureAwait(false);
-            try
-            {
-                if (transfer.NotModified)
-                {
-                    var again = _disk?.TryReadLeaf(leaf);
-                    var reused = again is { Verified: true }
-                        ? FindLeaf(key, again.Digest) ?? StoreParsedLeaf(leaf, again.Bytes, again.Digest, MetadataFreshness.Fresh, null)
-                        : null;
-                    if (reused is null)
-                    {
-                        // 304 不带正文，直接换成无条件重取。
-                        transfer = await TransferAsync(leaf, validators: null, ct).ConfigureAwait(false);
-                        if (transfer.NotModified)
-                            return LeafDocFallback(leaf, "HTTP 304 但本地叶子清单无法解析");
-                    }
-                    else
-                    {
-                        lock (_gate)
-                        {
-                            reused.Status = MetadataFreshness.Fresh;
-                            reused.Error = null;
-                        }
-
-                        return reused;
-                    }
-                }
-
-                if (!transfer.Ok || (transfer.Bytes is null && transfer.Path is null))
-                    return LeafDocFallback(leaf, transfer.Error ?? "读取叶子清单失败");
-                return await PublishLeafDocumentAsync(leaf, transfer, ct).ConfigureAwait(false);
-            }
-            finally
-            {
-                transfer.DiscardStagedFile();
-            }
+            var (read, documents) = await CaptureGraphAsync(leaf, ct, inlineManifests: true).ConfigureAwait(false);
+            captured = documents;
+            if (!TryAcceptLeaf(read.Root, out var error))
+                return LeafDocFallback(leaf, error ?? "Invalid manifest document");
+            var digest = GraphDigest(leaf, read, documents);
+            await CommitGraphAsync(leaf, read, documents, digest, ct).ConfigureAwait(false);
+            return StoreLeafDocument(leaf, read.Root, digest, MetadataFreshness.Fresh, error: null);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
             throw;
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException
+            or XmlException or InvalidOperationException or ArgumentException)
         {
             return LeafDocFallback(leaf, ex.Message);
         }
+        finally
+        {
+            DiscardGraph(captured);
+        }
     }
 
-    private async Task<RootSnapshotResult> PublishRootAsync(Uri origin, Transfer transfer, CancellationToken ct)
+    private sealed record CapturedXml(Uri Uri, byte[]? Bytes, string? Path, XDocument Document, CacheStamp Stamp);
+
+    private sealed class CapturedSource(Uri entry, Dictionary<string, CapturedXml> documents) : IMetadataXmlSource
     {
-        string? stagedPath = transfer.Path;
-        Metadata document;
-        try
+        public bool Exists(string path) => documents.ContainsKey(GetFullPath(path));
+        public XDocument LoadDocument(string path) => documents[GetFullPath(path)].Document;
+        public string Combine(string basePath, string relativePath) =>
+            new Uri(DirectoryUri(basePath), relativePath.Replace('\\', '/')).AbsoluteUri;
+        public string? GetDirectoryName(string path) => new Uri(new Uri(GetFullPath(path)), ".").AbsoluteUri;
+        public string GetRelativePath(string fromPath, string toPath)
         {
-            document = stagedPath is not null ? ParseFile(stagedPath) : ParseBytes(transfer.Bytes!);
+            var from = DirectoryUri(fromPath);
+            var to = new Uri(GetFullPath(toPath));
+            if (from.IsFile && to.IsFile)
+                return Path.GetRelativePath(from.LocalPath, to.LocalPath).Replace('\\', '/');
+            if (from.Scheme != to.Scheme || from.Authority != to.Authority)
+                return to.AbsoluteUri;
+            return Uri.UnescapeDataString(from.MakeRelativeUri(to).ToString());
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        public string GetFullPath(string path) => new Uri(entry, path.Replace('\\', '/')).AbsoluteUri;
+        public bool IsPathRooted(string path) => Uri.TryCreate(path, UriKind.Absolute, out _) || Path.IsPathRooted(path);
+        private Uri DirectoryUri(string path)
         {
-            return RootFallback(origin, "根清单解析失败：" + ex.Message);
+            var full = GetFullPath(path);
+            return new Uri(full.EndsWith('/') ? full : full + "/");
         }
-
-        var catalogError = CatalogError(document);
-        if (catalogError is not null)
-            return RootFallback(origin, catalogError);
-
-        var digest = stagedPath is not null
-            ? MetadataDiskCache.Sha256FileHex(stagedPath)
-            : MetadataDiskCache.Sha256Hex(transfer.Bytes!);
-        if (_disk is not null)
-        {
-            var bodyPath = _disk.RootBodyPath(origin);
-            try
-            {
-                if (stagedPath is not null)
-                    _disk.StageFile(bodyPath, origin.AbsoluteUri, stagedPath);
-                else
-                    await _disk.StageAsync(bodyPath, origin.AbsoluteUri, transfer.Bytes!, ct).ConfigureAwait(false);
-                _disk.Commit(bodyPath, new CacheStamp
-                {
-                    Uri = origin.AbsoluteUri,
-                    ETag = transfer.ETag,
-                    LastModified = transfer.LastModified,
-                    Sha256 = digest,
-                });
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                _disk.Discard(bodyPath);
-                return RootFallback(origin, "根清单写入缓存失败：" + ex.Message);
-            }
-        }
-
-        return RootOf(RememberRoot(origin, document, digest), MetadataFreshness.Fresh, error: null);
     }
 
-    private async Task<LeafDoc> PublishLeafDocumentAsync(Uri leaf, Transfer transfer, CancellationToken ct)
-    {
-        string? stagedPath = transfer.Path;
-        Metadata document;
-        try
-        {
-            document = stagedPath is not null ? ParseFile(stagedPath) : ParseBytes(transfer.Bytes!);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            return LeafDocFallback(leaf, "叶子清单解析失败：" + ex.Message);
-        }
-
-        if (!TryAcceptLeaf(document, out var reject))
-            return LeafDocFallback(leaf, reject ?? "叶子清单无效");
-
-        var digest = stagedPath is not null
-            ? MetadataDiskCache.Sha256FileHex(stagedPath)
-            : MetadataDiskCache.Sha256Hex(transfer.Bytes!);
-        if (_disk is not null)
-        {
-            var bodyPath = _disk.LeafBodyPath(leaf);
-            try
-            {
-                if (stagedPath is not null)
-                    _disk.StageFile(bodyPath, leaf.AbsoluteUri, stagedPath);
-                else
-                    await _disk.StageAsync(bodyPath, leaf.AbsoluteUri, transfer.Bytes!, ct).ConfigureAwait(false);
-                _disk.Commit(bodyPath, new CacheStamp
-                {
-                    Uri = leaf.AbsoluteUri,
-                    ETag = transfer.ETag,
-                    LastModified = transfer.LastModified,
-                    Sha256 = digest,
-                });
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                _disk.Discard(bodyPath);
-                return LeafDocFallback(leaf, "叶子清单写入缓存失败：" + ex.Message);
-            }
-        }
-
-        return StoreLeafDocument(leaf, document, digest, MetadataFreshness.Fresh, error: null);
-    }
 
     private async Task<Transfer> TransferAsync(Uri uri, CacheStamp? validators, CancellationToken ct)
     {
@@ -1172,13 +1303,11 @@ public sealed class MetadataClient : IDisposable
 
     private RootSnapshotResult RootFallback(Uri origin, string error)
     {
-        var disk = _disk?.TryReadRoot(origin);
-        if (disk is not null)
-        {
-            var parsed = FindRoot(origin, disk.Digest) ?? ParseRootBytes(origin, disk.Bytes, disk.Digest);
-            if (parsed is not null)
-                return RootOf(parsed, MetadataFreshness.Stale, error);
-        }
+        if (_disk?.HasForeignOwner(origin) == true)
+            return RootUnavailable(origin, error);
+        var parsed = ReadCompleteRoot(origin);
+        if (parsed is not null)
+            return RootOf(parsed, MetadataFreshness.Stale, error);
 
         lock (_gate)
         {
@@ -1458,7 +1587,8 @@ public sealed class MetadataClient : IDisposable
         if (string.IsNullOrWhiteSpace(package.ManifestId))
             return false;
 
-        var source = document.ManifestRegistration(package.ManifestId)?.Get("Source");
+        var registration = document.ManifestRegistration(package.ManifestId);
+        var source = registration is not null && IsStub(registration) ? registration.Get("Source") : null;
         if (string.IsNullOrWhiteSpace(source))
             return false;
 
@@ -1476,8 +1606,20 @@ public sealed class MetadataClient : IDisposable
 
     private static bool TryReadLeaf(Metadata document, string expectedManifestId, out Metadata? node, out ManifestEntry? entry, out string? error)
     {
-        node = document.GetAllElements("Manifest")
-            .FirstOrDefault(item => string.Equals(item.Get("ID"), expectedManifestId, StringComparison.OrdinalIgnoreCase));
+        var manifests = document.GetAllElements("Manifest").ToList();
+        node = manifests.FirstOrDefault(item => string.Equals(item.Get("ID"), expectedManifestId, StringComparison.OrdinalIgnoreCase));
+        if (node is null)
+        {
+            var local = MetadataFlattener.LocalId(expectedManifestId);
+            var matches = manifests.Where(item => string.Equals(MetadataFlattener.LocalId(item.Get("ID")), local, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (matches.Count > 1)
+            {
+                entry = null;
+                error = "Ambiguous legacy manifest identity";
+                return false;
+            }
+            node = matches.SingleOrDefault();
+        }
         if (node is null)
         {
             entry = null;
@@ -1577,15 +1719,6 @@ public sealed class MetadataClient : IDisposable
         return MetadataParser.Load(stream);
     }
 
-    /// <summary>
-    /// 从传输方落盘的临时正文解析。与 <see cref="ParseBytes"/> 是同一个解析入口，只是数据直接来自文件：
-    /// 不再把整份正文读回内存。解析与 SHA256 都针对同一个不可变文件，文档与摘要来自同一份快照。
-    /// </summary>
-    private static Metadata ParseFile(string path)
-    {
-        using var stream = File.OpenRead(path);
-        return MetadataParser.Load(stream);
-    }
 
     private static Uri RequireEntry(string metadataUrl)
     {
@@ -1608,7 +1741,7 @@ public sealed class MetadataClient : IDisposable
     private static RootSnapshotResult RootUnavailable(Uri origin, string error) =>
         new(null, null, origin, MetadataFreshness.Unavailable, Guid.NewGuid().ToString("D"), DateTimeOffset.UtcNow, error);
 
-    private static LeafResult LeafUnavailable(Uri source, string error) =>
+    private static LeafResult LeafUnavailable(Uri? source, string error) =>
         new(null, null, null, source, MetadataFreshness.Unavailable, error);
 
     private enum MatchKind

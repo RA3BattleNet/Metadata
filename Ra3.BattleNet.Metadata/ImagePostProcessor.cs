@@ -2,10 +2,6 @@ using System.Xml.Linq;
 
 namespace Ra3.BattleNet.Metadata;
 
-/// <summary>
-/// 展平后：扫描 Image 登记节点，调用 Imaging CLI 转 WebP，由本类改写 XML 的 Source。
-/// 图片不写 Hash：只有 Manifest 与 Updater 记录带哈希。
-/// </summary>
 public static class ImagePostProcessor
 {
     private static readonly HashSet<string> Convertible = new(StringComparer.OrdinalIgnoreCase)
@@ -13,59 +9,71 @@ public static class ImagePostProcessor
         ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tiff", ".tif"
     };
 
-    /// <summary>
-    /// 处理 outputDir 下 metadata.xml；返回转换张数。转换成功后删除 Output 内原图（发布面只留被引用资源）。
-    /// </summary>
-    public static int ApplyWebP(string outputDir, TextWriter? log = null)
+    public static int ApplyWebP(string outputDir, TextWriter? log = null) =>
+        ApplyWebP(outputDir, ["metadata.xml"], log);
+
+    internal static int ApplyWebP(string outputDir, IEnumerable<string> documentPaths, TextWriter? log = null)
     {
+        ArgumentNullException.ThrowIfNull(documentPaths);
         log ??= Console.Out;
         outputDir = Path.GetFullPath(outputDir);
-        var flatPath = Path.Combine(outputDir, "metadata.xml");
-        if (!File.Exists(flatPath))
-            throw new FileNotFoundException($"找不到展平文件: {flatPath}");
-
-        var doc = XDocument.Load(flatPath);
-        var converted = 0;
-        var removedSources = new List<string>();
-
-        foreach (var image in doc.Descendants("Image"))
+        var documents = documentPaths.Select(path => Path.GetFullPath(Path.Combine(outputDir, path)))
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToDictionary(path => path, path =>
+            {
+                EnsureInside(path, outputDir);
+                return XDocument.Load(path);
+            }, StringComparer.OrdinalIgnoreCase);
+        var converted = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var destinations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var registrations = new List<(XAttribute Attribute, string Document, string Source)>();
+        foreach (var (path, document) in documents)
         {
-            if (image.Attribute("ID") == null)
-                continue;
-
-            var sourceAttr = image.Attribute("Source");
-            if (sourceAttr == null || string.IsNullOrWhiteSpace(sourceAttr.Value))
-                continue;
-            if (!string.IsNullOrWhiteSpace(image.Attribute("Url")?.Value))
-                continue;
-
-            var rel = sourceAttr.Value.Replace('\\', '/');
-            var abs = Path.Combine(outputDir, rel);
-            if (!File.Exists(abs))
-                continue;
-
-            var ext = Path.GetExtension(abs);
-            if (!Convertible.Contains(ext))
-                continue;
-
-            var webpAbs = Path.ChangeExtension(abs, ".webp")!;
-            var webpRel = Path.ChangeExtension(rel, ".webp")!.Replace('\\', '/');
-
-            log.WriteLine($"  convert {rel} -> {webpRel}");
-            ImagingInvoker.ConvertToWebP(abs, webpAbs);
-            sourceAttr.Value = webpRel;
-            removedSources.Add(abs);
-            converted++;
+            foreach (var image in document.Descendants("Image"))
+            {
+                if (image.Attribute("ID") is null || !string.IsNullOrWhiteSpace((string?)image.Attribute("Url"))
+                    || image.Attribute("Source") is not { } source || string.IsNullOrWhiteSpace(source.Value))
+                    continue;
+                var uri = MetadataResourceUri.Resolve(path, source.Value);
+                if (!uri.IsFile)
+                    continue;
+                var absolute = Path.GetFullPath(uri.LocalPath);
+                EnsureInside(absolute, outputDir);
+                if (!File.Exists(absolute) || !Convertible.Contains(Path.GetExtension(absolute)))
+                    continue;
+                var target = Path.ChangeExtension(absolute, ".webp");
+                if (destinations.TryGetValue(target, out var previous) && !StringComparer.OrdinalIgnoreCase.Equals(previous, absolute)
+                    || File.Exists(target))
+                    throw new InvalidOperationException($"WebP output path collision: {target}");
+                destinations[target] = absolute;
+                converted.TryAdd(absolute, target);
+                registrations.Add((source, path, absolute));
+            }
         }
-
-        doc.Save(flatPath);
-
-        // XML 已指向 webp，删除 Output 内原图（源树不受影响）
-        foreach (var source in removedSources)
+        foreach (var (source, target) in converted)
         {
-            try { File.Delete(source); } catch { /* 尽力清理 */ }
+            log.WriteLine($"  convert {Path.GetRelativePath(outputDir, source)} -> {Path.GetRelativePath(outputDir, target)}");
+            ImagingInvoker.ConvertToWebP(source, target);
         }
+        foreach (var (attribute, document, source) in registrations)
+            attribute.Value = Path.GetRelativePath(Path.GetDirectoryName(document)!, converted[source]).Replace('\\', '/');
+        foreach (var (path, document) in documents)
+            document.Save(path);
+        foreach (var source in converted.Keys)
+            File.Delete(source);
+        return converted.Count;
+    }
 
-        return converted;
+    private static void EnsureInside(string path, string root)
+    {
+        var relative = Path.GetRelativePath(root, path);
+        if (Path.IsPathRooted(relative) || relative == ".."
+            || relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            throw new InvalidOperationException($"Image output escaped root: {path}");
+        for (var current = path; current is not null; current = Path.GetDirectoryName(current))
+        {
+            if ((File.Exists(current) || Directory.Exists(current))
+                && (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidOperationException($"Image paths must not traverse links: {current}");
+        }
     }
 }

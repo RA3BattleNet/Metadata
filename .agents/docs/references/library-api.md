@@ -76,62 +76,32 @@ var doc = new XDocument(new XElement("Metadata", savedManifestElement));
 var root = MetadataParser.Load(doc);   // 根必须是 Metadata，且不得含 Include / Includes / Module
 ```
 
-### 统一入口：自动识别源树与发布物
+### Unified composition and layout export
+
+Metadata implementation is verified; Desktop integration and dependency delivery remain pending. See [the six-phase plan and exercised evidence](../exec-plans/2026-11-07-composable-metadata.md) and [architecture decision](../../notes/implemented/architecture/2026-11-07-composable-metadata.md).
 
 ```csharp
-// 自动识别：带 Include 则按源树展平，无 Include 则按发布物直接解析
-var metadata = MetadataBuilder.Open("./Metadata/metadata.xml");
-
-// 支持 HTTP(S) URL：同样先探测入口文档
-var remote = MetadataBuilder.Open("https://example.com/metadata.xml");
-
-// 携带选项：指定源根、强制源树模式或开启引用完整性校验
-var custom = MetadataBuilder.Open("./Metadata/mods/corona/corona.xml", new MetadataSourceOptions
+var input = MetadataReader.Read("./Metadata/metadata.xml");
+var metadata = input.Root;
+var sameModel = MetadataBuilder.Open("./Metadata/metadata.xml");
+MetadataExporter.Export(input, "./ComposedOutput", new MetadataExportOptions
 {
-    SourceRoot = "./Metadata/mods/corona",
-    ForceSourceTree = true,
-    ValidateReferences = true,
+    Layout = MetadataExportLayout.Tree,
+    IdFormat = MetadataExportIdFormat.Path
 });
 ```
 
-`MetadataBuilder.Open(pathOrUrl, MetadataSourceOptions? options = null)` 提供自动识别能力：
-- 本地入口（含 `file://` 形式）：先由 `PhysicalFileXmlSource` 载入入口 XML；若存在 `Include` 或 `Includes` 元素（由 `MetadataDetector.HasInclude` 判定）则走源树展平流程，否则按发布物直接解析。
-- HTTP(S) 入口：先由 `HttpXmlSource` 读取入口文档并探测；检测到源树同样递归展平，发布物则直接返回解析结果。
-- 注入自定义源：设置 `options.CustomSource` 时，入口路径直接交给该源解释，可用于测试注入伪源或非标准源。
+Flat and split documents express one model; layout changes organization, not package identity. Reader is the only composition/ID core. Open and legacy public Flattener methods delegate to it, rather than preserving independent algorithms. Strict `MetadataBuilder.Load` and `MetadataParser.Load` still reject composition documents. Explicit `LoadSource` preserves its legacy SourceRoot-relative Source/stub behavior.
 
-`MetadataSourceOptions` 配置项：
-- `SourceRoot`：`Include` 与相对资源路径的基准根目录，缺省时使用入口文件所在目录（URL 则是其所在目录路径）。
-- `ForceSourceTree`：即使文档内没有 `Include`，也强制按源树流程展平并限定登记 ID。`MetadataBuilder.LoadSource` 内部即开启此选项。
-- `ValidateReferences`：读取完成后是否执行引用完整性校验（断引用抛 `InvalidOperationException`）；默认为 `false`。
-- `CustomSource`：自定义 `IMetadataXmlSource` 实例；非空时优先走该源。
+`MetadataReader.Read(string pathOrUrl, MetadataSourceOptions? options = null)` returns `MetadataReadResult` with `Root`, normalized `Document`, `EntryPath`, `SourceRoot` and `Documents`. Normalized Root/Document use legacy canonical IDs for existing consumers. `MetadataDocumentInfo` exposes `Path`, `RelativePath`, captured raw `Document`, own-node `NormalizedDocument` and `Includes` with SourcePath/TargetPath. Treat returned XML as result-owned and immutable by convention. Captured documents are the export input; do not depend on a disposed internally owned HTTP source.
 
-源树模式的口径与 `LoadSource` 完全一致：
-- 在内存中展平全部 `Include`、合并 `Base`/`InheritFrom` 继承、登记 ID 限定为 `{路径前缀}:{短名}`。
-- `ContentRevision` 固定赋值为 `"local-source"`。
-- 不替换 `${TIMESTAMP}` / `${ENV:...}` 等构建期变量，不做 XSD 校验，跳过跨实体 `Compatibility` 校验。
-- 纯内存只读操作，不写任何磁盘文件。
+`MetadataSourceOptions` exposes `SourceRoot`, `ValidateReferences`, `ForceSourceTree`, `CustomSource` and `InlineManifests`. SourceRoot limits allowed paths; explicit ForceSourceTree disambiguates unmarked single-file author documents. InlineManifests resolves external bodies and retains author-included manifest bodies. With default false, unmarked author-included full manifests retain legacy stub behavior, but explicitly normalized/marked full manifests remain inline: changing organization must not change their meaning. CustomSource permits cache-prefetched XML without synchronous network blocking in the cache. Reading never writes, substitutes variables or converts images.
 
-只读 XML 源抽象与分工：
-展平器完全基于 `IMetadataXmlSource` 接口进行存在性检查、文档读取与路径运算，不直接调用 `System.IO`：
-- `PhysicalFileXmlSource`：本地文件系统实现，逐个转发 `System.IO`，处理路径规范化。
-- `HttpXmlSource`：HTTP 只读实现，路径为绝对 URL。通过流式请求解析 XML。在跨主机、跨端口或目标落在源根目录之外时，`Combine` 与 `GetRelativePath` 会返回绝对 URL，展平器的 `EnsureWithinRoot` 检测到 `IsPathRooted` 为真（或以 `..` 开头的相对路径）时才抛出「越出源目录」异常，在发起网络请求前完成越界拦截。
-  - **不跟随重定向**：自建 `SocketsHttpHandler` 时显式设置 `AllowAutoRedirect = false`，收到任何 3xx 响应直接抛出 `InvalidOperationException`（消息带 GET URL 与状态码）。原因在于展平器的越界检查只校验即将发出的目标 URL，若允许跟随重定向，可能把外站正文作为 `Include` 内容读入。
-  - **请求超时**：统一配置 60 秒超时，与 `MetadataBuilder.LoadUrlTimeout` 对齐。
-  - **XML 正文按 URL 缓存**：同一 XML 文件先 `Exists` 探测再 `LoadDocument` 读取正文只会发起一次 HTTP GET 请求；非 XML 资源（如图片）的 `Exists` 只检查存在性，不读正文也不写入缓存。
-  - **生命周期与释放**：实现 `IDisposable` 接口，仅释放自身创建的 `HttpClient` 实例，调用方注入的 handler 归调用方所有且不随之释放；`MetadataBuilder.Open` 内部创建的 `HttpXmlSource` 实例在用完后立即以 `using` 释放，外部传入的 `CustomSource` 则不代为释放。
+Do not detect semantics only from Include, short ID spelling or SchemaVersion. Generated outputs declare `IdFormat="legacy"` or `IdFormat="path"` and `SourceBase="document"`; unknown formats fail. Path IDs decode to canonical legacy IDs in Root, preserving logical scope after relocation. Unmarked old flat documents without composition retain IDs/Source; unmarked author composition is qualified once. Resource IDs use OrdinalIgnoreCase and document identity uses HTTP/filesystem rules. Ambiguous aliases, duplicate canonical registrations and violations of the existing field-specific reference-kind rules fail; Icon retains its established Image-or-Markdown support. Asset addresses come from Source, never from ID strings. Unified Source is entry-relative; legacy LoadSource remains explicitly SourceRoot-relative.
 
-引用完整性校验：
-通过 `MetadataValidator.EnsureReferences(metadata)` 或 `MetadataValidator.FindMissingReferences(metadata)` 实现。以登记节点（带 `ID` 的 `Image`、`Markdown`、`Manifest`）为合法目标，检查 `Icon`、`Manifest`、`Post.HeadImage`、`Post.Content`、`Style.Logo`、`Style.Background.Image` 等引用字段。存在断引用时，`EnsureReferences` 抛出 `InvalidOperationException` 并列出全部失效路径。通过 `MetadataSourceOptions.ValidateReferences = true` 可在读取完成后自动执行。
+`MetadataExporter.Export(MetadataReadResult input, string outputDirectory, MetadataExportOptions? options = null)` writes `metadata.xml` plus required documents/resources and returns void. `Layout` is Flat (default), Tree or Mixed; `IdFormat` is Legacy (default) or Path. Mixed requires `Inline: Func<string, bool>` over target RelativePath. `InlineManifests`, `ConvertImages` and `ResolveVariables` default false. One recursive retained-Include-edge algorithm implements all layouts; it consumes Reader provenance, not a second resolver. Preserve Image/Markdown/Manifest Source and URL-only resources; reject source/output overlap, unsafe paths and collisions before writes.
 
-边界检查与行为约束：
-- **菱形 Include 去重**：同一展平会话中，已展开完成的文件再次被引用时直接跳过，避免重复并入实体与登记节点，同时保留对真循环引用的异常拦截。
-- **同文件登记 ID 查重**：单文件内声明的登记短名必须唯一，仅大小写不同的重复登记（如 `icon` 与 `Icon`）直接抛出 `InvalidOperationException`。
-- **路径越界拦截**：入口、`Include` 以及资源 `Source` 路径若通过 `..`、绝对路径或 UNC 形式越出源根，在读取或探测目标之前直接拒绝并抛出 `InvalidOperationException`。
-
-既有入口契约保持不变：
-- `MetadataBuilder.Load(pathOrUrl)`：依旧只作为发布物读取入口，遇到含 `Include` 的文档直接报错。
-- `MetadataBuilder.LoadSource(entryPath, sourceRoot)`：保持既有方法签名与行为不变，内部委托 `Open` 并开启 `ForceSourceTree = true`。
-- `MetadataParser.Load` / `LoadFromFile`：依旧只接受已展平的发布物，严禁包含 `Include`、`Includes` 或 `Module`。
+New Tree/Mixed artifacts require the new Reader and are not old-binary compatible merely because SchemaVersion is 1.0. Default legacy Build/publish remains unchanged. A true single XML requires explicit InlineManifests; flat projection with external manifests still requires its external resources. Flat model input cannot restore lost original topology/comments. Export failure cleans only intended output, never source data.
 
 ### 导回作者源格式，以及单独解析清单
 
@@ -155,6 +125,8 @@ var xml = MetadataXml.Write(manifest!);
 ```
 
 `ExportWhole` / `ExportVersion` 只做纯转换：不写盘、不发请求、不改动传入的树。带 `Url` 的图片只保留外链，不猜 `Source`；返回的是语义等价的源格式，不恢复发布时丢掉的注释与拆分。
+
+The composition refactor exposes only `XElement MetadataSourceExporter.ExportManifestElement(XElement manifest)` for shared short author-manifest normalization. It clones the node without a serialize/parse roundtrip. Desktop keeps the frozen installed Manifest unchanged and uses the returned element for its separate local author copy, removing duplicated LocalId conversion. Do not replace frozen bytes with a later normalized online version.
 
 ## 三、查询 API
 
@@ -211,6 +183,16 @@ var revision = client.ImageRevision(root, imageId);
 - `ImageRevision` 用旁挂摘要算虚拟地址，只有 32 位，碰撞时可能得到相同地址，不能当成绝不复用的证明；Markdown 正文里没有登记的图片不进这套机制。
 - 关闭磁盘缓存时，`file://` 每次读当前源文件并返回 `Stale`；http(s) 不主动请求。
 
+### Snapshot/package access for composed roots
+
+The client exposes `Task<LeafResult> GetPackageAsync/GetCachedPackageAsync/RefreshPackageAsync(RootSnapshotResult snapshot, PackageEntry package, CancellationToken ct = default)`. Prefer these for package consumers rather than requiring ManifestSource. URI-oriented leaf APIs remain available with their existing contracts.
+
+Inline results use the snapshot's ManifestNode/ManifestEntry, have null SourceUri, and inherit snapshot.Status in all three operations. A complete Fresh root therefore permits Fresh inline data without a fake HTTP request; Stale root never becomes Fresh. External package access verifies Raw membership and Source binding; external cached-only reads remain Stale. Preload handles both forms and does not claim independent network freshness for inline data.
+
+Runtime refresh acquires Include XML asynchronously through IMetadataTransfer and composes it through Reader CustomSource. Root 304 still revalidates children. Only a complete successful graph publishes the normalized result; failures preserve the last complete snapshot, and offline open must use no network. Private `.compositions/<origin SHA256>.xml` records a complete materialized root plus raw graph URI/hash list. Existing public URI mappings/raw bytes/validators remain separate; normalized bytes must never inherit a raw HTTP ETag. This is minimal complete-result persistence, not a new store/lease/multiprocess framework. Required proof is tracked in the implementation plan.
+
+Before first flat-to-composition migration, preflight every graph path, sidecar, ancestor conflict and reparse/link boundary. Preserve the previous complete materialized result before replacing any raw body, so a later child failure or restart cannot destroy the old offline snapshot. The parent reports passing redirect rejection and migration-preflight/cold-offline regressions in the 442-test suite; that migration exercise is not a simulated crash or mid-write IO failure.
+
 ## 五、下载边界
 
 `Cache/IMetadataTransfer.cs` 是唯一允许发网络请求的接口：
@@ -223,6 +205,8 @@ var revision = client.ImageRevision(root, imageId);
 - 临时目录：传入 `stagingDirectory` 优先；开了磁盘缓存用 `<cacheDir>/.stage`；否则系统临时目录下的 `ra3-metadata-stage`。第一次真的需要联网时才创建。
 
 传入 `transfer` 之后，构造函数里的 `httpClient` 不再参与任何请求。
+
+Composition transport safety does not add a public transfer option: the default HttpMetadataTransfer disables all automatic redirects, including image requests; register final Source/Url addresses. An injected HttpClient must also be configured with AllowAutoRedirect=false. The library rejects a response whose RequestMessage.RequestUri differs, but cannot undo a redirect request already sent by that client. A custom IMetadataTransfer is likewise responsible for not following redirects.
 
 ## 六、地址与安全约束
 

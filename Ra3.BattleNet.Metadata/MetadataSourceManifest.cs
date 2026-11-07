@@ -32,7 +32,8 @@ public static class MetadataSourceManifest
 
         var registration = root.ManifestRegistration(id)
             ?? throw new InvalidOperationException($"模组声明找不到文件清单：{id}");
-        if (registration.Find("Skudef") is not null || registration.Children.Any(child => child.Name == "File"))
+        if (!string.IsNullOrWhiteSpace(registration.Get("HashAlgorithm"))
+            || registration.Children.Any(child => child.Name is "Skudef" or "File" or "Dependencies" or "SubManifest"))
             return registration;
 
         var source = registration.Get("Source")
@@ -42,10 +43,18 @@ public static class MetadataSourceManifest
         if (!leaf.IsFile)
             throw new InvalidOperationException("本地模组文件清单必须在模组目录内");
 
-        var document = MetadataBuilder.LoadSource(leaf.LocalPath, folder);
+        var document = MetadataReader.Read(leaf.LocalPath, new MetadataSourceOptions { SourceRoot = folder, InlineManifests = true }).Root;
+        var exact = document.ManifestRegistration(id);
+        if (exact is not null)
+            return exact;
         var localId = MetadataFlattener.LocalId(id);
-        return document.GetAllElements("Manifest").SingleOrDefault(manifest =>
-                string.Equals(MetadataFlattener.LocalId(manifest.Get("ID")), localId, StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidOperationException($"文件清单 ID 与模组声明不一致：{id}");
+        var matches = document.GetAllElements("Manifest").Where(manifest =>
+            string.Equals(MetadataFlattener.LocalId(manifest.Get("ID")), localId, StringComparison.OrdinalIgnoreCase)).ToList();
+        return matches.Count switch
+        {
+            1 => matches[0],
+            0 => throw new InvalidOperationException($"Manifest identity does not match registration: {id}"),
+            _ => throw new InvalidOperationException($"Ambiguous legacy manifest identity: {id}"),
+        };
     }
 }

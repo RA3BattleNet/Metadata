@@ -17,26 +17,21 @@ public static class MetadataValidator
     {
         ArgumentNullException.ThrowIfNull(metadata);
 
-        // 仅「登记节点」（带 ID 属性）进入索引；Style 内 <Image>id</Image> 只是引用。
-        var registryImages = metadata.GetAllElements("Image")
-            .Where(n => !string.IsNullOrWhiteSpace(n.Get("ID")))
-            .ToList();
-        var registryMarkdowns = metadata.GetAllElements("Markdown")
-            .Where(n => !string.IsNullOrWhiteSpace(n.Get("ID")))
-            .ToList();
-        var registryManifests = metadata.GetAllElements("Manifest")
-            .Where(n => !string.IsNullOrWhiteSpace(n.Get("ID")))
-            .ToList();
-
+        var registrations = metadata.GetAllElements("Image")
+            .Concat(metadata.GetAllElements("Markdown"))
+            .Concat(metadata.GetAllElements("Manifest"))
+            .Where(node => !string.IsNullOrWhiteSpace(node.Get("ID")));
         var allIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var node in registryImages.Concat(registryMarkdowns).Concat(registryManifests))
-            allIds.Add(node.Get("ID")!);
-
         var imageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var image in registryImages)
-            imageIds.Add(image.Get("ID")!);
-
         var missing = new List<string>();
+        foreach (var registration in registrations)
+        {
+            var id = registration.Get("ID")!;
+            if (!allIds.Add(id))
+                missing.Add($"登记 ID 重复: {id}");
+            if (registration.Name == "Image")
+                imageIds.Add(id);
+        }
         foreach (var entity in metadata.GetAllElements("Application").Concat(metadata.GetAllElements("Mod")))
         {
             var entityId = entity.Get("ID");
@@ -66,6 +61,13 @@ public static class MetadataValidator
                     foreach (var content in contents.Children.Where(c => c.Name == "Content"))
                         AddIfMissing(content.Value, "Post Content", allIds, owner, missing);
                 }
+            }
+
+            var links = entity.Find("Links");
+            if (links is not null)
+            {
+                foreach (var link in links.Children.Where(child => child.Name == "Link"))
+                    AddIfMissing(link.Find("Icon")?.Value, "Link Icon", imageIds, owner, missing);
             }
 
             var style = entity.Find("Style");

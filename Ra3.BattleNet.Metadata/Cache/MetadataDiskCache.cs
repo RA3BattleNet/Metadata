@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
+using System.Xml.Linq;
 
 namespace Ra3.BattleNet.Metadata.Cache;
 
@@ -178,6 +179,36 @@ internal sealed class MetadataDiskCache
 
     public string LeafBodyPath(Uri leaf) => BodyPath(Canonicalize(leaf));
 
+    public void ValidateGraphPaths(IEnumerable<Uri> uris)
+    {
+        var comparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var files = new HashSet<string>(comparer);
+        foreach (var uri in uris)
+        {
+            if (HasForeignOwner(uri))
+                throw new IOException("Cache URI ownership mismatch");
+            var path = RootBodyPath(uri);
+            foreach (var file in new[] { path, path + ".uri", path + ".etag", path + ".tmp" })
+            {
+                if (!files.Add(file) || Directory.Exists(file))
+                    throw new IOException("Captured XML cache paths collide");
+                for (var parent = Path.GetDirectoryName(file); parent is not null; parent = Path.GetDirectoryName(parent))
+                {
+                    if (File.Exists(parent))
+                        throw new IOException("Captured XML cache path has a file ancestor");
+                    if (Directory.Exists(parent) && (File.GetAttributes(parent) & FileAttributes.ReparsePoint) != 0)
+                        throw new IOException("Captured XML cache path cannot use filesystem links");
+                }
+                if (File.Exists(file) && (File.GetAttributes(file) & FileAttributes.ReparsePoint) != 0)
+                    throw new IOException("Captured XML cache path cannot use filesystem links");
+            }
+        }
+        foreach (var file in files)
+            for (var parent = Path.GetDirectoryName(file); parent is not null; parent = Path.GetDirectoryName(parent))
+                if (files.Contains(parent))
+                    throw new IOException("Captured XML cache paths overlap");
+    }
+
     /// <summary>
     /// 图片正文路径。相对 Source 图片与 XML 共用发布文件树；带查询串的地址按完整请求 URI 的
     /// SHA-256 落到保留目录 <c>.requests/&lt;key&gt;/body</c>，不同查询串不会撞到同一份正文。
@@ -199,7 +230,80 @@ internal sealed class MetadataDiskCache
     public DiskBody? TryReadLeaf(Uri leaf)
     {
         var canonical = Canonicalize(leaf);
+        if (HasForeignOwner(canonical))
+            return null;
+        if (HasComposition(canonical))
+        {
+            var record = TryReadComposition(canonical)?.Root;
+            if ((string?)record?.Attribute("Origin") != canonical.AbsoluteUri
+                || record?.Element("Root")?.Element("Metadata") is not { } root)
+                return null;
+            var bytes = Encoding.UTF8.GetBytes(root.ToString(SaveOptions.DisableFormatting));
+            var digest = Sha256Hex(bytes);
+            return string.Equals(digest, (string?)record.Attribute("Sha256"), StringComparison.Ordinal)
+                ? new DiskBody(CompositionPath(canonical), bytes, digest, null, false)
+                : null;
+        }
         return TryReadBody(BodyPath(canonical), canonical.AbsoluteUri, requireValidators: true);
+    }
+
+    public bool HasComposition(Uri origin) => File.Exists(CompositionPath(origin));
+
+    public bool HasForeignOwner(Uri origin)
+    {
+        var canonical = Canonicalize(origin);
+        var path = BodyPath(canonical);
+        var stamp = ReadStamp(path + ".etag");
+        var (exists, owner) = ReadOwner(path + ".uri");
+        return (stamp is not null && !string.IsNullOrEmpty(stamp.Uri)
+                && !string.Equals(stamp.Uri, canonical.AbsoluteUri, StringComparison.Ordinal))
+            || (exists && !string.Equals(owner, canonical.AbsoluteUri, StringComparison.Ordinal));
+    }
+
+    public XDocument? TryReadComposition(Uri origin)
+    {
+        try
+        {
+            var path = CompositionPath(origin);
+            if (!File.Exists(path))
+                return null;
+            using var stream = File.OpenRead(path);
+            return MetadataClient.ReadXml(stream);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Xml.XmlException)
+        {
+            return null;
+        }
+    }
+
+    public void CommitComposition(Uri origin, XDocument document)
+    {
+        var path = CompositionPath(origin);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            File.WriteAllText(temporary, document.ToString(SaveOptions.DisableFormatting), new UTF8Encoding(false));
+            if (File.Exists(path))
+                File.Replace(temporary, path, destinationBackupFileName: null);
+            else
+                File.Move(temporary, path);
+        }
+        finally
+        {
+            TryDelete(temporary);
+        }
+    }
+
+    private string CompositionPath(Uri origin)
+    {
+        var directory = Path.Combine(_root, ".compositions");
+        var path = Path.Combine(directory, RequestKey(Canonicalize(origin)) + ".xml");
+        foreach (var candidate in new[] { _root, directory, path, path + ".tmp" })
+            if ((Directory.Exists(candidate) || File.Exists(candidate))
+                && (File.GetAttributes(candidate) & FileAttributes.ReparsePoint) != 0)
+                throw new IOException("Composition cache cannot use filesystem links");
+        return path;
     }
 
     /// <summary>
@@ -424,6 +528,8 @@ internal sealed class MetadataDiskCache
             throw new ArgumentException($"相对 Source 不能占用缓存保留目录 {SourcesDirectoryName}");
         if (string.Equals(first, RequestsDirectoryName, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException($"相对 Source 不能占用缓存保留目录 {RequestsDirectoryName}");
+        if (string.Equals(first, ".compositions", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Source occupies the composition cache directory");
     }
 
     private string Combine(List<string> segments)

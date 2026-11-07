@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -95,6 +96,31 @@ public class PublishSurfaceTests
             Directory.GetFiles(dst, "img.png", SearchOption.AllDirectories).Should().HaveCount(1);
             File.ReadAllText(Path.Combine(dst, "metadata.xml"))
                 .Should().Contain("remote-only").And.Contain("with-source");
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_ImageUrlWithEscapingSource_DoesNotReadOrCopySource()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"publish-url-source-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        var dst = Path.Combine(temp, "out");
+        SeedSchemas(src);
+        try
+        {
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), """
+                <Metadata><Image ID="remote" Url="https://example.com/img.png" Source="../missing.png" /></Metadata>
+                """);
+            MetadataBuilder.Build(src, dst, contentRevision: "x");
+            var image = XDocument.Load(Path.Combine(dst, "metadata.xml")).Root!.Element("Image")!;
+            image.Attribute("Url")!.Value.Should().Be("https://example.com/img.png");
+            image.Attribute("Source")!.Value.Should().Be("../missing.png");
+            Directory.GetFiles(dst).Select(Path.GetFileName).Should().Equal("metadata.xml");
         }
         finally
         {

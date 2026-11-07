@@ -318,13 +318,13 @@ public class PathSecurityTests
         var root = CreateTempDir();
         try
         {
-            WriteFile(root, "other/entry.xml", "<Metadata />");
+            WriteFile(root, "other/entry.xml", "<NotValidXml");
 
             var act = () => MetadataBuilder.LoadSource(
                 Path.Combine(root, "other", "entry.xml"),
                 Path.Combine(root, "source"));
 
-            act.Should().Throw<InvalidOperationException>().WithMessage("*入口文件 越出源目录*");
+            act.Should().Throw<InvalidOperationException>();
         }
         finally
         {

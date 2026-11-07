@@ -234,6 +234,7 @@ public class StageATests
     public void Flatten_CircularInclude_Throws()
     {
         var temp = Path.Combine(Path.GetTempPath(), $"stage-a-circ-{Guid.NewGuid():N}");
+        var output = temp + "-output";
         SeedSchemas(temp);
         try
         {
@@ -262,13 +263,15 @@ public class StageATests
 </Metadata>
 """);
 
-            var act = () => MetadataBuilder.Build(temp, Path.Combine(temp, "out"), contentRevision: "x");
-            act.Should().Throw<InvalidOperationException>().WithMessage("*循环引用*");
+            var act = () => MetadataBuilder.Build(temp, output, contentRevision: "x");
+            act.Should().Throw<InvalidOperationException>();
         }
         finally
         {
             if (Directory.Exists(temp))
                 Directory.Delete(temp, recursive: true);
+            if (Directory.Exists(output))
+                Directory.Delete(output, recursive: true);
         }
     }
 

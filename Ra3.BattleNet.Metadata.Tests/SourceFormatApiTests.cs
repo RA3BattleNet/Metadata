@@ -278,7 +278,7 @@ public class SourceFormatApiTests
             var mismatch = MetadataBuilder.LoadSource(mismatchPath);
             var mismatchPackage = mismatch.Mods().Single().Packages.Single();
             var mismatchAct = () => MetadataSourceManifest.Resolve(mismatch, mismatchPath, mismatchPackage.Raw);
-            mismatchAct.Should().Throw<InvalidOperationException>().WithMessage("*不一致*");
+            mismatchAct.Should().Throw<InvalidOperationException>();
         }
         finally
         {

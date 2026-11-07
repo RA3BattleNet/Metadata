@@ -12,6 +12,8 @@ Output/（发布树：展平后的 metadata.xml + 被引用资源）
 客户端：MetadataBuilder.Load(url|path) 或 MetadataClient（带磁盘缓存）
 ```
 
+Verified Metadata composition refactor: [implementation plan](docs/exec-plans/2026-11-07-composable-metadata.md) / [architecture decision](notes/implemented/architecture/2026-11-07-composable-metadata.md). One Reader core replaces duplicate composition paths, Flat/Tree/Mixed change output organization, and default legacy Build remains compatible. The plan separates verified Metadata evidence from pending Desktop integration and dependency delivery.
+
 ---
 
 ## 一、代码分层

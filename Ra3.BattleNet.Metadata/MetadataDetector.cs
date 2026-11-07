@@ -17,4 +17,11 @@ public static class MetadataDetector
 
         return document.Root?.Descendants().Any(e => e.Name.LocalName is "Include" or "Includes") == true;
     }
+
+    public static bool HasComposition(XDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return document.Root?.Descendants().Any(e => e.Name.LocalName is "Include" or "Includes" or "Base"
+            || e.Attribute("InheritFrom") != null) == true;
+    }
 }

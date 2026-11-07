@@ -12,8 +12,6 @@ public static class MetadataBuilder
 {
     public const string DefaultSchemaVersion = "1.0";
 
-    /// <summary>LoadSource 的内部修订号：源文件没有发布修订，标记为本地读取，不代表任何构建产物。</summary>
-    private const string LocalSourceContentRevision = "local-source";
 
     private static readonly Regex LeftoverVariablePattern = new(@"\$\{[^}]+\}", RegexOptions.Compiled);
     private static readonly Regex MountTokenPattern = new(@"^[A-Za-z0-9_-]+$", RegexOptions.Compiled);
@@ -59,6 +57,7 @@ public static class MetadataBuilder
         var entry = Path.Combine(src, "metadata.xml");
         if (!File.Exists(entry))
             throw new FileNotFoundException($"找不到入口文件: {entry}");
+        MetadataExporter.ValidateOutput(src, dst);
 
         if (Directory.Exists(dst))
             Directory.Delete(dst, recursive: true);
@@ -76,21 +75,38 @@ public static class MetadataBuilder
                 : contentRevision;
             var version = string.IsNullOrWhiteSpace(schemaVersion) ? DefaultSchemaVersion : schemaVersion;
 
-            var flattened = MetadataFlattener.Flatten(entry, src, version, revision);
+            var input = MetadataReader.Read(entry, new MetadataSourceOptions
+            {
+                SourceRoot = src,
+                ForceSourceTree = true,
+                LegacySourcePaths = true
+            });
+            ModCompatibility.Validate(input.Document.Root!);
             var flatPath = Path.Combine(dst, "metadata.xml");
+            IReadOnlyList<string> xmlPaths;
+            try
+            {
+                xmlPaths = MetadataExporter.ExportLegacy(input, dst);
+            }
+            catch (FileNotFoundException error)
+            {
+                throw new InvalidOperationException($"Referenced metadata resource is missing: {error.FileName}", error);
+            }
             var resolver = new VariableResolver();
-
-            // 发布面 = 展平 metadata.xml + 被引用资源 + _redirects + edgeone.json + editor.html；
-            // 源 XML / XSD / Templates 不进 Output
-            var leafPaths = CopyReferencedResources(flattened, src, dst, version, revision, resolver);
             CopyIfExists(Path.Combine(src, "_redirects"), Path.Combine(dst, "_redirects"));
             CopyIfExists(Path.Combine(src, "edgeone.json"), Path.Combine(dst, "edgeone.json"));
             CopyIfExists(Path.Combine(src, "editor.html"), Path.Combine(dst, "editor.html"));
 
-            flattened.Save(flatPath);
-            resolver.ReplaceInFile(flatPath);
+            foreach (var path in xmlPaths)
+            {
+                var document = XDocument.Load(path);
+                document.Root!.SetAttributeValue("SchemaVersion", version);
+                document.Root.SetAttributeValue("ContentRevision", revision);
+                resolver.ReplaceInElement(document.Root);
+                document.Save(path);
+            }
 
-            var leftover = FindLeftoverVariables([flatPath, .. leafPaths]);
+            var leftover = FindLeftoverVariables(xmlPaths);
             if (leftover.Count > 0)
                 throw new InvalidOperationException("变量替换后仍有残留: " + string.Join("; ", leftover));
 
@@ -138,148 +154,17 @@ public static class MetadataBuilder
     /// 没有 Include 的入口也照样展平、限定 ID。
     /// </remarks>
     public static Metadata LoadSource(string entryPath, string? sourceRoot = null) =>
-        Open(entryPath, new MetadataSourceOptions { SourceRoot = sourceRoot, ForceSourceTree = true });
-
-    /// <summary>
-    /// 统一读取入口：自动识别作者源树（带 <c>Include</c>）与已展平的发布物，都返回普通 <see cref="Metadata"/> 树。
-    /// </summary>
-    /// <param name="pathOrUrl">
-    /// 本地入口路径（含 <c>file://</c> 形式）或 HTTP(S) 入口地址；注入自定义源时由该源解释入口。
-    /// </param>
-    /// <param name="options">
-    /// 读取选项。缺省时：入口探测到 <c>Include</c> 才展平、否则按发布物解析；不做引用校验。
-    /// </param>
-    /// <remarks>
-    /// 源树模式与 <see cref="LoadSource"/> 口径一致：内存展平 Include、合并继承、限定短 ID，
-    /// <c>ContentRevision</c> 固定 <c>local-source</c>，跳过跨实体 Compatibility 校验；只读不写盘。
-    /// HTTP(S) 入口用 <see cref="HttpXmlSource"/> 读（内部创建的源用完即释放），远端源树的 Include 同样递归展平。
-    /// </remarks>
-    public static Metadata Open(string pathOrUrl, MetadataSourceOptions? options = null)
-    {
-        if (string.IsNullOrWhiteSpace(pathOrUrl))
-            throw new ArgumentException("路径或 URL 不能为空", nameof(pathOrUrl));
-
-        var settings = options ?? new MetadataSourceOptions();
-        var metadata = settings.CustomSource is { } customSource
-            ? OpenWithSource(customSource, pathOrUrl, settings)
-            : IsHttpUrl(pathOrUrl)
-                ? OpenFromHttp(pathOrUrl, settings)
-                : OpenLocal(pathOrUrl, settings);
-
-        if (settings.ValidateReferences)
-            MetadataValidator.EnsureReferences(metadata);
-
-        return metadata;
-    }
-
-    /// <summary>
-    /// HTTP 入口：按入口所在目录建源（<see cref="HttpXmlSource"/> 的 baseUri 语义是目录），
-    /// 源实例用完即释放。入口文件 URL 是绝对地址，源里照样按绝对 URL 解析。
-    /// </summary>
-    private static Metadata OpenFromHttp(string entryUrl, MetadataSourceOptions options)
-    {
-        using var source = new HttpXmlSource(new Uri(new Uri(entryUrl), "."));
-        return OpenWithSource(source, entryUrl, options);
-    }
-
-    /// <summary>
-    /// 指定只读源入口（自定义源或 HTTP 源）：先读一遍探测 Include，源树走展平，发布物直接解析已读文档。
-    /// </summary>
-    private static Metadata OpenWithSource(IMetadataXmlSource source, string entryPath, MetadataSourceOptions options)
-    {
-        var document = source.LoadDocument(entryPath);
-        if (!options.ForceSourceTree && !MetadataDetector.HasInclude(document))
-            return MetadataParser.Load(document);
-
-        var sourceRoot = string.IsNullOrWhiteSpace(options.SourceRoot)
-            ? source.GetDirectoryName(source.GetFullPath(entryPath))
-                ?? throw new InvalidOperationException($"无法确定源目录: {entryPath}")
-            : options.SourceRoot;
-
-        return MetadataParser.Load(MetadataFlattener.Flatten(
-            source, entryPath, sourceRoot, MetadataSchema.Current, LocalSourceContentRevision, validateCompatibility: false));
-    }
-
-    /// <summary>本地路径入口：先读一遍探测 Include（解析错误照常抛出），源树走展平，发布物按文件直接解析。</summary>
-    private static Metadata OpenLocal(string pathOrUrl, MetadataSourceOptions options)
-    {
-        // 与 Load 的既有口径一致：file:// 形式先还原成本地路径
-        var localPath = Uri.TryCreate(pathOrUrl, UriKind.Absolute, out var uri) && uri.IsFile
-            ? uri.LocalPath
-            : pathOrUrl;
-
-        var source = new PhysicalFileXmlSource();
-        var entryPath = source.GetFullPath(localPath);
-        var document = source.LoadDocument(entryPath);
-
-        if (!options.ForceSourceTree && !MetadataDetector.HasInclude(document))
-            return MetadataParser.LoadFromFile(entryPath);
-
-        var sourceRoot = string.IsNullOrWhiteSpace(options.SourceRoot)
-            ? source.GetDirectoryName(entryPath)
-                ?? throw new InvalidOperationException($"无法确定入口目录: {entryPath}")
-            : options.SourceRoot;
-
-        return MetadataParser.Load(MetadataFlattener.Flatten(
-            source, entryPath, sourceRoot, MetadataSchema.Current, LocalSourceContentRevision, validateCompatibility: false));
-    }
-
-    /// <summary>是否是 HTTP(S) 绝对地址；盘符路径与 <c>file://</c> 形式不算，交给本地分支。</summary>
-    private static bool IsHttpUrl(string pathOrUrl) =>
-        Uri.TryCreate(pathOrUrl, UriKind.Absolute, out var uri)
-        && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
-
-    /// <summary>
-    /// 从展平树收集被引用资源（Image/Markdown/Manifest 登记节点的 Source 文件；Url-only 图跳过），复制到 Output。
-    /// 叶子清单不照抄源文件：它同样走一遍展平并解析变量（去掉源树专用的 Includes、限定 ID、替换 ${TIMESTAMP}），
-    /// 否则发布物里会留下客户端解析器拒绝的 Includes 元素与未替换的变量。
-    /// 返回写出的叶子清单路径。缺失文件不在此报错——由 ValidateHard 统一硬失败。
-    /// </summary>
-    private static List<string> CopyReferencedResources(
-        XDocument flattened, string src, string dst, string schemaVersion, string contentRevision, VariableResolver resolver)
-    {
-        var copied = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var leafPaths = new List<string>();
-
-        foreach (var el in flattened.Root!.DescendantsAndSelf())
+        MetadataReader.Read(entryPath, new MetadataSourceOptions
         {
-            if (el.Name.LocalName is not ("Image" or "Markdown" or "Manifest"))
-                continue;
-            if (string.IsNullOrWhiteSpace(el.Attribute("ID")?.Value))
-                continue; // 登记节点才有资源
-            if (!string.IsNullOrWhiteSpace(el.Attribute("Url")?.Value))
-                continue; // 外链不落盘
-            var source = el.Attribute("Source")?.Value;
-            if (string.IsNullOrWhiteSpace(source))
-                continue;
+            SourceRoot = sourceRoot,
+            ForceSourceTree = true,
+            LegacySourcePaths = true
+        }).Root;
 
-            var rel = source.Replace('\\', '/');
-            if (!copied.Add(rel))
-                continue;
+    /// <summary>Reads author, normalized, flat, and mixed documents through the common composition reader.</summary>
+    public static Metadata Open(string pathOrUrl, MetadataSourceOptions? options = null) =>
+        MetadataReader.Read(pathOrUrl, options).Root;
 
-            var from = Path.GetFullPath(Path.Combine(src, rel));
-            if (!File.Exists(from))
-                continue; // 缺文件由 ValidateHard 报
-
-            var target = Path.Combine(dst, rel);
-            var dir = Path.GetDirectoryName(target);
-            if (!string.IsNullOrEmpty(dir))
-                Directory.CreateDirectory(dir);
-
-            if (el.Name.LocalName == "Manifest")
-            {
-                MetadataFlattener.Flatten(from, src, schemaVersion, contentRevision).Save(target);
-                resolver.ReplaceInFile(target);
-                leafPaths.Add(target);
-            }
-            else
-            {
-                File.Copy(from, target, overwrite: true);
-            }
-        }
-
-        return leafPaths;
-    }
 
     private static void CopyIfExists(string from, string to)
     {
@@ -461,18 +346,9 @@ public static class MetadataBuilder
         var metadata = Metadata.LoadFromFile(flatPath);
         var errors = new List<string>();
 
-        // 仅「登记节点」（带 ID 属性）进入索引；Style 内 <Image>id</Image> 引用不算登记。
-        // Logo / Background Image 只认图片登记，不认 Markdown / Manifest 等同名 ID。
-        var idIndex = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var registryImages = metadata.GetAllElements("Image").Where(n => !string.IsNullOrWhiteSpace(n.Get("ID"))).ToList();
         var registryMarkdowns = metadata.GetAllElements("Markdown").Where(n => !string.IsNullOrWhiteSpace(n.Get("ID"))).ToList();
         var registryManifests = metadata.GetAllElements("Manifest").Where(n => !string.IsNullOrWhiteSpace(n.Get("ID"))).ToList();
-        var imageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var node in registryImages.Concat(registryMarkdowns).Concat(registryManifests))
-            idIndex.Add(node.Get("ID")!);
-        foreach (var image in registryImages)
-            imageIds.Add(image.Get("ID")!);
 
         foreach (var md in registryMarkdowns)
         {
@@ -517,44 +393,9 @@ public static class MetadataBuilder
             }
         }
 
-        foreach (var app in metadata.GetAllElements("Application").Concat(metadata.GetAllElements("Mod")))
-        {
-            ValidateEntityDisplayNames(app, errors);
-            ValidateIdRef(app.Find("Icon")?.Value, "Icon", idIndex, errors);
-            var packages = app.Find("Packages");
-            if (packages != null)
-            {
-                foreach (var package in packages.Children.Where(c => c.Name == "Package"))
-                {
-                    ValidateIdRef(package.Find("Manifest")?.Value, "Manifest", idIndex, errors);
-                }
-            }
-
-            var posts = app.Find("Posts");
-            if (posts != null)
-            {
-                foreach (var post in posts.Children.Where(c => c.Name == "Post"))
-                {
-                    // Post 封面只认图片登记：引用 Markdown / Manifest 或不存在都报错。
-                    ValidateIdRef(post.Find("HeadImage")?.Value?.Trim(), "Post HeadImage", imageIds, errors);
-
-                    var contents = post.Find("Contents");
-                    if (contents == null) continue;
-                    foreach (var content in contents.Children.Where(c => c.Name == "Content"))
-                        ValidateIdRef(content.Value, "Post Content", idIndex, errors);
-                }
-            }
-
-            var style = app.Find("Style");
-            if (style == null) continue;
-            var logo = style.Find("Logo");
-            if (logo?.Value != null)
-                ValidateIdRef(logo.Value.Trim(), "Logo", imageIds, errors);
-            var background = style.Find("Background");
-            if (background == null) continue;
-            foreach (var img in background.Children.Where(c => c.Name == "Image"))
-                ValidateIdRef(img.Value?.Trim(), "Background Image", imageIds, errors);
-        }
+        errors.AddRange(MetadataValidator.FindMissingReferences(metadata));
+        foreach (var entity in metadata.GetAllElements("Application").Concat(metadata.GetAllElements("Mod")))
+            ValidateEntityDisplayNames(entity, errors);
 
         if (string.IsNullOrWhiteSpace(metadata.Get("SchemaVersion"))
             && metadata.Find("SchemaVersion") == null)
@@ -602,12 +443,6 @@ public static class MetadataBuilder
             errors.Add($"{name}: 缺少 en DisplayName");
     }
 
-    private static void ValidateIdRef(string? id, string kind, HashSet<string> idIndex, List<string> errors)
-    {
-        if (string.IsNullOrWhiteSpace(id)) return;
-        if (!idIndex.Contains(id))
-            errors.Add($"{kind} 引用未找到 ID: {id}");
-    }
 
     /// <summary>
     /// 源树 Manifest 语义硬校验：仅当清单声明新格式（带 HashAlgorithm 属性，或任一 File 含 Sources）时执行；

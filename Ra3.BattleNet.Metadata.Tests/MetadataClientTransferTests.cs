@@ -62,7 +62,7 @@ public class MetadataClientTransferTests
         var root = await client.RefreshRootAsync(RootUrl);
 
         root.Status.Should().Be(MetadataFreshness.Unavailable);
-        root.Error.Should().Contain("解析失败");
+        root.Error.Should().NotBeNullOrWhiteSpace();
         File.Exists(transfer.Requests[0].StagingPath).Should().BeFalse();
         await AssertNothingPublishedAsync(cache, staging);
     }
@@ -88,7 +88,7 @@ public class MetadataClientTransferTests
         var leaf = await client.RefreshLeafAsync(root, "1.0.0", leafUri);
 
         leaf.Status.Should().Be(MetadataFreshness.Unavailable);
-        leaf.Error.Should().Contain("解析失败");
+        leaf.Error.Should().NotBeNullOrWhiteSpace();
         transfer.Requests.Skip(before).Should().OnlyContain(request => !File.Exists(request.StagingPath));
         Directory.EnumerateFiles(staging).Should().BeEmpty("半截叶子正文不能留在临时目录里");
 

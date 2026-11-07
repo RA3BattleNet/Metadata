@@ -9,7 +9,7 @@ namespace Ra3.BattleNet.Metadata;
 public static class MetadataXml
 {
     /// <summary>还原成 XML 文本。</summary>
-    public static string Write(Metadata node) => new XElement(ToElement(node)).ToString();
+    public static string Write(Metadata node) => ToElement(node).ToString();
 
     /// <summary>还原成 XML 节点。</summary>
     public static XElement ToElement(Metadata node)

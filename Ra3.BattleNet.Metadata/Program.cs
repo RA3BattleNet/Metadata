@@ -13,11 +13,18 @@ internal static class Program
         string? contentRevision = null;
         var command = "build";
         var withWebp = false;
+        var layout = MetadataExportLayout.Flat;
+        var idFormat = MetadataExportIdFormat.Legacy;
+        var inlineManifests = false;
+        var resolveVariables = false;
+        var inlinePaths = new HashSet<string>(StringComparer.Ordinal);
 
+        try
+        {
         foreach (var arg in args)
         {
-            if (arg == "build")
-                command = "build";
+            if (arg is "build" or "export")
+                command = arg;
             else if (arg == "--webp")
                 withWebp = true;
             else if (arg.StartsWith("--src=", StringComparison.Ordinal))
@@ -28,6 +35,16 @@ internal static class Program
                 schemaVersion = arg["--schema-version=".Length..];
             else if (arg.StartsWith("--content-revision=", StringComparison.Ordinal))
                 contentRevision = arg["--content-revision=".Length..];
+            else if (arg.StartsWith("--layout=", StringComparison.Ordinal))
+                layout = Enum.Parse<MetadataExportLayout>(arg["--layout=".Length..], ignoreCase: true);
+            else if (arg.StartsWith("--id-format=", StringComparison.Ordinal))
+                idFormat = Enum.Parse<MetadataExportIdFormat>(arg["--id-format=".Length..], ignoreCase: true);
+            else if (arg.StartsWith("--inline=", StringComparison.Ordinal))
+                inlinePaths.Add(arg["--inline=".Length..].Replace('\\', '/'));
+            else if (arg == "--inline-manifests")
+                inlineManifests = true;
+            else if (arg == "--resolve-variables")
+                resolveVariables = true;
             else if (arg is "--help" or "-h")
             {
                 PrintHelp();
@@ -41,8 +58,22 @@ internal static class Program
         Console.WriteLine($"WebP: {(withWebp ? "开（展平后按图调 Imaging CLI）" : "关")}");
         Console.WriteLine();
 
-        try
-        {
+            if (command == "export")
+            {
+                var entry = Directory.Exists(srcFolder) ? Path.Combine(srcFolder, "metadata.xml") : srcFolder;
+                MetadataExporter.Export(MetadataReader.Read(entry), dstFolder, new MetadataExportOptions
+                {
+                    Layout = layout,
+                    IdFormat = idFormat,
+                    Inline = layout == MetadataExportLayout.Mixed ? inlinePaths.Contains : null,
+                    InlineManifests = inlineManifests,
+                    ConvertImages = withWebp,
+                    ResolveVariables = resolveVariables
+                });
+                Console.WriteLine("Export complete.");
+                return 0;
+            }
+
             if (command != "build")
             {
                 Console.Error.WriteLine($"未知命令: {command}");
@@ -83,6 +114,12 @@ internal static class Program
             用法:
               build --src=./Metadata --dst=./Output
               build --webp --src=./Metadata --dst=./Output
+              export --src=./Metadata/metadata.xml --dst=./Export --layout=tree --id-format=path
+              export --src=./Metadata --dst=./Export --layout=mixed --inline=mods/demo.xml --inline-manifests
+
+            Export only: --layout=flat|tree|mixed, --id-format=legacy|path,
+                         --inline=<source-relative-path> (repeatable for mixed),
+                         --inline-manifests, --resolve-variables, --webp.
 
             --webp: 展平后对每张本地图调用 Imaging CLI（只产 webp），
                     由本程序改写 metadata.xml 的 Source。

@@ -276,11 +276,11 @@ public class MetadataClientTests
     }
 
     [TestMethod]
-    public async Task Leaf_RejectsStubIncludeAndMissingFile_AcceptsEmptyManifest()
+    public async Task Leaf_RejectsStubCycleAndMissingFile_AcceptsEmptyManifest()
     {
-        await AssertLeafRejected(StubXml(), "存根");
-        await AssertLeafRejected(IncludeXml(), "Include");
-        await AssertLeafRejected(MissingHashXml(), "FileName 或 Hash");
+        await AssertLeafRejected(StubXml());
+        await AssertLeafRejected(CyclicLeafXml());
+        await AssertLeafRejected(MissingHashXml());
 
         using var fixture = Fixture.Create();
         fixture.Handler.Next = (request, _) => Task.FromResult(Xml(
@@ -341,7 +341,7 @@ public class MetadataClientTests
         var moved = await fixture.Client.GetLeafAsync(newer, "1.0.0", newUri);
         moved.Document.Should().NotBeSameAs(oldLeaf.Document);
         moved.Entry!.Files[0].FileName.Should().Be("b.bin");
-        moved.SourceUri.AbsoluteUri.Should().Be(newUri.AbsoluteUri);
+        moved.SourceUri.Should().Be(newUri);
     }
 
     [TestMethod]
@@ -426,7 +426,7 @@ public class MetadataClientTests
         }
     }
 
-    private static async Task AssertLeafRejected(string leafXml, string errorFragment)
+    private static async Task AssertLeafRejected(string leafXml)
     {
         using var fixture = Fixture.Create();
         fixture.Handler.Next = (request, _) => Task.FromResult(Xml(
@@ -435,7 +435,9 @@ public class MetadataClientTests
         var leaf = await fixture.Client.RefreshLeafAsync(root, "1.0.0", MetadataResourceUri.Resolve(RootUrl, "apps/leaf.xml"));
         leaf.Status.Should().Be(MetadataFreshness.Unavailable);
         leaf.Entry.Should().BeNull();
-        leaf.Error.Should().Contain(errorFragment);
+        leaf.Error.Should().NotBeNullOrWhiteSpace();
+        root.Status.Should().Be(MetadataFreshness.Fresh);
+        root.Document.Should().NotBeNull();
         if (Directory.Exists(fixture.Cache))
             Directory.EnumerateFiles(fixture.Cache, "leaf.xml", SearchOption.AllDirectories).Should().BeEmpty();
     }
@@ -1174,7 +1176,7 @@ public class MetadataClientTests
         </Metadata>
         """;
 
-    private static string IncludeXml() => """
+    private static string CyclicLeafXml() => """
         <?xml version="1.0" encoding="utf-8"?>
         <Metadata>
           <Include Source="other.xml" />

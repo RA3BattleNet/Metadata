@@ -2,6 +2,8 @@
 
 Status: implemented
 
+Related decision: [one composition core and layout-only exports](../../implemented/architecture/2026-11-07-composable-metadata.md) partially overlaps this decision. It replaces Include-only branching while preserving strict Load, source abstraction and historical evidence; this Decision is not rewritten.
+
 ## Problem
 
 元数据读取此前存在两条独立路径：`MetadataBuilder.Load` 只接受已展平的发布物，遇到 `Include` 直接报错；`MetadataBuilder.LoadSource` 只支持本地作者源树，而完整构建 `Build` 又要求整棵源树与输出目录。宿主若想在同一个调用点兼顾作者源文件与线上发布物，必须自行预读并判断文件类型；同时 `MetadataFlattener` 内部直接调用 `System.IO`，远端 HTTP 源树无法复用展平逻辑；此外还存在菱形 Include 重复展开、单文件内同名登记 ID 静默覆盖、以及越界路径检查口径不统一等边界问题。

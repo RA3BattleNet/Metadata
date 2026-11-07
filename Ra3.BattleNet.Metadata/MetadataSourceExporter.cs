@@ -12,6 +12,17 @@ namespace Ra3.BattleNet.Metadata;
 /// </summary>
 public static class MetadataSourceExporter
 {
+    public static XElement ExportManifestElement(XElement manifest)
+    {
+        ArgumentNullException.ThrowIfNull(manifest);
+        var source = manifest.Name.LocalName == "Manifest" ? manifest
+            : manifest.Descendants("Manifest").SingleOrDefault()
+                ?? throw new ArgumentException("XML has no Manifest node.", nameof(manifest));
+        var element = new XElement(source);
+        element.SetAttributeValue("ID", MetadataId.LocalId((string?)element.Attribute("ID")));
+        return element;
+    }
+
     /// <summary>
     /// 整份模组声明：保留该 Mod 的全部版本与线上 <c>CurrentVersion</c>，不挑版本、不改当前版本。
     /// 每个版本都指向本目录的短清单叶子，资源引用与安装路径一致。此方法只做纯转换，不读写磁盘、不发网络请求。
@@ -147,7 +158,7 @@ public static class MetadataSourceExporter
         return document.ToString();
     }
 
-    private static XElement Copy(Metadata node) => XElement.Parse(MetadataXml.Write(node));
+    private static XElement Copy(Metadata node) => MetadataXml.ToElement(node);
 
     private static void KeepSelectedPackage(XElement mod, string version)
     {

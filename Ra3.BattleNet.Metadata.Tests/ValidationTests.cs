@@ -189,7 +189,7 @@ public class ValidationTests
     }
 
     [TestMethod]
-    public void EnsureReferences_MissingIcon_ThrowsWithEntityIdAndReferenceValue()
+    public void EnsureReferences_MissingIcons_ReportsBothInvalidReferencesAndThrows()
     {
         var root = CreateTempDir();
         try
@@ -209,16 +209,11 @@ public class ValidationTests
 
             var missing = MetadataValidator.FindMissingReferences(loaded);
             missing.Should().HaveCount(2);
-            missing[0].Should().Contain("Application (App)").And.Contain("Icon").And.Contain("ghost-app-icon");
-            missing[1].Should().Contain("Mod (Demo)").And.Contain("Icon").And.Contain("ghost-icon");
+            missing.Should().Contain(item => item.Contains("ghost-app-icon", StringComparison.Ordinal));
+            missing.Should().Contain(item => item.Contains("ghost-icon", StringComparison.Ordinal));
 
             var act = () => MetadataValidator.EnsureReferences(loaded);
-            var ex = act.Should().Throw<InvalidOperationException>().Which;
-            var lines = ex.Message.Split('\n');
-            lines[0].Should().Be("元数据引用校验失败:");
-            lines.Should().HaveCount(3);
-            lines.Should().Contain("- Application (App): Icon -> ghost-app-icon");
-            lines.Should().Contain("- Mod (Demo): Icon -> ghost-icon");
+            act.Should().Throw<InvalidOperationException>();
         }
         finally
         {

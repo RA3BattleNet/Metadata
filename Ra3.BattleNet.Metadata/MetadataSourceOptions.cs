@@ -1,8 +1,7 @@
 namespace Ra3.BattleNet.Metadata;
 
 /// <summary>
-/// <see cref="MetadataBuilder.Open"/> 的读取选项。全部为 init 属性，默认值即最短路径：
-/// 本地文档有 <c>Include</c> 才当源树展平，不注入自定义源，不做引用校验。
+/// Options for the unified reader. Reading never performs build-time substitutions.
 /// </summary>
 public sealed class MetadataSourceOptions
 {
@@ -15,7 +14,7 @@ public sealed class MetadataSourceOptions
     /// <summary>读取完成后是否做登记引用完整性校验：断引用抛 <see cref="InvalidOperationException"/>。</summary>
     public bool ValidateReferences { get; init; }
 
-    /// <summary>入口没有 <c>Include</c> 时也按源树展平并限定短 ID（本地、HTTP 与自定义源一律生效）；发布物读取不要打开。</summary>
+    /// <summary>Qualify unmarked documents even without composition constructs.</summary>
     public bool ForceSourceTree { get; init; }
 
     /// <summary>
@@ -23,4 +22,9 @@ public sealed class MetadataSourceOptions
     /// 未注入时本地路径用 <see cref="PhysicalFileXmlSource"/>，HTTP(S) 入口用 <see cref="HttpXmlSource"/>。
     /// </summary>
     public IMetadataXmlSource? CustomSource { get; init; }
+
+    /// <summary>Resolve external manifest bodies and retain included manifest bodies.</summary>
+    public bool InlineManifests { get; init; }
+
+    internal bool LegacySourcePaths { get; init; }
 }
