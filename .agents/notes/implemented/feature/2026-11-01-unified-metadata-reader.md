@@ -23,7 +23,9 @@ Related decision: [one composition core and layout-only exports](../../implement
   4. 大小写口径统一：同一文件内登记短名查重与 ID 唯一性判定统一按 `OrdinalIgnoreCase`，仅大小写不同的重复登记也抛 `InvalidOperationException`。
 
 规则同步记录于 [library-api.md](../../../docs/references/library-api.md)，此前本地源树机制见 [2026-10-28-local-mod-source-load.md](./2026-10-28-local-mod-source-load.md)。
-代码实现见 [MetadataBuilder.cs](../../../../Ra3.BattleNet.Metadata/MetadataBuilder.cs)、[MetadataSourceOptions.cs](../../../../Ra3.BattleNet.Metadata/MetadataSourceOptions.cs)、[MetadataDetector.cs](../../../../Ra3.BattleNet.Metadata/MetadataDetector.cs)、[IMetadataXmlSource.cs](../../../../Ra3.BattleNet.Metadata/IMetadataXmlSource.cs)、[PhysicalFileXmlSource.cs](../../../../Ra3.BattleNet.Metadata/PhysicalFileXmlSource.cs)、[HttpXmlSource.cs](../../../../Ra3.BattleNet.Metadata/HttpXmlSource.cs)、[MetadataValidator.cs](../../../../Ra3.BattleNet.Metadata/MetadataValidator.cs) 与 [MetadataFlattener.cs](../../../../Ra3.BattleNet.Metadata/MetadataFlattener.cs)。
+当前 [MetadataBuilder.cs](../../../../Ra3.BattleNet.Metadata/Building/MetadataBuilder.cs) 仅负责构建；本篇当时的 Open/MetadataDetector/MetadataFlattener 实现已移除，见 [single-format 决定](../../implemented/simplification/2026-11-07-single-metadata-format.md)。低层 XML 投影与引用校验分别位于 [Reading/MetadataParser.cs](../../../../Ra3.BattleNet.Metadata/Reading/MetadataParser.cs)、[Reading/MetadataValidator.cs](../../../../Ra3.BattleNet.Metadata/Reading/MetadataValidator.cs)，当前单一读取与目录责任见 [集成计划](../../../docs/exec-plans/2026-11-07-composable-metadata.md)。上文历史 Decision 不据此改写。
+
+当前读取实现位于 [Reading/MetadataReader.cs](../../../../Ra3.BattleNet.Metadata/Reading/MetadataReader.cs)，选项与 XML 来源边界分别见 [MetadataSourceOptions.cs](../../../../Ra3.BattleNet.Metadata/Reading/MetadataSourceOptions.cs)、[IMetadataXmlSource.cs](../../../../Ra3.BattleNet.Metadata/Reading/IMetadataXmlSource.cs)、[PhysicalFileXmlSource.cs](../../../../Ra3.BattleNet.Metadata/Reading/PhysicalFileXmlSource.cs) 和 [HttpXmlSource.cs](../../../../Ra3.BattleNet.Metadata/Reading/HttpXmlSource.cs)。这些是现行实现路径，不表示旧模式选项继续存在。
 
 ## Alternatives considered
 

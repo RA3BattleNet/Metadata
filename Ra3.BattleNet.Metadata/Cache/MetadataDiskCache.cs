@@ -8,11 +8,10 @@ using System.Xml.Linq;
 namespace Ra3.BattleNet.Metadata.Cache;
 
 /// <summary>
-/// 最后一份校验合法的 XML 与图片。正文按**发布文件树**落盘：第一次绑定的主发布基直接映射到缓存目录，
-/// 其余发布基放在可读的 <c>.sources</c> 子树，带查询串的地址放进 <c>.requests</c> 保留区。每个正文旁的
-/// <c>.etag</c> 记录规范化 URI、正文 SHA256、图片响应类型与条件请求校验器。校验器缺失时正文仍可离线读取；
-/// 路径归属写在一次成型的 <c>.uri</c> 旁挂文件里，所以同一磁盘路径上属于**另一个地址**的正文既不会被误读，
-/// 也不会被覆盖。
+/// 最后一份完整规范化 XML 快照与图片。原始 XML 正文按发布文件树保存，仅用于条件重验；
+/// 完整快照另存于 <c>.compositions</c>，不会直接把原始正文作为离线根或叶子返回。
+/// 首次绑定的发布基直接映射到缓存目录，其余发布基放在 <c>.sources</c>，图片查询串放在 <c>.requests</c>。
+/// <c>.etag</c> 将原始正文 SHA256 与响应校验器配对，<c>.uri</c> 保存路径归属，防止其他地址误读或覆盖。
 /// </summary>
 /// <remarks>
 /// <code>
@@ -21,6 +20,7 @@ namespace Ra3.BattleNet.Metadata.Cache;
 /// cacheDir/&lt;相对 Source&gt;                             主发布基的叶子与图片（与发布文件树同名）
 /// cacheDir/.sources/&lt;scheme&gt;/&lt;host_port&gt;/&lt;path&gt;       其他发布基的正文
 /// cacheDir/.requests/&lt;请求键&gt;/body                     带查询串的图片正文（键 = 完整 URI 的 SHA256）
+/// cacheDir/.compositions/&lt;上下文键&gt;.xml              完整规范化快照（键 = SourceRoot 与 URI 的 SHA256）
 /// </code>
 /// 同目录还有 <c>.etag</c>（校验器、正文 SHA256 与图片类型）、<c>.uri</c>（一次成型的路径归属地址）和写入中的
 /// <c>.tmp</c>。正文用替换发布，旧正文一直留到替换成功。只接受静态发布文件树：跳转/空路径段、
@@ -227,27 +227,23 @@ internal sealed class MetadataDiskCache
         return TryReadBody(BodyPath(canonical), canonical.AbsoluteUri, requireValidators: true);
     }
 
-    public DiskBody? TryReadLeaf(Uri leaf)
+    public DiskBody? TryReadSnapshot(Uri leaf, string sourceRoot)
     {
         var canonical = Canonicalize(leaf);
         if (HasForeignOwner(canonical))
             return null;
-        if (HasComposition(canonical))
-        {
-            var record = TryReadComposition(canonical)?.Root;
-            if ((string?)record?.Attribute("Origin") != canonical.AbsoluteUri
-                || record?.Element("Root")?.Element("Metadata") is not { } root)
-                return null;
-            var bytes = Encoding.UTF8.GetBytes(root.ToString(SaveOptions.DisableFormatting));
-            var digest = Sha256Hex(bytes);
-            return string.Equals(digest, (string?)record.Attribute("Sha256"), StringComparison.Ordinal)
-                ? new DiskBody(CompositionPath(canonical), bytes, digest, null, false)
-                : null;
-        }
-        return TryReadBody(BodyPath(canonical), canonical.AbsoluteUri, requireValidators: true);
+        var record = TryReadComposition(canonical, sourceRoot)?.Root;
+        if (record?.Name != "Composition" || (string?)record.Attribute("Origin") != canonical.AbsoluteUri
+            || (string?)record.Attribute("SourceRoot") != sourceRoot
+            || !record.Elements("Document").Any() || record.Element("Root")?.Element("Metadata") is not { } root)
+            return null;
+        var bytes = Encoding.UTF8.GetBytes(root.ToString(SaveOptions.DisableFormatting));
+        var digest = Sha256Hex(bytes);
+        return string.Equals(digest, (string?)record.Attribute("Sha256"), StringComparison.Ordinal)
+            ? new DiskBody(CompositionPath(canonical, sourceRoot), bytes, digest, null, false)
+            : null;
     }
 
-    public bool HasComposition(Uri origin) => File.Exists(CompositionPath(origin));
 
     public bool HasForeignOwner(Uri origin)
     {
@@ -260,11 +256,11 @@ internal sealed class MetadataDiskCache
             || (exists && !string.Equals(owner, canonical.AbsoluteUri, StringComparison.Ordinal));
     }
 
-    public XDocument? TryReadComposition(Uri origin)
+    public XDocument? TryReadComposition(Uri origin, string sourceRoot)
     {
         try
         {
-            var path = CompositionPath(origin);
+            var path = CompositionPath(origin, sourceRoot);
             if (!File.Exists(path))
                 return null;
             using var stream = File.OpenRead(path);
@@ -276,9 +272,9 @@ internal sealed class MetadataDiskCache
         }
     }
 
-    public void CommitComposition(Uri origin, XDocument document)
+    public void CommitComposition(Uri origin, string sourceRoot, XDocument document)
     {
-        var path = CompositionPath(origin);
+        var path = CompositionPath(origin, sourceRoot);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
@@ -295,10 +291,11 @@ internal sealed class MetadataDiskCache
         }
     }
 
-    private string CompositionPath(Uri origin)
+    private string CompositionPath(Uri origin, string sourceRoot)
     {
         var directory = Path.Combine(_root, ".compositions");
-        var path = Path.Combine(directory, RequestKey(Canonicalize(origin)) + ".xml");
+        var key = Sha256Hex(Encoding.UTF8.GetBytes(sourceRoot + "\n" + Canonicalize(origin).AbsoluteUri));
+        var path = Path.Combine(directory, key + ".xml");
         foreach (var candidate in new[] { _root, directory, path, path + ".tmp" })
             if ((Directory.Exists(candidate) || File.Exists(candidate))
                 && (File.GetAttributes(candidate) & FileAttributes.ReparsePoint) != 0)
@@ -832,7 +829,7 @@ internal sealed class CacheStamp
 
     public string Sha256 { get; set; } = "";
 
-    /// <summary>图片响应类型。XML 正文不写这个字段，缺失时按旧缓存处理。</summary>
+    /// <summary>图片响应类型；XML 正文不写这个字段。</summary>
     public string? ContentType { get; set; }
 }
 

@@ -15,6 +15,8 @@ npm run preview         # 本地用 wrangler 起静态服务看产物
 
 命令行参数：`--src=`、`--dst=`、`--webp`、`--schema-version=`、`--content-revision=`。不带 `--dst` 时默认 `./Output`。
 
+单格式保留 `build` 与 `export`。export 保留真实的 `--layout=flat|tree|mixed`、Mixed 选择性 Include 内联、显式 manifest 内联及资源/变量/图片处理；删除 `--id-format`，没有 legacy flavor。所有布局写同一 canonical path ID，不写格式 markers。无效选项清楚报错，不回退旧模式。Metadata 单格式与目录迁移已验证，Desktop 依赖集成待完成；证据见 [集成计划](../exec-plans/2026-11-07-composable-metadata.md)。
+
 本地开发和调试默认不跑图片转换；只有线上发版才带 `--webp`。**不要在代码里再加 `RUN_STAGE_B` / `StageB` 之类的阶段开关**，流水线只有一条。
 
 ## 二、流水线
@@ -23,7 +25,7 @@ npm run preview         # 本地用 wrangler 起静态服务看产物
 
 - 入口固定是 `<源目录>/metadata.xml`；找不到直接失败。
 - 先校验源树（`MetadataSchema.xsd`），展平后再校验发布物（`MetadataPublishSchema.xsd`）。
-- 独立清单会被再展平一次并替换宏变量；否则发布物里会残留客户端拒绝的 `Include` 与 `${…}`。
+- 所有 XML 读取共用 Reader；外部清单默认保持外部，构建导出时处理变量。没有严格发布读取/作者读取两条兼容流水线。
 - `--webp` 在展平之后执行：`ImagePostProcessor` 调 Imaging 转图，再改写 XML 里的 `Source`。
 - 失败一律清空 `Output/` 并返回 1，不留半成品。
 
@@ -70,12 +72,11 @@ npm run preview         # 本地用 wrangler 起静态服务看产物
 
 `Ra3.BattleNet.Metadata.Tests` 使用 MSTest，禁止混入 xunit。覆盖范围：
 
-- 展平与 `Include`、`Base` 继承合并、实体 ID 冲突检测
-- 源模式与发布模式的硬失败拦截、ID 与资源断链
-- 发布树结构断言、Catalog 与 LINQ 查询 API
-- 独立清单解析、`Skudef` 与历史 `Mount` 的挂载计划
-- 缓存 JSON 契约、缓存读写节奏、下载边界（`MetadataClient` 三组测试）
-- 语言标签、颜色转换、样式继承、启动兼容性、图片后处理
+- Reading/：Include、继承、路径 ID、引用优先级/永久歧义、HTTP/source-root 安全；SourceLoad/OpenMethod 本质用例归并，删除专测旧 API/mode 与固定 stopwatch PerformanceTests。
+- Exporting/：Flat/Tree/Mixed、内外部清单和短 ID 作者写出；删除旧双 encoding 矩阵的一维，不机械改写所有 obsolete fixtures。
+- Building/：Build（不再 StageA 命名）、Schema、ManifestValidation、Imaging、Inheritance；保留真实 Skudef/Mount 与领域校验。
+- Cache/：完整 snapshot、JSON、ETag/原始字节配对、URI 安全、offline 和图片节奏；删除旧 flat-cache migration 测试，不重钉旧布局。
+- Queries/：Catalog/LINQ、语言、颜色、样式和游戏兼容性。共享 TestData 原位置不变，不新增通用测试框架。父在集成 freeze 后移动目录，完整表见计划。
 
 改构建器或缓存行为时，先补测试再改实现；测试失败不允许用重跑掩盖。
 

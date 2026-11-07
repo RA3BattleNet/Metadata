@@ -2,6 +2,8 @@
 
 Status: implemented
 
+Partially superseded by [single metadata format](../../implemented/simplification/2026-11-07-single-metadata-format.md): the user removes dual-format detection, legacy read APIs/source behavior and default legacy publication. The shared composition/layout/cache decision remains relevant. The Decision and verification below describe the earlier contract and are not evidence for the new cutover.
+
 ## Problem
 
 The earlier unified-reader entry point treated Include detection as a choice between author and published semantics. A single author document can contain inheritance or short resource IDs without Include; a generated split document can already contain canonical IDs. Guessing from Include, a short ID or SchemaVersion alone cannot distinguish these cases. Export and runtime consumers must not each reinvent qualification, inherited reference resolution or Source rebasing.

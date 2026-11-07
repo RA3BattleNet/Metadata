@@ -19,7 +19,7 @@ Desktop 需要直接读作者磁盘上的 Mod 源文件（`corona.xml`、独立�
 - 新增 `MetadataParser.Load(XDocument)`，内存文档无需临时文件即可解析，仍然拒绝 `Include`/`Includes`/`Module` 与非法根节点。
 - `MetadataBuilder.Load` / `LoadFromFile` 的严格语义不变：发布物入口依旧拒绝源树。
 
-规则写进 [library-api.md](../../../docs/references/library-api.md)，实现在 [MetadataBuilder.cs](../../../../Ra3.BattleNet.Metadata/MetadataBuilder.cs) 与 [MetadataFlattener.cs](../../../../Ra3.BattleNet.Metadata/MetadataFlattener.cs)。
+当时的规则记录于 [library-api.md](../../../docs/references/library-api.md)。当前 [MetadataBuilder.cs](../../../../Ra3.BattleNet.Metadata/Building/MetadataBuilder.cs) 仅负责构建；本篇当时的 LoadSource/MetadataFlattener 读取实现已移除，迁移边界见 [single-format 决定](../../implemented/simplification/2026-11-07-single-metadata-format.md)。上文保留原决定的历史语义，不表示旧 API 仍存在。
 
 ## Alternatives considered
 

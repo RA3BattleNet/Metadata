@@ -14,119 +14,64 @@
 
 客户端拿到的是静态文件，没有接口调用。真实地址 = 发布基地址 + `Source`，用 `MetadataResourceUri.Resolve` 拼装，不要手写字符串拼接。
 
-## 二、一次性读取
+## 二、单一读取与布局导出
+
+当前契约见 [single-format 决定](../../notes/implemented/simplification/2026-11-07-single-metadata-format.md) 和 [集成计划](../exec-plans/2026-11-07-composable-metadata.md)。Metadata 已完成单格式验证；Desktop 依赖交付与验证待完成。
 
 ```csharp
-var doc = MetadataBuilder.Load("https://metadata.ra3battle.net/metadata.xml");
-// 也可以是本地路径：MetadataBuilder.Load("./Output/metadata.xml")
+var input = MetadataReader.Read("https://metadata.ra3battle.net/metadata.xml");
+var root = input.Root;
+var local = MetadataReader.Read("./Metadata/mods/corona/corona.xml",
+    new MetadataSourceOptions { SourceRoot = "./Metadata" }).Root;
+var corona = root.Catalog().Mod("Corona");
+var writtenXml = MetadataExporter.Export(input, "./ComposedOutput",
+    new MetadataExportOptions { Layout = MetadataExportLayout.Tree });
 ```
 
-内部按 `http`/`https`/`file` 分流；HTTP 路径带连接预算与有限重试，读不到就抛异常，不返回空文档。
+### 读取、ID 与 Source
+
+`MetadataReader.Read(pathOrUrl, options)` 返回 MetadataReadResult：Root、规范化 Document、EntryPath、SourceRoot 和 Documents。每份 MetadataDocumentInfo 捕获 Path、RelativePath、原始 Document、自己的 NormalizedDocument 和 Includes（SourcePath/TargetPath）。结果拥有的 XML 按不可变使用；导出使用捕获图，不依赖已释放的内部 HTTP source。
+
+MetadataSourceOptions 保留 SourceRoot、ValidateReferences、CustomSource 和 InlineManifests。CustomSource 允许缓存异步获取 XML 后交给同一 Reader。读取只在内存中合并 Include/继承与资源引用，不写盘、不替换变量、不转换图片，不覆盖声明的 SchemaVersion/ContentRevision。
+
+- 完整资源 ID 只有可逆转义的 `scope/local`，scope 是定义文件相对 SourceRoot 的路径去掉 `.xml`。无 Include 的单文件短 ID 也总是限定；已有 path ID 校验后保留，冒号限定 ID 不再接受。Mod/Application 业务 ID 不变。
+- MetadataId 统一提供 PathPrefix、Qualify、LocalId；LocalId 取最后一个 `/` 段并反转义。没有双 codec 或按输入猜格式。
+- Source 始终相对定义文档解释，Root 中投影为相对入口目录。SourceRoot 只负责限定和 containment，不是找不到文件时的第二基址。HTTP 文档不能引用本地文件；显式资源 URL 保留。Image.Url 优先于信息性 Source，不触发本地探测。
+- Include 贡献实际内容，无 Source 的完整 Manifest 不转换为 stub。Manifest 只要声明非空 Source 就是外部引用，同时携带 body 直接失败，不按输入来源猜语义；默认保持外部，显式 InlineManifests 才内联外部 body。
+- 短 Manifest stub 按目标定义 scope 限定。外部 body 使用共享 SourceRoot 并精确匹配 canonical ID，不按后缀/LocalId 凑身份，不重写别名。
+- 保留 own/descendant/global 引用优先级、永久歧义、字段类型规则（Icon 可指 Image/Markdown）、循环/去重和路径/URI 安全。资源 ID 比较为 OrdinalIgnoreCase，文档身份按 HTTP/文件系统规则。
+
+目标 API 删除 MetadataBuilder.Load/LoadSource/Open、MetadataFlattener、ForceSourceTree、LegacySourcePaths、MetadataExportIdFormat、IdFormat/SourceBase markers 和 EncodePath/DecodePath，不留 shim。MetadataParser 只做底层 XML 到模型投影，不是第二种文档读取入口。
+
+Parser 的公开投影保留 `Load(XDocument)` 与 `ParseManifest`；文件读取 `LoadFromFile` 移除，内部 stream 投影不构成公开 IO 入口。XML/外部 leaf 必须在共享 SourceRoot 内，不通过 URI 猜 scope；资源 Source 可用显式 HTTP 外链。HTTP 文档拒绝 file、Windows drive 和 UNC 本地地址；同源 root-relative 路径仍须 containment 校验。
+
+### 导出与构建
+
+MetadataExporter.Export 写 metadata.xml、必要 XML 与资源，返回写出的 XML 路径列表。Layout 保留 Flat（默认）、Tree、Mixed；Mixed 用 `Inline: Func<string, bool>` 选择目标 RelativePath。InlineManifests、ConvertImages、ResolveVariables 默认 false。所有布局使用同一图和算法，输出同一 path ID，不写格式 markers，也没有 IdFormat 选项。
+
+Flat 只改变 XML 组织；外部清单仍是外部资源，真正单一 XML 需显式内联清单。平面输入无法恢复丢失的注释/原始拆分。保留 Source、Markdown、Image/Manifest 及 URL 语义；写盘前拒绝源/输出重叠、越界和碰撞。失败只清理目标输出。Build 调普通 Export，显式设置 schema/revision，继续做 schema、变量、WebP 和领域校验，不走 ExportLegacy 或另一套读取/资源拷贝。
+
+### 作者声明写出与清单投影
 
 ```csharp
-foreach (var mod in doc.Mods().Where(m => m.Version is not null).OrderBy(m => m.Id))
-    Console.WriteLine($"{mod.Id}@{mod.Version}");
-
-var app = doc.Catalog().Application("RA3BattleNet");   // 不区分大小写
-var corona = doc.Catalog().Mod("Corona")!;
-
-// 按版本取独立清单地址，再单独拉取
-var leafUrl = MetadataResourceUri.Resolve("https://metadata.ra3battle.net/metadata.xml", corona.ManifestSource());
-var manifest = MetadataBuilder.Load(leafUrl.AbsoluteUri).Find("Manifest")!.ToManifestEntry();
-
-// 新闻与友情链接是原始节点，库不做强类型查询，也不替你筛语言
-var posts = app!.Raw.Find("Posts");
-var firstPost = posts?.Children.FirstOrDefault(c => c.Name == "Post");
-var zhTitle = firstPost?.Find("Titles")?.Children
-    .FirstOrDefault(c => c.Name == "Title" && LanguageTag.Matches(c.Get("Language"), "zh"))
-    ?.Value;
-
-var links = corona.Raw.Find("Links");
-
-// 挂载计划：写了 Skudef 就按声明顺序和条件来，没写就走旧的 File@Mount 角色
-var plan = ManifestMountPlanner.Build(
-    manifest.Skudef,
-    manifest.Files.Select(f => new ManifestMountFile(f.FileName, f.Mount, f.Language, f.Package)).ToList(),
-    language: "en",
-    packages: ["hd-shadow"],
-    localConfigExists: _ => false);
-```
-
-### 读本地作者源文件（未发布）
-
-```csharp
-// 入口可以是带 Includes / Base / InheritFrom / 短 ID 的源文件；源根缺省为入口所在目录
-var source = MetadataBuilder.LoadSource("./Metadata/mods/corona/corona.xml");
-// 也可以显式给源根：ID 前缀与资源路径都相对它
-var leaf = MetadataBuilder.LoadSource("./Metadata/mods/corona/manifests/3.258.xml", "./Metadata/mods/corona");
-```
-
-`LoadSource` 在内存里展平 Include、合并继承、限定登记 ID，返回普通 `Metadata` 树：不写任何文件，不替换 `${TIMESTAMP}` / `${ENV:...}`，不做 XSD 与跨实体 `Compatibility` 校验（单模组没有整棵目录），也不要求其他 Mod 存在。
-
-- 源根缺省是入口文件所在目录；登记 ID 的前缀同样是文件相对源根、去 `.xml` 的路径，与构建一致。
-- 资源 `Source` 改写为相对源根的路径：先按定义文件目录解释，不存在再按源根解释；两项都必须落在源根内，越界直接抛 `InvalidOperationException`，不会去探测、读取目标。
-- 入口、Include 与资源路径越出源根同样在读取前拒绝；不跟随跨根链接。
-- Include 进来的独立清单只留下登记 stub（ID 已限定、`Source` 相对源根）。`<Manifest ID Source>` 手写 stub 保留入口文件前缀，单独读叶子时前缀来自文件路径，两者可能不同，按 `ManifestRegistration(ID)` 精确查找前先用 `MetadataFlattener.LocalId` 对齐局部名。
-- 需要发布物的严格校验（XSD、Compatibility、变量残留）时仍用 `Load` / `LoadFromFile`；它们拒绝任何含 `Include` 的源树。
-
-已展平的内存文档可直接解析，不需要写临时文件：
-
-```csharp
-var doc = new XDocument(new XElement("Metadata", savedManifestElement));
-var root = MetadataParser.Load(doc);   // 根必须是 Metadata，且不得含 Include / Includes / Module
-```
-
-### Unified composition and layout export
-
-Metadata implementation is verified; Desktop integration and dependency delivery remain pending. See [the six-phase plan and exercised evidence](../exec-plans/2026-11-07-composable-metadata.md) and [architecture decision](../../notes/implemented/architecture/2026-11-07-composable-metadata.md).
-
-```csharp
-var input = MetadataReader.Read("./Metadata/metadata.xml");
-var metadata = input.Root;
-var sameModel = MetadataBuilder.Open("./Metadata/metadata.xml");
-MetadataExporter.Export(input, "./ComposedOutput", new MetadataExportOptions
-{
-    Layout = MetadataExportLayout.Tree,
-    IdFormat = MetadataExportIdFormat.Path
-});
-```
-
-Flat and split documents express one model; layout changes organization, not package identity. Reader is the only composition/ID core. Open and legacy public Flattener methods delegate to it, rather than preserving independent algorithms. Strict `MetadataBuilder.Load` and `MetadataParser.Load` still reject composition documents. Explicit `LoadSource` preserves its legacy SourceRoot-relative Source/stub behavior.
-
-`MetadataReader.Read(string pathOrUrl, MetadataSourceOptions? options = null)` returns `MetadataReadResult` with `Root`, normalized `Document`, `EntryPath`, `SourceRoot` and `Documents`. Normalized Root/Document use legacy canonical IDs for existing consumers. `MetadataDocumentInfo` exposes `Path`, `RelativePath`, captured raw `Document`, own-node `NormalizedDocument` and `Includes` with SourcePath/TargetPath. Treat returned XML as result-owned and immutable by convention. Captured documents are the export input; do not depend on a disposed internally owned HTTP source.
-
-`MetadataSourceOptions` exposes `SourceRoot`, `ValidateReferences`, `ForceSourceTree`, `CustomSource` and `InlineManifests`. SourceRoot limits allowed paths; explicit ForceSourceTree disambiguates unmarked single-file author documents. InlineManifests resolves external bodies and retains author-included manifest bodies. With default false, unmarked author-included full manifests retain legacy stub behavior, but explicitly normalized/marked full manifests remain inline: changing organization must not change their meaning. CustomSource permits cache-prefetched XML without synchronous network blocking in the cache. Reading never writes, substitutes variables or converts images.
-
-Do not detect semantics only from Include, short ID spelling or SchemaVersion. Generated outputs declare `IdFormat="legacy"` or `IdFormat="path"` and `SourceBase="document"`; unknown formats fail. Path IDs decode to canonical legacy IDs in Root, preserving logical scope after relocation. Unmarked old flat documents without composition retain IDs/Source; unmarked author composition is qualified once. Resource IDs use OrdinalIgnoreCase and document identity uses HTTP/filesystem rules. Ambiguous aliases, duplicate canonical registrations and violations of the existing field-specific reference-kind rules fail; Icon retains its established Image-or-Markdown support. Asset addresses come from Source, never from ID strings. Unified Source is entry-relative; legacy LoadSource remains explicitly SourceRoot-relative.
-
-`MetadataExporter.Export(MetadataReadResult input, string outputDirectory, MetadataExportOptions? options = null)` writes `metadata.xml` plus required documents/resources and returns void. `Layout` is Flat (default), Tree or Mixed; `IdFormat` is Legacy (default) or Path. Mixed requires `Inline: Func<string, bool>` over target RelativePath. `InlineManifests`, `ConvertImages` and `ResolveVariables` default false. One recursive retained-Include-edge algorithm implements all layouts; it consumes Reader provenance, not a second resolver. Preserve Image/Markdown/Manifest Source and URL-only resources; reject source/output overlap, unsafe paths and collisions before writes.
-
-New Tree/Mixed artifacts require the new Reader and are not old-binary compatible merely because SchemaVersion is 1.0. Default legacy Build/publish remains unchanged. A true single XML requires explicit InlineManifests; flat projection with external manifests still requires its external resources. Flat model input cannot restore lost original topology/comments. Export failure cleans only intended output, never source data.
-
-### 导回作者源格式，以及单独解析清单
-
-`LoadSource` 的反向操作和清单读取也在库里，宿主不再自己压短 ID、改 `Source` 或对齐前缀。
-
-```csharp
-// 整份 Mod：保留所有版本与 CurrentVersion；发布地址为空时保留相对 Source
-var whole = MetadataSourceExporter.ExportWhole(root, "Corona", "https://metadata.ra3battle.net/metadata.xml");
-// 单版本：只留这一版，并把它设成 CurrentVersion
+var whole = MetadataSourceExporter.ExportWhole(root, "Corona",
+    "https://metadata.ra3battle.net/metadata.xml");
 var one = MetadataSourceExporter.ExportVersion(root, "Corona", "3.259");
-
-// 本地声明里的版本清单：内联直接返回，stub 则按 Source 读叶子并按 LocalId 对齐
-var manifest = MetadataSourceManifest.Resolve(localRoot, declarationPath, package.Raw);
-
-// 独立清单节点或文本，不必再套假的 Metadata 根
+var authorManifest = MetadataSourceExporter.ExportManifestElement(manifestElement);
+var localInput = MetadataReader.Read(declarationPath, sourceOptions);
+var manifest = MetadataSourceManifest.Resolve(localInput, package.Raw);
 var entry = MetadataParser.ParseManifest(manifestElement);
-var same = MetadataParser.ParseManifest("<Manifest ID=\"m1\" ... />");
-
-// 反方向：把解析出的节点还原成 XML，抄清单原文时用
 var xml = MetadataXml.Write(manifest!);
 ```
 
-`ExportWhole` / `ExportVersion` 只做纯转换：不写盘、不发请求、不改动传入的树。带 `Url` 的图片只保留外链，不猜 `Source`；返回的是语义等价的源格式，不恢复发布时丢掉的注释与拆分。
+SourceExporter 显式生成短 ID 作者声明，是 Desktop 的实际写出功能，不是读取兼容模式。转换不写盘、不请求、不改输入树，不声称恢复原始拓扑；带 Url 的图片不猜 Source。Desktop 对独立本地副本使用 ExportManifestElement，不改变冻结的原始 installed Manifest 字节。SourceManifest 接受 MetadataReadResult 以共享 source-root 上下文，按精确身份读取外部清单，不再 LocalId 对齐。
 
-The composition refactor exposes only `XElement MetadataSourceExporter.ExportManifestElement(XElement manifest)` for shared short author-manifest normalization. It clones the node without a serialize/parse roundtrip. Desktop keeps the frozen installed Manifest unchanged and uses the returned element for its separate local author copy, removing duplicated LocalId conversion. Do not replace frozen bytes with a later normalized online version.
+实现位于 [Reading/MetadataSourceManifest.cs](../../../Ra3.BattleNet.Metadata/Reading/MetadataSourceManifest.cs)；只消费 read result 与 package，不提供旧 URI/LocalId 读取入口。
+
+### 文件与测试组织
+
+生产代码按 Reading/、Exporting/、Building/ 和现有 Cache/ 分责，模型/query/core 与 Program 留 root，命名空间不变。测试按 Reading/、Exporting/、Building/、Cache/、Queries/ 分责，TestData 位置不变。优先删除专测旧 API/mode 和重复 encoding 矩阵，将 SourceLoad/OpenMethod 本质用例归并到 Reader，删除固定 stopwatch PerformanceTests；不是机械改写所有旧测试 ID，也不新增通用测试框架。完整目录表与父负责的迁移状态见计划。
+
 
 ## 三、查询 API
 
@@ -140,7 +85,7 @@ The composition refactor exposes only `XElement MetadataSourceExporter.ExportMan
 | `ModEntry.ManifestSource(version)` | 取独立清单的相对路径；缺版本、缺清单、缺 `Source` 都抛出带原因的异常 |
 | `entry.Raw.Find("Posts")` / `mod.Raw.Find("Links")` | 读实体自己的新闻或友情链接 |
 | `node.ToManifestEntry()` | XML 节点转强类型 `ManifestEntry`（文件表、依赖、`Skudef`） |
-| `MetadataSchema.Current` / `IsCompatible(version)` | 契约版本与兼容判断；`Load` 不会自动调用 |
+| `MetadataSchema.Current` / `IsCompatible(version)` | 契约版本与兼容判断；底层 XML 投影不自动执行发布校验 |
 | `MetadataResourceUri.Resolve(baseUrl, source)` | 相对 `Source` 拼成绝对地址 |
 | `MetadataColor.ToCss(value, format)` | 颜色转 CSS；ARGB 的 Alpha 移到末尾，非法值抛 `FormatException` |
 | `ManifestMountPlanner.Build(...)` | 算出挂载指令序列 |
@@ -153,9 +98,10 @@ The composition refactor exposes only `XElement MetadataSourceExporter.ExportMan
 ```csharp
 var client = new MetadataClient(cacheDirectory, TimeSpan.FromSeconds(30));
 var root = await client.RefreshRootAsync(metadataUrl, ct);
-var leafUri = MetadataResourceUri.Resolve(root.OriginUri!.AbsoluteUri, relativeSource);
-var leaf = await client.GetLeafAsync(root, version, leafUri, ct);
-var cached = await client.GetCachedLeafAsync(root, version, leafUri, ct);
+// package 来自 root 捕获的那份目录，不通过外部 URI 或后缀猜身份。
+var leaf = await client.GetPackageAsync(root, package, ct);
+var cached = await client.GetCachedPackageAsync(root, package, ct);
+var refreshed = await client.RefreshPackageAsync(root, package, ct);
 var leaves = await client.PreloadLeavesAsync(root, ct);       // Total / Loaded / Failed
 var offline = await client.OpenSnapshotAsync(metadataUrl, ct);
 var image = await client.GetImageAsync(root, imageId, ct);
@@ -177,7 +123,7 @@ var revision = client.ImageRevision(root, imageId);
 
 - `OpenSnapshotAsync` 只读磁盘，状态只会是 `Stale` 或 `Unavailable`，不会是 `Fresh`。
 - `RefreshRootAsync` 对 http(s) 发条件 GET，对本地路径与 `file://` 读当前文件，成功才是 `Fresh`。
-- `GetCachedLeafAsync` 只取已有缓存，不发请求、不等待别人正在进行中的请求；缺失返回 `Unavailable`。
+- `GetCachedPackageAsync` 不发请求、不等待在途请求；外部 body 缺失返回 `Unavailable`，内联 body 来自捕获快照。
 - `PreloadLeavesAsync` 的可用文档包含缓存回退，不代表本轮联网确认成功。
 - 已登记图片命中完整缓存时直接返回，不发 HTTP，也不做后台校验。冷缓存只共享一次下载，失败后十分钟内普通读取不再请求；`RefreshImageAsync` 不受这个限制。
 - `ImageRevision` 用旁挂摘要算虚拟地址，只有 32 位，碰撞时可能得到相同地址，不能当成绝不复用的证明；Markdown 正文里没有登记的图片不进这套机制。
@@ -185,13 +131,15 @@ var revision = client.ImageRevision(root, imageId);
 
 ### Snapshot/package access for composed roots
 
-The client exposes `Task<LeafResult> GetPackageAsync/GetCachedPackageAsync/RefreshPackageAsync(RootSnapshotResult snapshot, PackageEntry package, CancellationToken ct = default)`. Prefer these for package consumers rather than requiring ManifestSource. URI-oriented leaf APIs remain available with their existing contracts.
+The client exposes `Task<LeafResult> GetPackageAsync/GetCachedPackageAsync/RefreshPackageAsync(RootSnapshotResult snapshot, PackageEntry package, CancellationToken ct = default)` and PreloadLeavesAsync. Package access requires captured snapshot/package context, not a mandatory ManifestSource URI. GetLeafAsync/GetCachedLeafAsync/RefreshLeafAsync and their Match/TrySelect/RequireLeaf glue are removed without wrappers or URI-based source-context inference.
 
 Inline results use the snapshot's ManifestNode/ManifestEntry, have null SourceUri, and inherit snapshot.Status in all three operations. A complete Fresh root therefore permits Fresh inline data without a fake HTTP request; Stale root never becomes Fresh. External package access verifies Raw membership and Source binding; external cached-only reads remain Stale. Preload handles both forms and does not claim independent network freshness for inline data.
 
-Runtime refresh acquires Include XML asynchronously through IMetadataTransfer and composes it through Reader CustomSource. Root 304 still revalidates children. Only a complete successful graph publishes the normalized result; failures preserve the last complete snapshot, and offline open must use no network. Private `.compositions/<origin SHA256>.xml` records a complete materialized root plus raw graph URI/hash list. Existing public URI mappings/raw bytes/validators remain separate; normalized bytes must never inherit a raw HTTP ETag. This is minimal complete-result persistence, not a new store/lease/multiprocess framework. Required proof is tracked in the implementation plan.
+Runtime refresh acquires every XML through IMetadataTransfer and composes it through Reader CustomSource, including leaves. Root 304 still revalidates children. Only a complete graph publishes the normalized snapshot; failures retain the last complete graph, and offline open uses no network. One private normalized snapshot record is separate from URL-mapped raw bodies and their validators. Never attach a raw HTTP ETag to transformed bytes. There is no raw-flat preservation, strict-parser input split or old-cache migration fallback. Current `.uri`/`.etag` ownership and integrity remain safety functionality. The parent verifies these behaviors against the new contract before recording evidence.
 
-Before first flat-to-composition migration, preflight every graph path, sidecar, ancestor conflict and reparse/link boundary. Preserve the previous complete materialized result before replacing any raw body, so a later child failure or restart cannot destroy the old offline snapshot. The parent reports passing redirect rejection and migration-preflight/cold-offline regressions in the 442-test suite; that migration exercise is not a simulated crash or mid-write IO failure.
+The single private `.compositions` record carries Origin, SourceRoot, normalized Root/Sha256 and captured raw-document digests. Every root entry point uses that same complete-record contract; raw publication-tree bodies are inputs for XML conditional revalidation, not an alternate normalized snapshot. External bodies require exact canonical ID, and SourceManifest's sole resolver is `Resolve(MetadataReadResult declaration, Metadata package)`, preserving the declaration context instead of inferring it from a URI or local-name suffix.
+
+Normalized snapshot keys include both SourceRoot context and document URI, identically in memory and on disk. A shared external leaf under two roots therefore retains each root's canonical identity across cold offline reopening. Raw URI-mapped body/ETag reuse remains separate from contextual normalized identity. HTTP relative document paths retain percent escapes until PathPrefix decodes segments once, keeping direct HTTP and cache qualification identical. A Manifest without Source is full even when its body is empty/default; full/empty is not inferred from child count.
 
 ## 五、下载边界
 
