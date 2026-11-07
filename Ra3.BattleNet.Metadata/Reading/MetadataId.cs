@@ -5,14 +5,7 @@ public static class MetadataId
     public static string Qualify(string scope, string localId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(localId);
-        if (localId.Contains(':') || localId.Any(char.IsControl))
-            throw new InvalidOperationException($"Invalid registration ID: {localId}");
-        if (localId.Contains('/'))
-        {
-            ValidatePath(localId);
-            return localId;
-        }
-        if (!string.IsNullOrEmpty(scope)) ValidatePath(scope);
+        if (localId.Contains('/') || localId.Contains(':')) return localId;
         return string.IsNullOrEmpty(scope) ? Escape(localId) : scope + "/" + Escape(localId);
     }
 
@@ -36,16 +29,6 @@ public static class MetadataId
             ? Uri.UnescapeDataString(segment) : segment)));
     }
 
-    private static void ValidatePath(string path)
-    {
-        foreach (var segment in path.Split('/'))
-        {
-            var value = Unescape(segment);
-            if (value.Length == 0 || segment is "." or ".." || value.Contains(':') || value.Contains('\\')
-                || value.Any(char.IsControl))
-                throw new InvalidOperationException($"Invalid path ID: {path}");
-        }
-    }
 
     private static string Escape(string value) => value is "." or ".."
         ? value.Replace(".", "%2E", StringComparison.Ordinal) : Uri.EscapeDataString(value);

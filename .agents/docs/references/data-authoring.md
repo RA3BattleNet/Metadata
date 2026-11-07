@@ -22,7 +22,7 @@
 2. **文件内的资源短 ID 只要本文件内不重名**。`Image`、`Markdown`、`Manifest` 的 `@ID` 不需要全仓库唯一。
 3. **顶层实体的 `@ID` 全仓库唯一**。大小写不敏感，跨 Mod 与 Application 一起查重。
 
-Reader 总把短资源 ID 限定为 `{scope}/{localId}`，scope 是定义 XML 相对 SourceRoot 的路径去掉 `.xml`；单文件也不例外。已有 canonical path ID 校验后保留，不接受冒号格式。作者仍建议写本文件短名，由 Reader 解析引用；Build 再复制资源并做全量校验。Source 相对定义文档，SourceRoot 不提供第二路径回退；Image.Url 优先。Manifest 有 Source 就是外部引用，不允许同时写正文；无 Source 的完整 Manifest 经 Include 保持完整。
+Reader 把短资源 ID 限定为 `{scope}/{localId}`，scope 是定义 XML 相对 SourceRoot 的路径去掉 `.xml`；单文件也不例外。已有含 `/` 或 `:` 的完整 ID 原样保留，引用优先精确匹配，不禁止冒号。作者建议写本文件短名；Build 复制资源并做全量校验。Source 相对定义文档，SourceRoot 不提供第二路径回退；Image.Url 优先。Manifest 有 Source 就是外部引用，不允许同时写正文；无 Source 的完整 Manifest 经 Include 保持完整。
 
 ## 三、目录结构
 
@@ -127,8 +127,6 @@ Metadata/
 错误: 实体 ID 重复: "Corona"
   - mods/corona/corona.xml (Mod)
   - mods/fake/fake.xml   (Application)
-
-错误示例: 登记 ID "a/b:icon" 使用不支持的冒号格式；作者应写短名，由 Reader 生成 path ID
 
 错误: Image 资源不存在: images/nope.png (ID: ...)
 

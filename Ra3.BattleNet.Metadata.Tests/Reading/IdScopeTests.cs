@@ -16,16 +16,6 @@ public sealed class IdScopeTests
         MetadataId.LocalId("space%20name/3.259/icon%25name").Should().Be("icon%name");
     }
 
-    [TestMethod]
-    [DataRow("a//icon")]
-    [DataRow("a/../icon")]
-    [DataRow("a/%GG")]
-    [DataRow("a/icon:old")]
-    public void Qualify_InvalidCanonicalIdentity_Rejects(string id)
-    {
-        var act = () => MetadataId.Qualify("entry", id);
-        act.Should().Throw<InvalidOperationException>();
-    }
 
     [TestMethod]
     [DataRow("Mod")]

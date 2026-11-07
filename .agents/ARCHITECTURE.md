@@ -12,7 +12,7 @@ Output/（发布树：展平后的 metadata.xml + 被引用资源）
 客户端：MetadataReader.Read(url|path).Root 或 MetadataClient（带磁盘缓存）
 ```
 
-当前单格式决定见 [集成计划](docs/exec-plans/2026-11-07-composable-metadata.md) / [single-format 决定](notes/implemented/simplification/2026-11-07-single-metadata-format.md)，Metadata 已完成 fullsuite/Build/layout/HTTP/offline 验证，Desktop 依赖交付与验证待完成。用户明确取消旧兼容：只有 Reader 和 canonical path ID，Flat/Tree/Mixed 仅改变组织，不保留 legacy publish、旧读取 API 或格式检测。旧 composable note 保留历史理由和证据，不代表当前验证。
+当前规则见 [集成计划](docs/exec-plans/2026-11-07-composable-metadata.md) / [ID 注册键修正](notes/implemented/bug-fix/2026-11-07-resource-id-keys.md)。只有 Reader；Flat/Tree/Mixed 仅改变组织，不保留 legacy publish、旧读取 API 或格式检测。完整 ID 原样匹配，冒号不构成错误；路径安全约束真实 Source 地址，不约束 ID 分隔符。
 
 ---
 
@@ -73,7 +73,7 @@ Output/（发布树：展平后的 metadata.xml + 被引用资源）
 | 不变量 | 说明 | 谁在守 |
 |---|---|---|
 | 发布物只有静态文件 | Build 发布根没有 Include；Tree/Mixed export 保留明确 Include 组织 | 导出 + 发布校验 |
-| 单一资源身份 | 短资源 ID 总是限定，canonical path ID 校验后保留；冒号格式不支持；业务 ID 不变 | Reading/MetadataId |
+| 单一资源身份 | 短资源 ID 补 scope，已有含 `/` 或 `:` 的完整 ID 原样保留；引用优先精确匹配；业务 ID 不变 | Reading/MetadataId |
 | 文档相对资源地址 | Source 相对定义文档，Root 中相对入口；SourceRoot 不提供回退；Image.Url 优先 | Reader + 路径安全 |
 | 读取不伪造版本 | schema/revision 保留原声明，Build/export 显式设置；无 IdFormat/SourceBase markers | Reader + Exporter |
 | 构建失败不留半成品 | 任何校验失败都清空输出目录 | `MetadataBuilder.Build` |

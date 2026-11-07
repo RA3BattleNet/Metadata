@@ -21,6 +21,31 @@ public sealed class MetadataReaderTests
     }
 
     [TestMethod]
+    public void Read_ColonIdsMatchRegistrationsAndExternalManifestWithoutConversion()
+    {
+        var source = new MemorySource();
+        source.Add("entry.xml", """
+<Metadata><Image ID="icon:main" Url="https://assets.test/icon.png"/><Markdown ID="posts/intro:zh" Source="intro.md"/><Mod ID="Demo:one"><Icon>icon:main</Icon><Packages><Package Version="1"><Manifest>releases/v1:manifest</Manifest></Package></Packages><Posts><Post><Contents><Content>posts/intro:zh</Content></Contents></Post></Posts></Mod><Manifest ID="releases/v1:manifest" Source="releases/v1.xml"/></Metadata>
+""");
+        source.Add("releases/v1.xml", """
+<Metadata><Manifest ID="releases/v1:manifest" HashAlgorithm="MD5"><File Hash="FAC06A274D4B9255F89EA90D621A4FF8" Size="42"><FileName>mod.big</FileName><RelativePath>/</RelativePath><KindOf>MOD;</KindOf></File></Manifest></Metadata>
+""");
+        var result = MetadataReader.Read(MemorySource.Root + "entry.xml", new MetadataSourceOptions
+        {
+            CustomSource = source,
+            ValidateReferences = true,
+            InlineManifests = true
+        });
+        var mod = result.Root.Mods().Single();
+        mod.Id.Should().Be("Demo:one");
+        mod.Icon.Should().Be("icon:main");
+        result.Root.Images().Single(i => i.Id == mod.Icon).Url.Should().Be("https://assets.test/icon.png");
+        result.Root.Markdowns().Single().Id.Should().Be("posts/intro:zh");
+        mod.Package("1")!.Raw.Find("Manifest")!.Value.Should().Be("releases/v1:manifest");
+        result.Root.ManifestRegistration("releases/v1:manifest")!.Find("File")!.Find("FileName")!.Value.Should().Be("mod.big");
+    }
+
+    [TestMethod]
     public void Read_ThreeMatchingAliases_RemainAmbiguous()
     {
         var source = new MemorySource();
@@ -222,8 +247,6 @@ public sealed class MetadataReaderTests
             .Should().Be("mods/space%20name/versions/3.259%25icon");
         MetadataId.LocalId("mods/space%20name/versions/3.259%25icon").Should().Be("3.259%icon");
         MetadataId.Qualify("other", "mods/icon").Should().Be("mods/icon");
-        var invalid = () => MetadataId.Qualify("entry", "scope:icon");
-        invalid.Should().Throw<InvalidOperationException>();
     }
 
     [TestMethod]

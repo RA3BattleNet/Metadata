@@ -20,7 +20,7 @@ dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Ou
 
 构建成功会打印 `✓ 构建完成` 和实体列表，产物在 `Output/`。任何校验不通过都会清空输出并说明改哪个文件。
 
-一次性读取统一使用 `MetadataReader.Read(pathOrUrl).Root`，不再提供 Builder.Load/LoadSource/Open。资源 ID 只有 canonical path `scope/local`，Source 相对定义文档；Flat/Tree/Mixed 只是导出组织，没有 `--id-format` 或旧格式兼容模式。完整 API 见 [解析库与缓存](.agents/docs/references/library-api.md)。
+一次性读取统一使用 `MetadataReader.Read(pathOrUrl).Root`，不再提供 Builder.Load/LoadSource/Open。新生成资源 ID 使用 `scope/local`，已有含 `/` 或 `:` 的完整 ID 原样匹配；Source 相对定义文档。Flat/Tree/Mixed 只是导出组织，没有 `--id-format` 或旧格式兼容模式。完整 API 见 [解析库与缓存](.agents/docs/references/library-api.md)。
 
 ## 加一个 Mod
 

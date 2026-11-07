@@ -2,11 +2,12 @@
 
 > 自动生成，勿手改。重新生成：`node scripts/verify-docs.mjs --write`。
 
-共 18 篇。按状态排序：提案 → 已实施 → 已否决。
+共 19 篇。按状态排序：提案 → 已实施 → 已否决。
 
 | 日期 | 状态 | 分类 | 标题 | 问题 |
 |---|---|---|---|---|
 | 2026-11-07 | implemented | architecture | [One composition core with layout-only exports](../../notes/implemented/architecture/2026-11-07-composable-metadata.md) | The earlier unified-reader entry point treated Include detec… |
+| 2026-11-07 | implemented | bug-fix | [Preserve resource registration keys without colon policing](../../notes/implemented/bug-fix/2026-11-07-resource-id-keys.md) | The single-format decision(../simplification/2026-11-07-sing… |
 | 2026-11-07 | implemented | simplification | [One metadata format without compatibility modes](../../notes/implemented/simplification/2026-11-07-single-metadata-format.md) | The user explicitly removes the old compatibility requiremen… |
 | 2026-11-06 | implemented | feature | [WebView2 zstd 包采用双层内容指纹](../../notes/implemented/feature/2026-11-06-webview2-raw-fingerprint.md) | 旧 WebView2 清单以 Compression="zip"、HashAlgorithm="None" 描述解包目录，不能验证下载物和待安装 ZIP 的内容。 |
 | 2026-11-04 | implemented | process | [Cloudflare 部署统一使用 Workers 静态资源](../../notes/implemented/process/2026-11-04-cloudflare-workers-deployment.md) | Cloudflare 后台项目是 Workers，但 npm 发布和本地服务仍调用 Pages 命令。 |

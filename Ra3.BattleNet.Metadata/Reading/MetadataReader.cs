@@ -149,7 +149,6 @@ public static class MetadataReader
             {
                 var id = entity.Attribute("ID")?.Value;
                 if (string.IsNullOrWhiteSpace(id)) continue;
-                if (id.Contains(':')) throw new InvalidOperationException($"实体 ID \"{id}\" 含 ':'");
                 if (!_entities.TryAdd(id, path))
                     throw new InvalidOperationException($"实体 ID 重复: {id} ({_entities[id]}; {path})");
             }
@@ -208,17 +207,15 @@ public static class MetadataReader
             {
                 var id = reference.Value.Trim();
                 if (id.Length == 0) continue;
-                if (id.Contains(':')) throw new InvalidOperationException($"Invalid resource ID: {id}");
-                if (id.Contains('/')) id = MetadataId.Qualify(string.Empty, id);
+                if (full.Contains(id) || _registrations.Contains(id))
+                {
+                    reference.Value = id;
+                    continue;
+                }
                 if (!id.Contains('/') && ownAliases.TryGetValue(id, out var own))
                 {
                     if (own.Count != 1) throw new InvalidOperationException($"Ambiguous resource ID: {id} ({document.Path})");
                     reference.Value = own.Single();
-                    continue;
-                }
-                if (full.Contains(id) || _registrations.Contains(id))
-                {
-                    reference.Value = id;
                     continue;
                 }
                 if (!ownAliases.TryGetValue(id, out var matches) && !aliases.TryGetValue(id, out matches))

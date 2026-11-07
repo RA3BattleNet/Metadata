@@ -10,7 +10,7 @@
 | **展平** | Reader 展开 Include、合并 Base 继承并限定短资源 ID；Exporter 的 Flat 将捕获图写成平面 XML。不是第二种读取模式。 |
 | **登记节点** | 带 ID 的 Image、Markdown、Manifest。Source 相对定义文档，Image.Url 优先；Manifest 有 Source 即外部引用，不允许同时带 body。 |
 | **短 ID** | 作者文件中的资源局部名，如 icon-64px；Reader 总按定义 scope 限定，即使输入只有一个文件。 |
-| **完整 ID** | 可逆转义的 canonical path ID，如 mods/corona/corona/icon-64px；scope 来自定义文件相对 SourceRoot 去 .xml。已有 path ID 保留，冒号格式不支持，业务实体 ID 不变。 |
+| **完整 ID** | 资源登记键；新生成形式如 mods/corona/corona/icon-64px，scope 来自定义文件相对 SourceRoot 去 .xml。已有含 `/` 或 `:` 的键原样保留，引用优先精确匹配，不把 ID 当地址校验。 |
 | **实体** | `Mod` 或 `Application`。`@ID` 全仓库唯一，不分大小写。 |
 | **版本包** | 实体下的 `Package`，只有 `Version`、可选 `ReleaseDate`、可选 `Manifest`。不携带更新说明。 |
 | **独立清单** | 某个版本的文件表文件，通过 `Manifest/Source` 单独发布，不塞进大总表。旧文档里叫“叶子清单”。 |

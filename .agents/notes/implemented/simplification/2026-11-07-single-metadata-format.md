@@ -2,6 +2,8 @@
 
 Status: implemented
 
+The colon-ID rejection in this historical decision is superseded by [resource ID keys](../bug-fix/2026-11-07-resource-id-keys.md). Existing complete keys are retained and matched verbatim without restoring compatibility modes.
+
 ## Problem
 
 The user explicitly removes the old compatibility requirement. Keeping author/published detection, colon/path codecs, source-root fallback and old read entry points after that decision leaves two protocols inside the nominally shared Reader. It also duplicates tests that protect behavior no longer requested. Flat, Tree and Mixed must describe storage organization only.

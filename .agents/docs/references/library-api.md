@@ -34,7 +34,7 @@ var writtenXml = MetadataExporter.Export(input, "./ComposedOutput",
 
 MetadataSourceOptions 保留 SourceRoot、ValidateReferences、CustomSource 和 InlineManifests。CustomSource 允许缓存异步获取 XML 后交给同一 Reader。读取只在内存中合并 Include/继承与资源引用，不写盘、不替换变量、不转换图片，不覆盖声明的 SchemaVersion/ContentRevision。
 
-- 完整资源 ID 只有可逆转义的 `scope/local`，scope 是定义文件相对 SourceRoot 的路径去掉 `.xml`。无 Include 的单文件短 ID 也总是限定；已有 path ID 校验后保留，冒号限定 ID 不再接受。Mod/Application 业务 ID 不变。
+- 新生成的资源 ID 使用可逆转义的 `scope/local`，scope 是定义文件相对 SourceRoot 的路径去掉 `.xml`。短 ID 总是限定；已有含 `/` 或 `:` 的完整登记 ID 原样保留，引用先按完整字符串精确匹配，不转换分隔符，也不把 ID 当文件路径校验。Mod/Application 业务 ID 不变。
 - MetadataId 统一提供 PathPrefix、Qualify、LocalId；LocalId 取最后一个 `/` 段并反转义。没有双 codec 或按输入猜格式。
 - Source 始终相对定义文档解释，Root 中投影为相对入口目录。SourceRoot 只负责限定和 containment，不是找不到文件时的第二基址。HTTP 文档不能引用本地文件；显式资源 URL 保留。Image.Url 优先于信息性 Source，不触发本地探测。
 - Include 贡献实际内容，无 Source 的完整 Manifest 不转换为 stub。Manifest 只要声明非空 Source 就是外部引用，同时携带 body 直接失败，不按输入来源猜语义；默认保持外部，显式 InlineManifests 才内联外部 body。
