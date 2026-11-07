@@ -1,0 +1,222 @@
+using System.Xml.Linq;
+using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace Ra3.BattleNet.Metadata.Tests;
+
+/// <summary>
+/// 发布面：Output 只含展平 metadata.xml + 被引用资源 + _redirects + editor.html；
+/// 源 XML / XSD / Templates 一律不进发布物。
+/// </summary>
+[TestClass]
+public class PublishSurfaceTests
+{
+    private static string RepoMetadataDir =>
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Metadata"));
+
+    private static void SeedSchemas(string targetDir)
+    {
+        Directory.CreateDirectory(targetDir);
+        foreach (var name in new[] { SchemaValidator.SourceSchemaFileName, SchemaValidator.PublishSchemaFileName })
+        {
+            File.Copy(Path.Combine(RepoMetadataDir, name), Path.Combine(targetDir, name), overwrite: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_RepoSample_OutputHasOnlyFlattenedAndReferencedResources()
+    {
+        var src = RepoMetadataDir;
+        var dst = Path.Combine(Path.GetTempPath(), $"publish-repo-{Guid.NewGuid():N}");
+
+        try
+        {
+            MetadataBuilder.Build(src, dst, schemaVersion: "1.0", contentRevision: "publish-test");
+
+            // 展平数据 + 入口
+            File.Exists(Path.Combine(dst, "metadata.xml")).Should().BeTrue();
+            File.ReadAllText(Path.Combine(dst, "metadata.xml")).Should().NotContain("<Include");
+
+            // 被引用资源都在
+            var loaded = MetadataReader.Read(Path.Combine(dst, "metadata.xml")).Root;
+            foreach (var image in loaded.Images().Where(image => image.Source is not null))
+            {
+                var relative = image.Source!.Replace('/', Path.DirectorySeparatorChar);
+                File.ReadAllBytes(Path.Combine(dst, relative))
+                    .Should().Equal(File.ReadAllBytes(Path.Combine(src, relative)));
+            }
+            foreach (var manifest in loaded.GetAllElements("Manifest").Where(node => node.Get("ID") is not null))
+            {
+                var leaf = MetadataResourceUri.Resolve(Path.Combine(dst, "metadata.xml"), manifest.Get("Source")!);
+                File.Exists(leaf.LocalPath).Should().BeTrue();
+                MetadataReader.Read(leaf.LocalPath).Root.ManifestRegistration(manifest.Get("ID")!)
+                    .Should().NotBeNull();
+            }
+
+            // _redirects 自动带出
+            File.Exists(Path.Combine(dst, "_redirects")).Should().BeTrue();
+
+            // editor.html 原样带出
+            var editorSource = Path.Combine(src, "editor.html");
+            var editorOutput = Path.Combine(dst, "editor.html");
+            File.Exists(editorOutput).Should().BeTrue();
+            File.ReadAllBytes(editorOutput).Should().Equal(File.ReadAllBytes(editorSource));
+
+            // 发布面不含源树资产
+            Directory.GetFiles(dst, "*.xsd", SearchOption.AllDirectories).Should().BeEmpty();
+            Directory.Exists(Path.Combine(dst, "Templates")).Should().BeFalse();
+            File.Exists(Path.Combine(dst, "mods", "mods.xml")).Should().BeFalse();
+            File.Exists(Path.Combine(dst, "mods", "corona", "corona.xml")).Should().BeFalse();
+            File.Exists(Path.Combine(dst, "apps", "apps.xml")).Should().BeFalse();
+            File.Exists(Path.Combine(dst, "apps", "ra3battlenet", "ra3battlenet.xml")).Should().BeFalse();
+        }
+        finally
+        {
+            if (Directory.Exists(dst))
+                Directory.Delete(dst, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_UrlOnlyImage_CopiesNothingForIt()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"publish-url-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        var dst = Path.Combine(temp, "out");
+        SeedSchemas(src);
+        try
+        {
+            File.WriteAllText(Path.Combine(src, "img.png"), "fake-image-bytes");
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Image ID="remote-only" Url="https://example.com/img.png" />
+  <Image ID="with-source" Source="img.png" />
+</Metadata>
+""");
+
+            MetadataBuilder.Build(src, dst, contentRevision: "x");
+
+            // Url 优先：remote-only 不落盘；with-source 落盘
+            Directory.GetFiles(dst, "img.png", SearchOption.AllDirectories).Should().HaveCount(1);
+            File.ReadAllText(Path.Combine(dst, "metadata.xml"))
+                .Should().Contain("remote-only").And.Contain("with-source");
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_ImageUrlWithEscapingSource_DoesNotReadOrCopySource()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"publish-url-source-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        var dst = Path.Combine(temp, "out");
+        SeedSchemas(src);
+        try
+        {
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), """
+                <Metadata><Image ID="remote" Url="https://example.com/img.png" Source="../missing.png" /></Metadata>
+                """);
+            MetadataBuilder.Build(src, dst, contentRevision: "x");
+            var image = XDocument.Load(Path.Combine(dst, "metadata.xml")).Root!.Element("Image")!;
+            image.Attribute("Url")!.Value.Should().Be("https://example.com/img.png");
+            image.Attribute("Source")!.Value.Should().Be("../missing.png");
+            Directory.GetFiles(dst).Select(Path.GetFileName).Should().Equal("metadata.xml");
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_RepoSample_LeafManifestIsFlattenedAndLoadable()
+    {
+        var dst = Path.Combine(Path.GetTempPath(), $"publish-leaf-{Guid.NewGuid():N}");
+
+        try
+        {
+            MetadataBuilder.Build(RepoMetadataDir, dst, schemaVersion: "1.0", contentRevision: "publish-test");
+
+            // 叶子清单不能照抄源文件：客户端解析器拒绝 Includes，也不该收到未替换的变量
+            var root = MetadataReader.Read(Path.Combine(dst, "metadata.xml")).Root;
+            var coronaPackage = root.Mods().Single(mod => mod.Id == "Corona").Packages.Single(package => package.Version == "3.259");
+            var leafPath = MetadataResourceUri.Resolve(Path.Combine(dst, "metadata.xml"),
+                root.ManifestRegistration(coronaPackage.ManifestId!)!.Get("Source")!).LocalPath;
+            var text = File.ReadAllText(leafPath);
+            text.Should().NotContain("<Includes");
+            text.Should().NotMatchRegex(@"\$\{[^}]+\}");
+
+            var entry = MetadataReader.Read(leafPath).Root.Find("Manifest")!.ToManifestEntry();
+            entry.HashAlgorithm.Should().Be("CRC32C");
+            entry.Files.Should().NotBeEmpty();
+            entry.Files.Should().OnlyContain(f => f.Sources.Count > 0);
+            entry.Files.Should().Contain(f => f.DownloadName != null);
+
+            var runtimePackage = root.Applications().Single(app => app.Id == "webview2").Packages.Single();
+            var runtimePath = MetadataResourceUri.Resolve(Path.Combine(dst, "metadata.xml"),
+                root.ManifestRegistration(runtimePackage.ManifestId!)!.Get("Source")!).LocalPath;
+            var runtime = MetadataReader.Read(runtimePath).Root.Find("Manifest")!.ToManifestEntry();
+            runtime.HashAlgorithm.Should().Be("SHA256");
+            var file = runtime.Files.Should().ContainSingle().Subject;
+            file.FileName.Should().Be("WebView2Runtime.zip");
+            file.DownloadName.Should().Be("WebView2Runtime.zip.zst");
+            file.Compression.Should().Be("zstd");
+            file.Size.Should().Be(233263294);
+            file.Hash.Should().Be("31de4e57a19017eee55e6f66ddb9f6c217f944716dee2cd14a37f72dfbbe831b");
+            file.RawHash.Should().Be("b601d79b38720d174c17b6affed3506f01c5033d20a42d1f90fe5745f1b8d021");
+            file.RawHashAlgorithm.Should().Be("SHA256");
+            file.Sources.Should().ContainSingle().Which.Url.Should()
+                .Be("https://file.cor-games.com/srv/redist/WebView2Runtime.zip.zst.torrent");
+            var exported = MetadataXml.Write(file.Raw);
+            exported.Should().Contain($"RawHash=\"{file.RawHash}\"").And.Contain("RawHashAlgorithm=\"SHA256\"");
+        }
+        finally
+        {
+            if (Directory.Exists(dst))
+                Directory.Delete(dst, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_RepoSample_SkudefSurvivesFlattenInDeclaredOrder()
+    {
+        var dst = Path.Combine(Path.GetTempPath(), $"publish-skudef-{Guid.NewGuid():N}");
+
+        try
+        {
+            MetadataBuilder.Build(RepoMetadataDir, dst, schemaVersion: "1.0", contentRevision: "publish-test");
+
+            var root = MetadataReader.Read(Path.Combine(dst, "metadata.xml")).Root;
+            var package = root.Mods().Single(mod => mod.Id == "Corona").Packages.Single(package => package.Version == "3.259");
+            var leafPath = MetadataResourceUri.Resolve(Path.Combine(dst, "metadata.xml"),
+                root.ManifestRegistration(package.ManifestId!)!.Get("Source")!).LocalPath;
+            var entry = MetadataReader.Read(leafPath).Root.Find("Manifest")!.ToManifestEntry();
+            var skudef = entry.Skudef;
+
+            skudef.Should().NotBeNull("展平后叶子清单要保住 Skudef");
+            skudef!.GameVersion.Should().Be("1.12");
+            skudef.Commands.Select(c => c.Target).Should().ContainInOrder(
+                "CustomConfig.txt", "Disabler.big", "HighResShadow.big", "Cor_ENG_3.250.big",
+                "coronaBGM_3.228.lyi", "corona_3.259.lyi", "StaticVersion.big");
+            skudef.Commands.Should().ContainSingle(c => c.Target == "CustomConfig.txt" && c.Kind == SkudefCommandKind.Config && c.Optional);
+            skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "Disabler.big" && c.Package == "disable-sky-and-patches");
+            skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "HighResShadow.big" && c.Package == "hd-shadow");
+            skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "Cor_ENG_3.250.big" && c.Language == "en");
+            skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "StaticVersion.big" && c.Package == "world-builder");
+
+            // 加载条件单源：File 上不能再留 Mount/Language/Package
+            entry.Files.Should().OnlyContain(f => f.Mount == "base" && f.Language == null && f.Package == null);
+        }
+        finally
+        {
+            if (Directory.Exists(dst))
+                Directory.Delete(dst, recursive: true);
+        }
+    }
+}

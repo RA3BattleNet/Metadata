@@ -2,6 +2,8 @@
 
 Status: implemented
 
+Related decision: [one composition core and layout-only exports](../../implemented/architecture/2026-11-07-composable-metadata.md) extends library-owned export without duplicating ID/Source rules. This single-Mod author-format Decision and its topology-recovery limit remain independent.
+
 ## Problem
 
 `LoadSource` 让宿主能读作者源文件之后，Desktop 仍自己实现了三类源格式逻辑：把在线展平树反向导出成单 Mod 作者声明（`ModSourceDeclaration`，315 行）、按 stub 找叶子清单并与 `LocalId` 对齐（`ResolveManifestNode`）、把独立 `Manifest` 节点包一层假 `Metadata` 根再解析。

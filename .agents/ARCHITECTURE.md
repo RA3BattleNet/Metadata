@@ -9,8 +9,10 @@ Metadata/（源数据：XML、图片、Markdown、清单）
 Output/（发布树：展平后的 metadata.xml + 被引用资源）
         │  上传 CDN / Cloudflare Pages / EdgeOne
         ▼
-客户端：MetadataBuilder.Load(url|path) 或 MetadataClient（带磁盘缓存）
+客户端：MetadataReader.Read(url|path).Root 或 MetadataClient（带磁盘缓存）
 ```
+
+当前规则见 [集成计划](docs/exec-plans/2026-11-07-composable-metadata.md) / [ID 注册键修正](notes/implemented/bug-fix/2026-11-07-resource-id-keys.md)。只有 Reader；Flat/Tree/Mixed 仅改变组织，不保留 legacy publish、旧读取 API 或格式检测。完整 ID 原样匹配，冒号不构成错误；路径安全约束真实 Source 地址，不约束 ID 分隔符。
 
 ---
 
@@ -20,11 +22,13 @@ Output/（发布树：展平后的 metadata.xml + 被引用资源）
 |---|---|---|---|
 | 数据契约层 | `Metadata/MetadataSchema.xsd`、`MetadataPublishSchema.xsd` | 约束作者写的源 XML 与最终发布物 | 构建器、编辑器 |
 | 模型与查询层 | `Ra3.BattleNet.Metadata/Metadata.cs`、`MetadataQueryExtensions.cs`、`MetadataQueryModels.cs`、`MetadataSchema.cs`、`LanguageTag.cs`、`MetadataColor.cs`、`MetadataResourceUri.cs`、`ModCompatibility.cs` | XML 文档的内存模型、LINQ 查询、语言比较、颜色转换、地址拼装 | 构建器、客户端 |
-| 构建工具层 | `MetadataBuilder.cs`、`MetadataFlattener.cs`、`MetadataInheritance.cs`、`SchemaValidator.cs`、`VariableResolver.cs`、`MarkdownValidator.cs`、`ImagePostProcessor.cs`、`ImagingInvoker.cs`、`Program.cs` | 展平、继承合并、校验、资源拷贝、调用 Imaging | 只有命令行构建 |
+| 读取与组合层 | `Reading/`：Reader、Id、DocumentInfo、SourceOptions、XML sources、SourceManifest | 单一读取、继承、引用解析、文档相对 Source 与捕获图；不写盘 | 构建、导出、缓存、客户端 |
+| 导出层 | `Exporting/`：Exporter、Options、SourceExporter、Xml | 单格式 Flat/Tree/Mixed、资源布局和显式短 ID 作者写出 | 构建、工具、Desktop |
+| 构建工具层 | `Building/`：Builder、Inheritance、SchemaValidator、VariableResolver、MarkdownValidator、ImagePostProcessor、ImagingInvoker；根 Program | schema/领域校验、变量和可选图片转换；不保留读取 API | 命令行构建 |
 | 缓存层 | `Cache/MetadataClient.cs`、`MetadataDiskCache.cs`、`IMetadataTransfer.cs`、`HttpMetadataTransfer.cs`、结果记录 | 联网刷新、最后有效缓存、图片复用 | 客户端宿主 |
 | 发版图片工具 | `Ra3.BattleNet.Metadata.Imaging/` | 把图片转成 WebP | 只有 `--webp` 构建 |
 
-**依赖方向**：缓存层 → 模型与查询层；构建工具层 → 模型与查询层；模型与查询层不引用其他任何一层。`Ra3.BattleNet.Metadata` 是纯托管代码，不依赖 SkiaSharp 之类的图像库；图片转换只在发版时由独立项目执行。
+**依赖方向**：缓存获取 XML 后交给 Reading；Building 使用 Reading 和 Exporting，Exporting 使用捕获图；模型/query/core 不依赖这些层。父在 owner freeze 后按责任目录搬文件，命名空间不变。主库纯托管，不依赖 SkiaSharp；图片转换由独立项目执行。
 
 ---
 
@@ -34,8 +38,8 @@ Output/（发布树：展平后的 metadata.xml + 被引用资源）
 
 1. **准备**：定位 `Metadata/metadata.xml` 作为唯一入口，删除并重建 `Output/`；找不到入口或源 XSD 直接失败。
 2. **源侧校验**：用 `MetadataSchema.xsd` 校验整个源目录；再对独立清单做语义检查（哈希算法、字段组合、`Skudef` 引用）。
-3. **展平**：展开 `Include`、按 `InheritFrom` 合并 `Base`、给资源短 ID 补上 `{路径前缀}:` 前缀、写入 `SchemaVersion` 与 `ContentRevision`。
-4. **拷贝资源**：按登记节点的 `Source` 把图片、Markdown、独立清单复制到输出目录。独立清单不是原样照抄，它同样走一遍展平与变量解析。
+3. **读取**：Reader 展开 Include、合并继承、将短资源 ID 限定为 `{scope}/{local}`；Source 相对定义文档解释，SourceRoot 只负责限定/containment。读取不覆盖 schema/revision。
+4. **导出**：普通 Export 写平面发布根和默认外部清单/资源，显式设置 SchemaVersion/ContentRevision；不存在 ExportLegacy 或第二套资源拷贝。
 5. **写盘与变量**：保存展平后的 `metadata.xml`，替换 `${TIMESTAMP}`、`${ENV:NAME}`，再检查是否残留 `${…}`。
 6. **可选图片转换**：`--webp` 时调用 Imaging，把图片转成 WebP 并改写 `Source`。
 7. **发布侧校验**：用 `MetadataPublishSchema.xsd` 校验产物，再做硬校验：ID 断链、资源缺失、显示名 `zh`/`en`、`Skudef` 与 `File` 的规则冲突、挂载角色、哈希格式等。
@@ -46,7 +50,7 @@ Output/（发布树：展平后的 metadata.xml + 被引用资源）
 
 ## 三、客户端读取路径
 
-- **一次性读取**：`MetadataBuilder.Load(url|path)` 把整棵树读进内存，支持 LINQ 查询；适合命令行、测试和小工具。
+- **一次性读取**：`MetadataReader.Read(url|path).Root` 是唯一文档读取入口。Builder.Load/LoadSource/Open、Flattener 和兼容 Detector 不保留；Parser 只投影 XML。
 - **带缓存的常驻读取**：`MetadataClient` 管理根清单、独立清单、图片三类资源，磁盘布局固定：
 
 ```
@@ -58,7 +62,7 @@ Output/（发布树：展平后的 metadata.xml + 被引用资源）
 ```
 
 - **下载边界**：`IMetadataTransfer` 只负责把正文写到调用方给的本地路径；校验、落盘、替换缓存都由库自己完成。默认实现是 `HttpMetadataTransfer`，宿主可注入自己的实现（代理、平台网络栈）。
-- **快照语义**：独立清单的身份只按调用时捕获的那份根快照解析，不会去翻更早或更晚的根。`GetCachedLeafAsync` 只读已有缓存、不发请求；`Refresh*` 才会联网。
+- **快照语义**：包清单只按捕获根快照和 PackageEntry 精确解析，不翻更早/更晚根，也不从 URI 猜 source-root。Get/GetCached/RefreshPackageAsync 保留；URI-only Get/GetCached/RefreshLeafAsync 及其匹配 glue 删除。外部 GetCachedPackageAsync 只读缓存，内联 body 继承快照状态；完整 normalized snapshot 与 raw XML/validators 分开保存。
 
 具体 API 与字段含义见 [references/library-api.md](docs/references/library-api.md)。
 
@@ -68,10 +72,10 @@ Output/（发布树：展平后的 metadata.xml + 被引用资源）
 
 | 不变量 | 说明 | 谁在守 |
 |---|---|---|
-| 发布物只有静态文件 | 根 `metadata.xml` 里不允许残留 `Include` | 发布 XSD + 构建校验 |
-| 完整 ID 由构建器生成 | 作者只写短名；手写冒号前缀直接报错 | 构建校验 |
-| 资源路径只来自 `Source` | 客户端不推导文件名，也不猜扩展名 | 解析库 |
-| `SchemaVersion` 保持 `1.0` | 只有客户端无法兼容的破坏性改动才提高版本 | 构建器 + 评审 |
+| 发布物只有静态文件 | Build 发布根没有 Include；Tree/Mixed export 保留明确 Include 组织 | 导出 + 发布校验 |
+| 单一资源身份 | 短资源 ID 补 scope，已有含 `/` 或 `:` 的完整 ID 原样保留；引用优先精确匹配；业务 ID 不变 | Reading/MetadataId |
+| 文档相对资源地址 | Source 相对定义文档，Root 中相对入口；SourceRoot 不提供回退；Image.Url 优先 | Reader + 路径安全 |
+| 读取不伪造版本 | schema/revision 保留原声明，Build/export 显式设置；无 IdFormat/SourceBase markers | Reader + Exporter |
 | 构建失败不留半成品 | 任何校验失败都清空输出目录 | `MetadataBuilder.Build` |
 | 缓存只按发布树布局 | 地址映射是纯函数，同一路径不会被两个地址互相覆盖 | `MetadataDiskCache` + `.uri` |
 
@@ -83,7 +87,7 @@ Output/（发布树：展平后的 metadata.xml + 被引用资源）
 Metadata/                         源数据（入口 metadata.xml，按 mods/ 与 apps/ 分目录）
 Ra3.BattleNet.Metadata/           解析库 + 命令行构建工具
 Ra3.BattleNet.Metadata.Imaging/   发版用的 WebP 转换工具
-Ra3.BattleNet.Metadata.Tests/     MSTest 测试（构建、模型、缓存、兼容性）
+Ra3.BattleNet.Metadata.Tests/     MSTest：Reading/、Exporting/、Building/、Cache/、Queries/；TestData 保持位置
 scripts/verify-docs.mjs           知识库守卫（笔记格式、生成物新鲜度、链接）
 build.sh                          线上构建入口，安装 .NET 后调用上面的命令行
 .agents/                          全部研发文档与决策笔记

@@ -5,12 +5,12 @@
 | 术语 | 准确含义 |
 |---|---|
 | **源数据** | `Metadata/` 下作者手写的 XML、图片、Markdown、清单。可以带 `Include`，可以有短 ID。 |
-| **发布树 / 发布面** | `Output/` 里的最终产物，客户端只认这一份。不含 `Include`、XSD、`Templates/`。 |
-| **大总表** | 展平后的根文件 `metadata.xml`。所有实体和资源登记节点都在里面，独立清单的正文不在。 |
-| **展平** | 构建时把 `Include` 展开、`Base` 继承合并、短 ID 补全为完整 ID 的过程。执行者：`MetadataFlattener` 与 `MetadataInheritance`。 |
-| **登记节点** | 带 `@ID` 的 `Image`、`Markdown`、`Manifest` 标签。它声明“有这个资源”，正文在 `Source` 指向的文件里，或在 `Url` 指向的外部地址。 |
-| **短 ID** | 作者在文件内写的资源 ID，例如 `icon-64px`。只在当前文件作用域内需要唯一。 |
-| **完整 ID** | 展平后带路径前缀的 ID，形如 `corona:icon-64px`。前缀由构建器生成，作者手写会直接报错。 |
+| **发布树 / 发布面** | Build 输出的平面 metadata.xml 与外部资源，不含 XSD、Templates；通用 export 还支持 Tree/Mixed Include 组织，读取语义相同。 |
+| **大总表** | Build 输出的平面 metadata.xml，包含实体与资源登记；默认外部清单正文另存，显式内联时正文可在图内。 |
+| **展平** | Reader 展开 Include、合并 Base 继承并限定短资源 ID；Exporter 的 Flat 将捕获图写成平面 XML。不是第二种读取模式。 |
+| **登记节点** | 带 ID 的 Image、Markdown、Manifest。Source 相对定义文档，Image.Url 优先；Manifest 有 Source 即外部引用，不允许同时带 body。 |
+| **短 ID** | 作者文件中的资源局部名，如 icon-64px；Reader 总按定义 scope 限定，即使输入只有一个文件。 |
+| **完整 ID** | 资源登记键；新生成形式如 mods/corona/corona/icon-64px，scope 来自定义文件相对 SourceRoot 去 .xml。已有含 `/` 或 `:` 的键原样保留，引用优先精确匹配，不把 ID 当地址校验。 |
 | **实体** | `Mod` 或 `Application`。`@ID` 全仓库唯一，不分大小写。 |
 | **版本包** | 实体下的 `Package`，只有 `Version`、可选 `ReleaseDate`、可选 `Manifest`。不携带更新说明。 |
 | **独立清单** | 某个版本的文件表文件，通过 `Manifest/Source` 单独发布，不塞进大总表。旧文档里叫“叶子清单”。 |
@@ -19,7 +19,7 @@
 | **硬失败** | 校验不通过就清空输出、抛错、进程返回 1，不产出带病产物。 |
 | **主发布基** | 调用方第一次打开时传入的那个地址。写进 `origin.json` 后不再改变，其余地址视为其他发布基。 |
 | **最后有效缓存** | 上一次成功下载并校验通过的正文。网络失败时仍可离线读取，但状态不是 `Fresh`。 |
-| **快照** | 一次成功读取的根清单加上它的来源地址和摘要。独立清单的身份只在这份快照里解析。 |
+| **快照** | 完整组合根及来源/SourceRoot/摘要；只有整图成功才发布。包清单身份绑定捕获快照，raw XML/HTTP validators 与 normalized record 分开。 |
 | **暂存文件** | 下载方写到磁盘的临时正文。`.tmp` 与 `.stage` 下的内容不当作缓存读取。 |
 | **语言族比较** | `LanguageTag.Matches` 的规则：查询带地区时按语言族命中（`zh-CN` 命中 `zh`），查询不带地区时精确匹配，比较不分大小写。 |
 | **契约版本** | 根节点的 `SchemaVersion`，当前是 `1.0`。它约束客户端的兼容判断，与内容更新无关。 |
