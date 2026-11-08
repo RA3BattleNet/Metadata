@@ -80,6 +80,20 @@
             </Package>
         </Packages>
         <Posts>
+            <Post Type="introduction" DateTime="2026-11-08T00:00:00+08:00">
+                <Titles>
+                    <Title Language="zh">模组介绍</Title>
+                    <Title Language="en">Introduction</Title>
+                </Titles>
+                <Descriptions>
+                    <Description Language="zh">包含美术风格与玩法均独树一帜的全新阵营 “神州” ，以及对原版三阵营进行重大调整与体系升级，视觉效果也有长足进步。体积庞大且武备齐全的战舰让海战不再是快艇对冲，自带尾炮的轰炸机与截击机碰撞出全新的空战攻防体验！除了平衡的常规对战之外更有“阵营拓展”模式解锁各阵营大量强力科技与兵种，欢迎下载体验绚丽壮美的视觉效果与繁多组合产生的超爽玩法！</Description>
+                    <Description Language="en">Featuring the all-new Shenzhou faction with a distinctive art style and gameplay, a major overhaul and systemic upgrade of the three vanilla factions, and substantial visual improvements. Massive, heavily armed capital ships turn naval battles into true fleet engagements, while tail-gun bombers dueling interceptors deliver a brand-new air combat experience. Beyond balanced standard matches, Faction Expansion mode unlocks a wealth of powerful technologies and units for every faction. Download it and enjoy the gorgeous visuals and the immensely satisfying combinations!</Description>
+                </Descriptions>
+                <Contents>
+                    <Content Language="zh">intro-zh</Content>
+                    <Content Language="en">intro-en</Content>
+                </Contents>
+            </Post>
             <Post Type="changelog" DateTime="2026-07-12T00:00:00+08:00">
                 <Titles>
                     <Title Language="zh">3.256 版本更新说明</Title>
