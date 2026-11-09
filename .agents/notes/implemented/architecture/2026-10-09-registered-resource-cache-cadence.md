@@ -2,6 +2,8 @@
 
 Status: implemented
 
+Related decision: [one composition core and layout-only exports](../../implemented/architecture/2026-11-07-composable-metadata.md) adds snapshot/package access for inline manifests while preserving cache-only display, explicit refresh and image cadence. This Decision is not reversed.
+
 ## Problem
 
 普通展示如果在每次读取时发 HTTP，或在命中图片缓存后再做后台条件校验，页面轮询就会放大请求。图片虚拟地址只带登记 ID 和 revision；进程重启后若 revision 回到相同起点，或同一 ID 更换 Source 后仍得到相同 revision，网页会复用旧图。
