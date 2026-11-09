@@ -8,7 +8,7 @@
     </Includes>
 
     <Application ID="content">
-        <Version>1.9.9.30</Version>
+        <Version>1.9.9.31</Version>
         <DisplayName Language="zh">游戏资源</DisplayName>
         <DisplayName Language="en">Game Resources</DisplayName>
         <Packages>
@@ -44,9 +44,13 @@
                 <ReleaseDate>2026-11-09</ReleaseDate>
                 <Manifest>manifest-1.9.9.30</Manifest>
             </Package>
+            <Package Version="1.9.9.31">
+                <ReleaseDate>2026-11-09</ReleaseDate>
+                <Manifest>manifest-1.9.9.31</Manifest>
+            </Package>
         </Packages>
         <Posts/>
-        <UpdateKind ID="content" DisplayName="游戏资源" Current="1.9.9.30"
+        <UpdateKind ID="content" DisplayName="游戏资源" Current="1.9.9.31"
                     BaseUrl="https://update.ra3battle.net/app/contents2/"
                     FallbackBaseUrl="">
             <Updater Version="9.9.8.6"
@@ -87,6 +91,11 @@
             <Updater Version="1.9.9.30"
                      Source="https://update.ra3battle.net/app/contents2/manifests/manifest-1.9.9.30.xml"
                      Hash="329BCE36A97A218F0BF2944CFB741486"
+                     Size="154600"
+                     ReleaseDate="2026-11-09" />
+            <Updater Version="1.9.9.31"
+                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-1.9.9.31.xml"
+                     Hash="907982C4D1368950F98FADE2B7BCB0CE"
                      Size="154600"
                      ReleaseDate="2026-11-09" />
         </UpdateKind>
