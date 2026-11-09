@@ -44,8 +44,12 @@ public class PublishSurfaceTests
                 File.ReadAllBytes(Path.Combine(dst, relative))
                     .Should().Equal(File.ReadAllBytes(Path.Combine(src, relative)));
             }
-            File.Exists(Path.Combine(dst, "mods", "corona", "manifests", "3.259.xml")).Should().BeTrue();
-            File.Exists(Path.Combine(dst, "apps", "ra3battlenet", "manifests", "1.9.9.22.xml")).Should().BeTrue();
+            foreach (var manifest in loaded.GetAllElements("Manifest").Where(m => m.Get("Source") is not null))
+            {
+                var relative = manifest.Get("Source")!.Replace('/', Path.DirectorySeparatorChar);
+                File.Exists(Path.Combine(dst, relative)).Should().BeTrue($"登记清单必须进发布物: {relative}");
+                File.Exists(Path.Combine(src, relative)).Should().BeTrue();
+            }
 
             // _redirects 自动带出
             File.Exists(Path.Combine(dst, "_redirects")).Should().BeTrue();
@@ -104,16 +108,123 @@ public class PublishSurfaceTests
     }
 
     [TestMethod]
-    public void Build_RepoSample_LeafManifestIsFlattenedAndLoadable()
+    public void Build_MockLeafManifest_IsFlattenedAndLoadable()
     {
-        var dst = Path.Combine(Path.GetTempPath(), $"publish-leaf-{Guid.NewGuid():N}");
-
+        var temp = Path.Combine(Path.GetTempPath(), $"publish-mock-leaf-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        var dst = Path.Combine(temp, "out");
+        SeedSchemas(src);
         try
         {
-            MetadataBuilder.Build(RepoMetadataDir, dst, schemaVersion: "1.0", contentRevision: "publish-test");
+            Directory.CreateDirectory(Path.Combine(src, "mods", "mockmod", "manifests"));
+            Directory.CreateDirectory(Path.Combine(src, "apps", "mockruntime", "manifests"));
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Metadata>
+                  <Includes>
+                    <Include Source="mods/mockmod/mockmod.xml" />
+                    <Include Source="apps/mockruntime/mockruntime.xml" />
+                  </Includes>
+                </Metadata>
+                """);
+            File.WriteAllText(Path.Combine(src, "mods", "mockmod", "mockmod.xml"), """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Metadata>
+                  <Includes>
+                    <Include Source="manifests/1.0.xml" />
+                  </Includes>
+                  <Mod ID="MockMod">
+                    <CurrentVersion>1.0</CurrentVersion>
+                    <DisplayName Language="zh">假模组</DisplayName>
+                    <DisplayName Language="en">MockMod</DisplayName>
+                    <Packages>
+                      <Package Version="1.0">
+                        <Manifest>manifest-mock</Manifest>
+                      </Package>
+                    </Packages>
+                    <Posts/>
+                  </Mod>
+                </Metadata>
+                """);
+            File.WriteAllText(Path.Combine(src, "mods", "mockmod", "manifests", "1.0.xml"), """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Metadata>
+                  <Tags>
+                    <Commit>${TIMESTAMP}</Commit>
+                  </Tags>
+                  <Includes/>
+                  <Manifest ID="manifest-mock" HashAlgorithm="CRC32C">
+                    <Skudef GameVersion="1.12">
+                      <AddConfig LocalFile="CustomConfig.txt" Optional="true" />
+                      <AddBig File="core.big" Package="optional-pack" />
+                      <AddBig File="text.big" Language="en" />
+                      <AddBig File="base.lyi" />
+                    </Skudef>
+                    <File Hash="3507CD54" Size="4">
+                      <FileName>core.big</FileName>
+                      <RelativePath>/</RelativePath>
+                      <KindOf>MISC;</KindOf>
+                      <Sources>
+                        <Source Type="BT" Url="https://example.invalid/core.big.torrent" />
+                      </Sources>
+                    </File>
+                    <File Hash="88BE39D6" Size="4">
+                      <FileName>text.big</FileName>
+                      <RelativePath>/</RelativePath>
+                      <KindOf>MISC;</KindOf>
+                      <Sources>
+                        <Source Type="BT" Url="https://example.invalid/text.big.torrent" />
+                      </Sources>
+                    </File>
+                    <File Hash="95DC8BF4" Size="8" DownloadName="base.zst" Compression="zstd">
+                      <FileName>base.lyi</FileName>
+                      <RelativePath>/</RelativePath>
+                      <KindOf>MOD;</KindOf>
+                      <Sources>
+                        <Source Type="BT" Url="https://example.invalid/base.zst.torrent" />
+                      </Sources>
+                    </File>
+                  </Manifest>
+                </Metadata>
+                """);
+            File.WriteAllText(Path.Combine(src, "apps", "mockruntime", "mockruntime.xml"), """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Metadata>
+                  <Includes>
+                    <Include Source="manifests/1.0.xml" />
+                  </Includes>
+                  <Application ID="MockRuntime">
+                    <Version>1.0</Version>
+                    <DisplayName Language="zh">假运行时</DisplayName>
+                    <DisplayName Language="en">MockRuntime</DisplayName>
+                    <Packages>
+                      <Package Version="1.0">
+                        <Manifest>manifest-runtime</Manifest>
+                      </Package>
+                    </Packages>
+                    <Posts/>
+                  </Application>
+                </Metadata>
+                """);
+            File.WriteAllText(Path.Combine(src, "apps", "mockruntime", "manifests", "1.0.xml"), """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Metadata>
+                  <Manifest ID="manifest-runtime" HashAlgorithm="SHA256">
+                    <File Hash="31de4e57a19017eee55e6f66ddb9f6c217f944716dee2cd14a37f72dfbbe831b" RawHash="b601d79b38720d174c17b6affed3506f01c5033d20a42d1f90fe5745f1b8d021" RawHashAlgorithm="SHA256" Size="64" DownloadName="runtime.zip.zst" Compression="zstd">
+                      <FileName>runtime.zip</FileName>
+                      <RelativePath>/</RelativePath>
+                      <KindOf>RUNTIME</KindOf>
+                      <Sources>
+                        <Source Type="BT" Url="https://example.invalid/runtime.zip.zst.torrent" />
+                      </Sources>
+                    </File>
+                  </Manifest>
+                </Metadata>
+                """);
 
-            // 叶子清单不能照抄源文件：客户端解析器拒绝 Includes，也不该收到未替换的变量
-            var leafPath = Path.Combine(dst, "mods", "corona", "manifests", "3.259.xml");
+            MetadataBuilder.Build(src, dst, schemaVersion: "1.0", contentRevision: "publish-mock");
+
+            var leafPath = Path.Combine(dst, "mods", "mockmod", "manifests", "1.0.xml");
             var text = File.ReadAllText(leafPath);
             text.Should().NotContain("<Includes");
             text.Should().NotMatchRegex(@"\$\{[^}]+\}");
@@ -124,60 +235,37 @@ public class PublishSurfaceTests
             entry.Files.Should().OnlyContain(f => f.Sources.Count > 0);
             entry.Files.Should().Contain(f => f.DownloadName != null);
 
-            var runtime = MetadataBuilder.Load(Path.Combine(dst, "apps", "webview2", "manifests", "156.0.4314.58.xml"))
+            var runtime = MetadataBuilder.Load(Path.Combine(dst, "apps", "mockruntime", "manifests", "1.0.xml"))
                 .Find("Manifest")!.ToManifestEntry();
             runtime.HashAlgorithm.Should().Be("SHA256");
             var file = runtime.Files.Should().ContainSingle().Subject;
-            file.FileName.Should().Be("WebView2Runtime.zip");
-            file.DownloadName.Should().Be("WebView2Runtime.zip.zst");
+            file.FileName.Should().Be("runtime.zip");
+            file.DownloadName.Should().Be("runtime.zip.zst");
             file.Compression.Should().Be("zstd");
-            file.Size.Should().Be(233263294);
+            file.Size.Should().Be(64);
             file.Hash.Should().Be("31de4e57a19017eee55e6f66ddb9f6c217f944716dee2cd14a37f72dfbbe831b");
             file.RawHash.Should().Be("b601d79b38720d174c17b6affed3506f01c5033d20a42d1f90fe5745f1b8d021");
             file.RawHashAlgorithm.Should().Be("SHA256");
             file.Sources.Should().ContainSingle().Which.Url.Should()
-                .Be("https://file.cor-games.com/srv/redist/WebView2Runtime.zip.zst.torrent");
+                .Be("https://example.invalid/runtime.zip.zst.torrent");
             var exported = MetadataXml.Write(file.Raw);
             exported.Should().Contain($"RawHash=\"{file.RawHash}\"").And.Contain("RawHashAlgorithm=\"SHA256\"");
-        }
-        finally
-        {
-            if (Directory.Exists(dst))
-                Directory.Delete(dst, recursive: true);
-        }
-    }
 
-    [TestMethod]
-    public void Build_RepoSample_SkudefSurvivesFlattenInDeclaredOrder()
-    {
-        var dst = Path.Combine(Path.GetTempPath(), $"publish-skudef-{Guid.NewGuid():N}");
-
-        try
-        {
-            MetadataBuilder.Build(RepoMetadataDir, dst, schemaVersion: "1.0", contentRevision: "publish-test");
-
-            var entry = MetadataBuilder.Load(Path.Combine(dst, "mods", "corona", "manifests", "3.259.xml"))
-                .Find("Manifest")!.ToManifestEntry();
             var skudef = entry.Skudef;
-
             skudef.Should().NotBeNull("展平后叶子清单要保住 Skudef");
             skudef!.GameVersion.Should().Be("1.12");
             skudef.Commands.Select(c => c.Target).Should().ContainInOrder(
-                "CustomConfig.txt", "Disabler.big", "HighResShadow.big", "Cor_ENG_3.250.big",
-                "coronaBGM_3.228.lyi", "corona_3.259.lyi", "StaticVersion.big");
+                "CustomConfig.txt", "core.big", "text.big", "base.lyi");
             skudef.Commands.Should().ContainSingle(c => c.Target == "CustomConfig.txt" && c.Kind == SkudefCommandKind.Config && c.Optional);
-            skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "Disabler.big" && c.Package == "disable-sky-and-patches");
-            skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "HighResShadow.big" && c.Package == "hd-shadow");
-            skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "Cor_ENG_3.250.big" && c.Language == "en");
-            skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "StaticVersion.big" && c.Package == "world-builder");
-
-            // 加载条件单源：File 上不能再留 Mount/Language/Package
+            skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "core.big" && c.Package == "optional-pack");
+            skudef.Commands.Should().Contain(c => c.Kind == SkudefCommandKind.Big && c.Target == "text.big" && c.Language == "en");
             entry.Files.Should().OnlyContain(f => f.Mount == "base" && f.Language == null && f.Package == null);
         }
         finally
         {
-            if (Directory.Exists(dst))
-                Directory.Delete(dst, recursive: true);
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
         }
     }
+
 }

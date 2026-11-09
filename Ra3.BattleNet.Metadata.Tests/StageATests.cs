@@ -1,4 +1,4 @@
-﻿using System.Xml.Linq;
+using System.Xml.Linq;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -45,27 +45,7 @@ public class StageATests
             loaded.Applications().Should().Contain(a => a.Id == "RA3BattleNet");
             loaded.Mods().Should().Contain(m => m.Id == "Corona");
 
-            // 发布 ID = {路径前缀}:{localId}
-            var registries = loaded.GetAllElements("Manifest")
-                .Where(m => !string.IsNullOrEmpty(m.Get("ID"))).ToList();
-            var manifest = registries
-                .First(m => MetadataFlattener.LocalId(m.Get("ID")) == "manifest-1.9.9.22");
-            manifest.Get("ID")!.Should().Contain(":");
-            manifest.Get("ID")!.Should().EndWith(":manifest-1.9.9.22");
-            var source = manifest.Get("Source");
-            source.Should().NotBeNullOrWhiteSpace();
-            source!.Replace('\\', '/').Should().EndWith("manifests/1.9.9.22.xml");
-            source.Should().NotContain("apps.xml");
-            var manifestPath = Path.Combine(dst, source.Replace('/', Path.DirectorySeparatorChar));
-            File.Exists(manifestPath).Should().BeTrue();
-            File.ReadAllText(manifestPath).Should().Contain("<File").And.Contain("Ra3BattleNet_Setup_1.9.9.22.exe");
-
-            var coronaManifest = loaded.GetAllElements("Manifest")
-                .First(m => MetadataFlattener.LocalId(m.Get("ID")!) == "manifest-3259");
-            coronaManifest.Get("Source")!.Replace('\\', '/').Should().EndWith("manifests/3.259.xml");
-
             // 引用已改写为限定 ID（示例数据里只剩 Mod 带新闻）
-            var app = loaded.Applications().Single(a => a.Id == "RA3BattleNet");
             var modDoc = XDocument.Load(Path.Combine(src, "mods", "corona", "corona.xml"));
             var modXml = Path.Combine(src, "mods", "corona", "corona.xml");
             var localContentId = modDoc.Descendants("Mod")
@@ -113,7 +93,6 @@ public class StageATests
             File.ReadAllText(Path.Combine(dst, markdown.Source!.Replace('/', Path.DirectorySeparatorChar)))
                 .Should().Be(sourceBody);
 
-            app.Packages.Single(p => p.Version == "1.9.9.22").ManifestId.Should().Be(manifest.Get("ID"));
             var corona = loaded.Mods().Single(m => m.Id == "Corona");
             var icon = loaded.Images().Single(image => image.Id == corona.Icon);
             var sourceDoc = XDocument.Load(Path.Combine(src, "mods", "corona", "corona.xml"));
@@ -124,6 +103,93 @@ public class StageATests
         {
             if (Directory.Exists(dst))
                 Directory.Delete(dst, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_MockManifest_QualifiesIdAndPublishesLeaf()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"stage-a-mock-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        var dst = Path.Combine(temp, "out");
+        SeedSchemas(src);
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(src, "apps", "mockapp", "manifests"));
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Metadata>
+                  <Includes>
+                    <Include Source="apps/mockapp/mockapp.xml" />
+                  </Includes>
+                </Metadata>
+                """);
+            File.WriteAllText(Path.Combine(src, "apps", "mockapp", "mockapp.xml"), """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Metadata>
+                  <Includes>
+                    <Include Source="manifests/manifests.xml" />
+                  </Includes>
+                  <Application ID="MockApp">
+                    <Version>9.9.9</Version>
+                    <DisplayName Language="zh">假应用</DisplayName>
+                    <DisplayName Language="en">MockApp</DisplayName>
+                    <Packages>
+                      <Package Version="9.9.9">
+                        <Manifest>manifest-mock</Manifest>
+                      </Package>
+                    </Packages>
+                    <Posts/>
+                  </Application>
+                </Metadata>
+                """);
+            File.WriteAllText(Path.Combine(src, "apps", "mockapp", "manifests", "manifests.xml"), """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Metadata>
+                  <Includes>
+                    <Include Source="9.9.9.xml" />
+                  </Includes>
+                </Metadata>
+                """);
+            File.WriteAllText(Path.Combine(src, "apps", "mockapp", "manifests", "9.9.9.xml"), """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Metadata>
+                  <Tags>
+                    <Commit>${TIMESTAMP}</Commit>
+                  </Tags>
+                  <Manifest ID="manifest-mock" HashAlgorithm="CRC32C">
+                    <File Hash="3507CD54" Size="12">
+                      <FileName>MockApp_Setup.exe</FileName>
+                      <RelativePath>/</RelativePath>
+                      <KindOf>APPLICATION</KindOf>
+                      <Sources>
+                        <Source Type="BT" Url="https://example.invalid/MockApp_Setup.exe.torrent" />
+                      </Sources>
+                    </File>
+                  </Manifest>
+                </Metadata>
+                """);
+
+            MetadataBuilder.Build(src, dst, schemaVersion: "1.0", contentRevision: "mock-rev");
+
+            var loaded = MetadataBuilder.Load(Path.Combine(dst, "metadata.xml"));
+            var manifest = loaded.GetAllElements("Manifest")
+                .Single(m => MetadataFlattener.LocalId(m.Get("ID")) == "manifest-mock");
+            manifest.Get("ID").Should().Be("apps/mockapp/manifests/9.9.9:manifest-mock");
+            var source = manifest.Get("Source")!.Replace('\\', '/');
+            source.Should().Be("apps/mockapp/manifests/9.9.9.xml");
+            source.Should().NotContain("apps.xml");
+
+            var manifestPath = Path.Combine(dst, source.Replace('/', Path.DirectorySeparatorChar));
+            var leaf = File.ReadAllText(manifestPath);
+            leaf.Should().Contain("<File").And.Contain("MockApp_Setup.exe");
+            leaf.Should().NotContain("${TIMESTAMP}");
+            loaded.Applications().Single().Packages.Single().ManifestId.Should().Be(manifest.Get("ID"));
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
         }
     }
 
