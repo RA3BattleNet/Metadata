@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Metadata>
+<Metadata SchemaVersion="1.0">
   <Tags>
     <!-- 预留标记 -->
     <Commit>${TIMESTAMP}</Commit>
