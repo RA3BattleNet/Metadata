@@ -8,8 +8,9 @@ XML 的字段、默认值和校验规则。字段顺序以 [MetadataSchema.xsd](
 
 | 属性 | 含义 |
 |---|---|
-| `SchemaVersion` | 数据契约版本，当前固定 `1.0`。客户端用 `MetadataSchema.IsCompatible` 判断能否读取 |
-| `ContentRevision` | 构建时写入的提交标识，客户端据此判断内容是否更新 |
+| `SchemaVersion` | 数据契约版本，写在源根 `metadata.xml` 的根节点上，由作者声明，当前固定 `1.0`。客户端用 `MetadataSchema.IsCompatible` 判断能否读取 |
+
+根节点只有 `SchemaVersion` 一个构建无关的契约属性：构建不注入版本，也不写修订标记，只解析 `${TIMESTAMP}` 等变量。因此指定入口 `metadata.xml` 就能直接读，展平只是把分散的文档合成一份、方便网络传输。
 
 `SchemaVersion` 提高意味着旧客户端可能无法工作。改样式、加可选字段、改默认值都不提高版本。协议版本是 `1.0` 不等于所有旧字段都还在：`Package.Changelogs` 和 `ChangelogSource` 已经删除，没有兼容层，调用方改读实体自己的 `Posts`。
 

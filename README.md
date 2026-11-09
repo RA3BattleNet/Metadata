@@ -20,6 +20,8 @@ dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Ou
 
 构建成功会打印 `✓ 构建完成` 和实体列表，产物在 `Output/`。任何校验不通过都会清空输出并说明改哪个文件。
 
+一次性读取统一使用 `MetadataReader.Read(pathOrUrl).Root`，不再提供 Builder.Load/LoadSource/Open。新生成资源 ID 使用 `scope/local`，已有含 `/` 或 `:` 的完整 ID 原样匹配；Source 相对定义文档。Flat/Tree/Mixed 只是导出组织，没有 `--id-format` 或旧格式兼容模式。完整 API 见 [解析库与缓存](.agents/docs/references/library-api.md)。
+
 ## 加一个 Mod
 
 1. 复制 `Metadata/Templates/Mod.xml` 到 `Metadata/mods/<英文名>/<英文名>.xml`。
@@ -46,9 +48,9 @@ dotnet run --project Ra3.BattleNet.Metadata -- build --src=./Metadata --dst=./Ou
 
 ```text
 Metadata/                         源数据；metadata.xml 是总入口
-Ra3.BattleNet.Metadata/           解析库 + 命令行构建工具
+Ra3.BattleNet.Metadata/           Reading/、Exporting/、Building/、Cache/；模型/query 留根
 Ra3.BattleNet.Metadata.Imaging/   发版用的 WebP 转换工具
-Ra3.BattleNet.Metadata.Tests/     MSTest 测试
+Ra3.BattleNet.Metadata.Tests/     Reading/、Exporting/、Building/、Cache/、Queries/；TestData 不移
 scripts/verify-docs.mjs           知识库检查
 .agents/                          研发文档、决策笔记、自动生成的索引
 ```

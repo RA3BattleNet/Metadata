@@ -1,0 +1,422 @@
+using System.Xml.Linq;
+using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace Ra3.BattleNet.Metadata.Tests;
+
+[TestClass]
+public class BuildTests
+{
+    private static string RepoMetadataDir =>
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Metadata"));
+
+    private static void SeedSchemas(string targetDir)
+    {
+        Directory.CreateDirectory(targetDir);
+        foreach (var name in new[] { SchemaValidator.SourceSchemaFileName, SchemaValidator.PublishSchemaFileName })
+        {
+            File.Copy(Path.Combine(RepoMetadataDir, name), Path.Combine(targetDir, name), overwrite: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_RepoSample_FlattensWithoutInclude_AndResolvesIds()
+    {
+        var src = RepoMetadataDir;
+        var dst = Path.Combine(Path.GetTempPath(), $"stage-a-{Guid.NewGuid():N}");
+
+        try
+        {
+            MetadataBuilder.Build(src, dst);
+
+            var flatPath = Path.Combine(dst, "metadata.xml");
+            File.Exists(flatPath).Should().BeTrue();
+
+            var text = File.ReadAllText(flatPath);
+            text.Should().NotContain("<Include");
+            text.Should().NotContain("<Includes");
+            text.Should().Contain("SchemaVersion");
+            text.Should().NotMatchRegex(@"\$\{[^}]+\}");
+
+            var loaded = MetadataReader.Read(flatPath).Root;
+            loaded.Get("SchemaVersion").Should().Be("1.0");
+            loaded.Applications().Should().Contain(a => a.Id == "RA3BattleNet");
+            loaded.Mods().Should().Contain(m => m.Id == "Corona");
+
+            // 引用已改写为限定 ID（示例数据里只剩 Mod 带新闻）
+            var modDoc = XDocument.Load(Path.Combine(src, "mods", "corona", "corona.xml"));
+            var modXml = Path.Combine(src, "mods", "corona", "corona.xml");
+            var localContentId = modDoc.Descendants("Mod")
+                .Single(m => m.Attribute("ID")!.Value == "Corona")
+                .Element("Posts")!
+                .Elements("Post").Elements("Contents").Elements("Content")
+                .First(c => string.Equals((string?)c.Attribute("Language"), "zh", StringComparison.OrdinalIgnoreCase))
+                .Value.Trim();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var pending = new Queue<string>();
+            pending.Enqueue(modXml);
+            XElement? registration = null;
+            string? registrationFile = null;
+            while (pending.Count > 0)
+            {
+                var file = Path.GetFullPath(pending.Dequeue());
+                if (!seen.Add(file))
+                    continue;
+                var doc = XDocument.Load(file);
+                var match = doc.Descendants("Markdown")
+                    .SingleOrDefault(m => string.Equals((string?)m.Attribute("ID"), localContentId, StringComparison.Ordinal));
+                if (match != null)
+                {
+                    registration.Should().BeNull("同一入口的 Include 闭包里这条 Content 只能对应一条 Markdown");
+                    registration = match;
+                    registrationFile = file;
+                }
+                foreach (var include in doc.Descendants("Include"))
+                {
+                    var relative = include.Attribute("Source")?.Value;
+                    if (!string.IsNullOrWhiteSpace(relative))
+                        pending.Enqueue(Path.Combine(Path.GetDirectoryName(file)!, relative));
+                }
+            }
+            registration.Should().NotBeNull();
+            var sourceBody = File.ReadAllText(Path.GetFullPath(Path.Combine(
+                Path.GetDirectoryName(registrationFile!)!,
+                registration!.Attribute("Source")!.Value)));
+            var publishedContentId = loaded.Mods().Single(m => m.Id == "Corona").Raw.Find("Posts")!
+                .GetAllElements("Content")
+                .First(c => string.Equals(c.Get("Language"), "zh", StringComparison.OrdinalIgnoreCase))
+                .Value!;
+            MetadataId.LocalId(publishedContentId).Should().Be(localContentId);
+            var markdown = loaded.Markdowns().Single(m => m.Id == publishedContentId);
+            File.ReadAllText(Path.Combine(dst, markdown.Source!.Replace('/', Path.DirectorySeparatorChar)))
+                .Should().Be(sourceBody);
+
+            var corona = loaded.Mods().Single(m => m.Id == "Corona");
+            var icon = loaded.Images().Single(image => image.Id == corona.Icon);
+            var sourceDoc = XDocument.Load(Path.Combine(src, "mods", "corona", "corona.xml"));
+            var localIconId = sourceDoc.Descendants("Mod").Single().Element("Icon")!.Value;
+            icon.Id.Should().Be(MetadataId.Qualify("mods/corona/corona", localIconId));
+        }
+        finally
+        {
+            if (Directory.Exists(dst))
+                Directory.Delete(dst, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_MockManifest_QualifiesIdAndPublishesLeaf()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"stage-a-mock-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        var dst = Path.Combine(temp, "out");
+        SeedSchemas(src);
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(src, "apps", "mockapp", "manifests"));
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Metadata SchemaVersion="1.0">
+                  <Includes>
+                    <Include Source="apps/mockapp/mockapp.xml" />
+                  </Includes>
+                </Metadata>
+                """);
+            File.WriteAllText(Path.Combine(src, "apps", "mockapp", "mockapp.xml"), """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Metadata>
+                  <Includes>
+                    <Include Source="manifests/manifests.xml" />
+                  </Includes>
+                  <Application ID="MockApp">
+                    <Version>9.9.9</Version>
+                    <DisplayName Language="zh">假应用</DisplayName>
+                    <DisplayName Language="en">MockApp</DisplayName>
+                    <Packages>
+                      <Package Version="9.9.9">
+                        <Manifest>manifest-mock</Manifest>
+                      </Package>
+                    </Packages>
+                    <Posts/>
+                  </Application>
+                </Metadata>
+                """);
+            File.WriteAllText(Path.Combine(src, "apps", "mockapp", "manifests", "manifests.xml"), """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Metadata>
+                  <Includes>
+                    <Include Source="9.9.9.xml" />
+                  </Includes>
+                </Metadata>
+                """);
+            File.WriteAllText(Path.Combine(src, "apps", "mockapp", "manifests", "9.9.9.xml"), """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Metadata>
+                  <Tags>
+                    <Commit>${TIMESTAMP}</Commit>
+                  </Tags>
+                  <Manifest ID="manifest-mock" HashAlgorithm="CRC32C">
+                    <File Hash="3507CD54" Size="12">
+                      <FileName>MockApp_Setup.exe</FileName>
+                      <RelativePath>/</RelativePath>
+                      <KindOf>APPLICATION</KindOf>
+                      <Sources>
+                        <Source Type="BT" Url="https://example.invalid/MockApp_Setup.exe.torrent" />
+                      </Sources>
+                    </File>
+                  </Manifest>
+                </Metadata>
+                """);
+
+            MetadataBuilder.Build(src, dst);
+
+            var loaded = MetadataReader.Read(Path.Combine(dst, "metadata.xml")).Root;
+            var manifest = loaded.GetAllElements("Manifest")
+                .Single(m => MetadataId.LocalId(m.Get("ID")) == "manifest-mock");
+            manifest.Get("ID").Should().Be("apps/mockapp/manifests/9.9.9/manifest-mock");
+            var source = manifest.Get("Source")!.Replace('\\', '/');
+            source.Should().Be("apps/mockapp/manifests/9.9.9.xml");
+            source.Should().NotContain("apps.xml");
+
+            var manifestPath = Path.Combine(dst, source.Replace('/', Path.DirectorySeparatorChar));
+            var leaf = File.ReadAllText(manifestPath);
+            leaf.Should().Contain("<File").And.Contain("MockApp_Setup.exe");
+            leaf.Should().NotContain("${TIMESTAMP}");
+            loaded.Applications().Single().Packages.Single().ManifestId.Should().Be(manifest.Get("ID"));
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_RepoSample_TransferAdFlattensForDeclaringAppOnly()
+    {
+        var src = RepoMetadataDir;
+        var dst = Path.Combine(Path.GetTempPath(), $"stage-transfer-ad-{Guid.NewGuid():N}");
+
+        try
+        {
+            MetadataBuilder.Build(src, dst);
+
+            var doc = XDocument.Load(Path.Combine(dst, "metadata.xml"));
+            var apps = doc.Root!.Elements("Application").ToList();
+
+            var ra3 = apps.Single(a => (string?)a.Attribute("ID") == "RA3BattleNet");
+            var declared = XDocument.Load(Path.Combine(src, "apps", "ra3battlenet", "ra3battlenet.xml"))
+                .Descendants("Application").Single(a => (string?)a.Attribute("ID") == "RA3BattleNet")
+                .Element("TransferAd");
+            declared.Should().NotBeNull("测试样本必须声明 TransferAd 才能验证展平");
+            ra3.Element("TransferAd").Should().NotBeNull();
+            // true / false 都合法，只要求展平后与声明值一致
+            bool.TryParse(ra3.Element("TransferAd")!.Value, out _).Should().BeTrue();
+            ra3.Element("TransferAd")!.Value.Should().Be(declared!.Value);
+
+            var content = apps.Single(a => (string?)a.Attribute("ID") == "content");
+            content.Element("TransferAd").Should().BeNull("未声明 TransferAd 的应用保持缺失兼容");
+
+            // 展平物继续满足发布 XSD
+            SchemaValidator
+                .ValidateFile(Path.Combine(dst, "metadata.xml"),
+                              Path.Combine(src, SchemaValidator.PublishSchemaFileName))
+                .Should().BeEmpty();
+        }
+        finally
+        {
+            if (Directory.Exists(dst))
+                Directory.Delete(dst, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_MissingSourceSchemaVersion_FailsBeforeExport()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"stage-a-version-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        var dst = Path.Combine(temp, "out");
+        SeedSchemas(src);
+        try
+        {
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata />
+""");
+
+            var act = () => MetadataBuilder.Build(src, dst);
+            act.Should().Throw<InvalidOperationException>().WithMessage("*缺少 SchemaVersion*");
+            Directory.Exists(dst).Should().BeFalse("半残输出应被清理");
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_MissingMarkdown_HardFails_AndCleansOutput()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"stage-a-bad-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        var dst = Path.Combine(temp, "out");
+        SeedSchemas(src);
+        try
+        {
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata SchemaVersion="1.0">
+  <Markdown ID="missing-md" Source="nope.md"/>
+</Metadata>
+""");
+
+            var act = () => MetadataBuilder.Build(src, dst);
+            act.Should().Throw<FileNotFoundException>();
+            Directory.Exists(dst).Should().BeFalse("半残输出应被清理");
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_BadIdReference_HardFails()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"stage-a-id-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        var dst = Path.Combine(temp, "out");
+        SeedSchemas(src);
+        try
+        {
+            File.WriteAllText(Path.Combine(src, "note.md"), "# hello sample markdown body\n");
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata SchemaVersion="1.0">
+  <Markdown ID="ok-md" Source="note.md"/>
+  <Application ID="App">
+    <Version>1.0</Version>
+    <DisplayName Language="zh">应用</DisplayName>
+    <DisplayName Language="en">App</DisplayName>
+    <Packages>
+      <Package Version="1.0">
+        <Manifest>no-such-manifest</Manifest>
+      </Package>
+    </Packages>
+  </Application>
+</Metadata>
+""");
+
+            var act = () => MetadataBuilder.Build(src, dst);
+            act.Should().Throw<InvalidOperationException>().WithMessage("*no-such-manifest*");
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Flatten_CircularInclude_Throws()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"stage-a-circ-{Guid.NewGuid():N}");
+        var output = temp + "-output";
+        SeedSchemas(temp);
+        try
+        {
+            File.WriteAllText(Path.Combine(temp, "a.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Includes>
+    <Include Source="b.xml" />
+  </Includes>
+</Metadata>
+""");
+            File.WriteAllText(Path.Combine(temp, "b.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Includes>
+    <Include Source="a.xml" />
+  </Includes>
+</Metadata>
+""");
+            File.WriteAllText(Path.Combine(temp, "metadata.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata SchemaVersion="1.0">
+  <Includes>
+    <Include Source="a.xml" />
+  </Includes>
+</Metadata>
+""");
+
+            var act = () => MetadataBuilder.Build(temp, output);
+            act.Should().Throw<InvalidOperationException>();
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+            if (Directory.Exists(output))
+                Directory.Delete(output, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_LeftoverVariable_HardFails()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"stage-a-var-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        SeedSchemas(src);
+        try
+        {
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata SchemaVersion="1.0">
+  <Tags>
+    <Commit>${ENV:THIS_ENV_SHOULD_NOT_EXIST_ZZZ}</Commit>
+  </Tags>
+</Metadata>
+""");
+            var act = () => MetadataBuilder.Build(src, Path.Combine(temp, "out"));
+            act.Should().Throw<InvalidOperationException>().WithMessage("*残留*");
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_PreservesSourceSemanticsExceptDeclaredBuildFields()
+    {
+        var output = Path.Combine(Path.GetTempPath(), $"build-equivalence-{Guid.NewGuid():N}");
+        try
+        {
+            var options = new MetadataSourceOptions { InlineManifests = true };
+            var source = MetadataReader.Read(Path.Combine(RepoMetadataDir, "metadata.xml"), options).Document;
+            MetadataBuilder.Build(RepoMetadataDir, output);
+            var published = MetadataReader.Read(Path.Combine(output, "metadata.xml"), options).Document;
+            // 源声明的 SchemaVersion 原样保留，构建不追加版本或修订属性
+            source.Root!.Attribute("SchemaVersion")!.Value.Should().Be("1.0");
+            published.Root!.Attribute("SchemaVersion")!.Value.Should().Be("1.0");
+            published.Root.Attribute("ContentRevision").Should().BeNull();
+            source.Root.Element("Tags")!.Element("Commit")!.Value.Should().Be("${TIMESTAMP}");
+            published.Root.Element("Tags")!.Element("Commit")!.Value.Should()
+                .MatchRegex(@"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$");
+            foreach (var document in new[] { source, published })
+            {
+                document.Root!.Element("Tags")!.Element("Commit")!.Value = "build-stamp";
+            }
+            MetadataXml.Write(MetadataParser.Load(published)).Should().Be(MetadataXml.Write(MetadataParser.Load(source)));
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, recursive: true);
+        }
+    }
+
+}

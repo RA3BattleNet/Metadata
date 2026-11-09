@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>元数据书写与读取模型</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #fcfcfb;
+      --fg: #1c2128;
+      --muted: #5a6472;
+      --line: #d5dbe2;
+      --panel: #ffffff;
+      --panel-2: #f4f6f8;
+      --accent: #0b63b6;
+      --accent-soft: #e9f1fa;
+      --code-bg: #f5f7f9;
+      --code-border: #e2e7ec;
+      --table-head: #f0f3f6;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0e1116;
+        --fg: #e4e8ee;
+        --muted: #98a2b1;
+        --line: #2a313b;
+        --panel: #141922;
+        --panel-2: #191f29;
+        --accent: #70b7ff;
+        --accent-soft: #15273b;
+        --code-bg: #11161e;
+        --code-border: #242c37;
+        --table-head: #171d26;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 48px 24px 72px;
+    }
+
+    header {
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .08em;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 30px;
+      line-height: 1.3;
+      letter-spacing: -.01em;
+    }
+
+    h2 {
+      margin: 44px 0 14px;
+      font-size: 20px;
+      line-height: 1.4;
+    }
+
+    h3 {
+      margin: 0 0 6px;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    p {
+      margin: 10px 0;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 46em;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    a {
+      color: var(--accent);
+      text-underline-offset: 2px;
+    }
+
+    code {
+      padding: .1em .32em;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: var(--panel-2);
+      font-family: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, "Liberation Mono", monospace;
+      font-size: .9em;
+    }
+
+    pre {
+      margin: 0;
+      padding: 14px 16px;
+      overflow-x: auto;
+      border: 1px solid var(--code-border);
+      border-radius: 8px;
+      background: var(--code-bg);
+    }
+
+    pre code {
+      padding: 0;
+      border: 0;
+      background: none;
+      font-size: 12.5px;
+      line-height: 1.65;
+    }
+
+    .conclusions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: conclusion;
+    }
+
+    .conclusions li {
+      padding: 16px 16px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .conclusions li::before {
+      counter-increment: conclusion;
+      content: "0" counter(conclusion);
+      display: block;
+      margin-bottom: 8px;
+      color: var(--accent);
+      font-family: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    .conclusions p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13.5px;
+      line-height: 1.7;
+    }
+
+    figure {
+      margin: 20px 0 8px;
+    }
+
+    .diagram {
+      display: block;
+      width: 100%;
+      height: auto;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+
+    .node {
+      fill: var(--panel-2);
+      stroke: var(--line);
+      stroke-width: 1;
+    }
+
+    .node.root {
+      fill: var(--accent-soft);
+      stroke: var(--accent);
+      stroke-width: 1.4;
+    }
+
+    .node-label {
+      fill: var(--fg);
+      font-size: 12px;
+    }
+
+    .node-label.mono {
+      font-family: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
+      font-size: 11.5px;
+    }
+
+    .caption {
+      fill: var(--muted);
+      font-size: 11px;
+    }
+
+    .col-title {
+      fill: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .04em;
+    }
+
+    .edge {
+      fill: none;
+      stroke: var(--line);
+      stroke-width: 1.4;
+    }
+
+    .edge.include {
+      stroke: var(--muted);
+      stroke-dasharray: 4 4;
+    }
+
+    .edge.source-ref {
+      stroke: var(--muted);
+      stroke-dasharray: 1.5 3.5;
+    }
+
+    .edge.direct {
+      stroke: var(--accent);
+      stroke-width: 1.7;
+    }
+
+    .edge-label {
+      fill: var(--muted);
+      font-size: 10.5px;
+      paint-order: stroke;
+      stroke: var(--panel);
+      stroke-width: 3px;
+      stroke-linejoin: round;
+    }
+
+    .edge-label.accent {
+      fill: var(--accent);
+    }
+
+    .arrowhead {
+      fill: var(--muted);
+    }
+
+    .arrowhead.accent {
+      fill: var(--accent);
+    }
+
+    figcaption {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 18px;
+      margin: 8px 0 0;
+    }
+
+    .key {
+      display: inline-block;
+      width: 26px;
+      margin-right: 6px;
+      vertical-align: middle;
+      border-top: 2px solid var(--muted);
+    }
+
+    .key.include {
+      border-top-style: dashed;
+    }
+
+    .key.source {
+      border-top-style: dotted;
+    }
+
+    .key.path {
+      border-top-color: var(--accent);
+    }
+
+    .paths {
+      margin: 14px 0 0;
+      padding-left: 1.25em;
+    }
+
+    .paths li {
+      margin: 6px 0;
+    }
+
+    .paths strong {
+      font-weight: 600;
+    }
+
+    .tabs {
+      margin-top: 16px;
+    }
+
+    .tablist {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .tab {
+      margin-bottom: -1px;
+      padding: 8px 12px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: none;
+      color: var(--muted);
+      font: inherit;
+      font-size: 13.5px;
+      cursor: pointer;
+    }
+
+    .tab:hover {
+      color: var(--fg);
+    }
+
+    .tab[aria-selected="true"] {
+      color: var(--fg);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .panel {
+      padding-top: 14px;
+    }
+
+    .js .panel {
+      display: none;
+    }
+
+    .js .panel.active {
+      display: block;
+    }
+
+    html:not(.js) .tablist {
+      display: none;
+    }
+
+    .panel-note {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    th,
+    td {
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--table-head);
+      font-weight: 600;
+    }
+
+    td code {
+      white-space: nowrap;
+    }
+
+    .details {
+      margin: 0;
+      padding-left: 1.25em;
+    }
+
+    .details li {
+      margin: 7px 0;
+    }
+
+    .note {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-left: 3px solid var(--accent);
+      background: var(--accent-soft);
+      font-size: 13.5px;
+    }
+
+    footer {
+      margin-top: 48px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+
+    @media (max-width: 720px) {
+      main {
+        padding: 32px 18px 56px;
+      }
+
+      h1 {
+        font-size: 25px;
+      }
+
+      .conclusions {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+  <script>document.documentElement.classList.add('js');</script>
+</head>
+
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">元数据 · 书写与读取</p>
+      <h1>元数据书写与读取模型</h1>
+      <p class="lead">作者想怎么写就怎么写，读取只认一个入口 <code>metadata.xml</code>。展平与导出只服务于网络传输和把模组信息放在一起，不是读取的前提。</p>
+    </header>
+
+    <section aria-labelledby="conclusions">
+      <h2 id="conclusions">三条结论</h2>
+      <ol class="conclusions">
+        <li>
+          <h3>只认一个入口</h3>
+          <p><code>MetadataReader.Read</code> 接收入口 <code>metadata.xml</code>，其余文件由 <code>Include</code>
+            递归发现。入口可以是本地路径、HTTP(S) 地址或自定义来源，没有第二个读取入口。</p>
+        </li>
+        <li>
+          <h3>源树写法自由</h3>
+          <p>可以按 Mod、应用任意拆分，支持嵌套 <code>Include</code>、<code>Base</code> 继承、资源短 ID 和完整内联清单。读取器在内存里合成一棵规范树。</p>
+        </li>
+        <li>
+          <h3>展平不是前提</h3>
+          <p><code>build</code> 与 <code>export</code> 把树合成单文件发布物，解析 <code>${TIMESTAMP}</code> 等变量，便于下载与聚合；源树本身同样能被
+            Reader
+            直接读取。</p>
+        </li>
+      </ol>
+    </section>
+
+    <section aria-labelledby="model">
+      <h2 id="model">读取路径</h2>
+      <p>同一个 Reader 消费两种形态：作者维护的源树，以及构建导出的单文件发布物。展平只是把多份文件变成一份，不改变读取入口，也不改变读取语义。</p>
+      <figure>
+        <svg class="diagram" viewBox="0 0 920 470" role="img" aria-labelledby="diagram-title diagram-desc">
+          <title id="diagram-title">源树、展平产物与读取器的关系</title>
+          <desc id="diagram-desc">左侧源树通过 Include 组织文件；中间是展平后的单文件发布物；右侧是同一个 MetadataReader 和
+            MetadataClient。源树可以直接读取，展平产物也可以直接读取。</desc>
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
+              orient="auto-start-reverse">
+              <path class="arrowhead" d="M0,0 L10,5 L0,10 z"></path>
+            </marker>
+            <marker id="arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
+              orient="auto-start-reverse">
+              <path class="arrowhead accent" d="M0,0 L10,5 L0,10 z"></path>
+            </marker>
+          </defs>
+
+          <text class="col-title" x="168" y="30" text-anchor="middle">源树（作者怎么写）</text>
+          <text class="col-title" x="470" y="30" text-anchor="middle">展平（build / export）</text>
+          <text class="col-title" x="780" y="30" text-anchor="middle">同一套 Reader / 客户端</text>
+
+          <rect class="node root" x="30" y="52" width="250" height="34" rx="6"></rect>
+          <text class="node-label mono" x="44" y="74">metadata.xml（入口）</text>
+
+          <rect class="node" x="72" y="100" width="208" height="28" rx="6"></rect>
+          <text class="node-label mono" x="84" y="119">mods/mods.xml</text>
+
+          <rect class="node" x="72" y="140" width="208" height="28" rx="6"></rect>
+          <text class="node-label mono" x="84" y="159">apps/apps.xml</text>
+
+          <rect class="node" x="114" y="180" width="166" height="28" rx="6"></rect>
+          <text class="node-label mono" x="126" y="199">corona/corona.xml</text>
+
+          <rect class="node" x="156" y="222" width="150" height="24" rx="5"></rect>
+          <text class="node-label mono" x="166" y="238">manifests/3258.xml</text>
+
+          <rect class="node" x="156" y="252" width="150" height="24" rx="5"></rect>
+          <text class="node-label mono" x="166" y="268">manifests/3300.xml</text>
+
+          <rect class="node" x="114" y="292" width="166" height="28" rx="6"></rect>
+          <text class="node-label mono" x="126" y="311">ra3battlenet/app.xml</text>
+
+          <path class="edge include" d="M 46,86 V 114 H 72"></path>
+          <path class="edge include" d="M 46,86 V 154 H 72"></path>
+          <path class="edge include" d="M 88,128 V 194 H 114"></path>
+          <path class="edge include" d="M 88,168 V 306 H 114"></path>
+          <path class="edge source-ref" d="M 146,208 V 264"></path>
+          <path class="edge source-ref" d="M 146,234 H 156"></path>
+          <path class="edge source-ref" d="M 146,264 H 156"></path>
+          <text class="edge-label" x="52" y="98">Include</text>
+          <text class="edge-label" x="150" y="219">Source</text>
+
+          <rect class="node" x="370" y="100" width="200" height="180" rx="8"></rect>
+          <text class="node-label mono" x="382" y="130">Output/metadata.xml</text>
+          <text class="caption" x="382" y="158">单文件，无 Include</text>
+          <text class="caption" x="382" y="184">展开变量</text>
+          <text class="caption" x="382" y="210">资源 Source 保留</text>
+          <text class="caption" x="382" y="236">网络传输与聚合</text>
+          <text class="caption" x="382" y="262">不是读取前提</text>
+
+          <rect class="node" x="670" y="100" width="220" height="180" rx="8"></rect>
+          <text class="node-label mono" x="682" y="130">MetadataReader</text>
+          <text class="node-label mono" x="682" y="158">MetadataClient</text>
+          <text class="caption" x="682" y="186">规范化 Root + Documents</text>
+          <text class="caption" x="682" y="212">磁盘缓存 / 离线可用</text>
+          <text class="caption" x="682" y="238">客户端与桌面端消费</text>
+          <text class="caption" x="682" y="264">两条路径同一模型</text>
+
+          <path class="edge" d="M 306,196 H 370" marker-end="url(#arrow)"></path>
+          <text class="edge-label" x="338" y="184" text-anchor="middle">build / export</text>
+          <text class="edge-label" x="338" y="214" text-anchor="middle">展平</text>
+
+          <path class="edge" d="M 570,196 H 670" marker-end="url(#arrow)"></path>
+          <text class="edge-label" x="620" y="184" text-anchor="middle">Output → Reader</text>
+          <text class="edge-label" x="620" y="214" text-anchor="middle">同样可用</text>
+
+          <path class="edge direct" d="M 160,322 C 280,430 560,430 690,280" marker-end="url(#arrow-accent)"></path>
+          <text class="edge-label accent" x="425" y="450" text-anchor="middle">源树 → Reader：直接可用</text>
+        </svg>
+        <figcaption>
+          <p class="legend">
+            <span><span class="key include"></span>Include 关系</span>
+            <span><span class="key source"></span>资源 Source 引用</span>
+            <span><span class="key path"></span>读取 / 构建路径</span>
+          </p>
+        </figcaption>
+      </figure>
+      <ul class="paths">
+        <li><strong>源树 → Reader</strong>：<code>MetadataReader.Read("./Metadata/metadata.xml")</code>，入口直接指向源根，不需要先构建。
+        </li>
+        <li><strong>Output → Reader</strong>：<code>MetadataReader.Read("./Output/metadata.xml")</code>，或由
+          <code>MetadataClient</code> 拉取发布物；展平后的单文件同样由一个入口读取。
+        </li>
+        <li>两条路径产出同一个规范化模型，最终都由 <code>MetadataClient</code> 与桌面端消费。</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="examples">
+      <h2 id="examples">三种写法，同一个入口</h2>
+      <p>下面的写法都能被同一个入口读取。示例 ID 使用短名（<code>Corona</code>、<code>icon</code>、<code>manifest-3258</code>）：资源的 scope 前缀由
+        Reader 与构建统一补齐，实体 ID 保持全仓库唯一的原名。子文件根节点同样写 <code>&lt;Metadata&gt;</code>；<code>SchemaVersion</code> 只要求写在入口根节点上。
+      </p>
+      <div class="tabs">
+        <div class="tablist" role="tablist" aria-label="三种写法">
+          <button class="tab" role="tab" id="tab-split" aria-controls="panel-split" aria-selected="true"
+            data-tab="split">拆分 Include</button>
+          <button class="tab" role="tab" id="tab-single" aria-controls="panel-single" aria-selected="false"
+            tabindex="-1" data-tab="single">单文件</button>
+          <button class="tab" role="tab" id="tab-mixed" aria-controls="panel-mixed" aria-selected="false" tabindex="-1"
+            data-tab="mixed">混合内联清单</button>
+        </div>
+
+        <section class="panel active" role="tabpanel" id="panel-split" aria-labelledby="tab-split" data-panel="split">
+          <p class="panel-note">入口只负责列出 <code>Include</code>；每个 Mod 或应用独占目录，内部文件继续按需拆分。</p>
+          <pre><code>&lt;!-- Metadata/metadata.xml --&gt;
+              &lt;Metadata SchemaVersion="1.0"&gt;
+              &lt;Includes&gt;
+              &lt;Include Source="mods/mods.xml" /&gt;
+              &lt;Include Source="apps/apps.xml" /&gt;
+              &lt;/Includes&gt;
+              &lt;/Metadata&gt;
+
+              &lt;!-- Metadata/mods/mods.xml --&gt;
+              &lt;Metadata&gt;
+              &lt;Includes&gt;
+              &lt;Include Source="corona/corona.xml" /&gt;
+              &lt;/Includes&gt;
+              &lt;/Metadata&gt;
+
+              &lt;!-- Metadata/mods/corona/corona.xml --&gt;
+              &lt;Metadata&gt;
+              &lt;Image ID="icon" Source="images/icon.png" /&gt;
+              &lt;Manifest ID="manifest-3258" Source="manifests/3258.xml" /&gt;
+
+              &lt;Mod ID="Corona"&gt;
+              &lt;CurrentVersion&gt;3.258&lt;/CurrentVersion&gt;
+              &lt;Icon&gt;icon&lt;/Icon&gt;
+              &lt;DisplayName Language="zh"&gt;日冕&lt;/DisplayName&gt;
+              &lt;DisplayName Language="en"&gt;Corona&lt;/DisplayName&gt;
+              &lt;Packages&gt;
+              &lt;Package Version="3.258"&gt;
+              &lt;Manifest&gt;manifest-3258&lt;/Manifest&gt;
+              &lt;/Package&gt;
+              &lt;/Packages&gt;
+              &lt;/Mod&gt;
+              &lt;/Metadata&gt;</code></pre>
+        </section>
+
+        <section class="panel" role="tabpanel" id="panel-single" aria-labelledby="tab-single" data-panel="single">
+          <p class="panel-note">全部内容放在入口文件里。资源 <code>Source</code> 相对当前文档解释，因此这里从源根算起。</p>
+          <pre><code>&lt;!-- Metadata/metadata.xml：没有 Include，所有节点平铺 --&gt;
+              &lt;Metadata SchemaVersion="1.0"&gt;
+              &lt;Image ID="icon" Source="corona/images/icon.png" /&gt;
+              &lt;Manifest ID="manifest-3258" Source="corona/manifests/3258.xml" /&gt;
+
+              &lt;Mod ID="Corona"&gt;
+              &lt;CurrentVersion&gt;3.258&lt;/CurrentVersion&gt;
+              &lt;Icon&gt;icon&lt;/Icon&gt;
+              &lt;DisplayName Language="zh"&gt;日冕&lt;/DisplayName&gt;
+              &lt;DisplayName Language="en"&gt;Corona&lt;/DisplayName&gt;
+              &lt;Packages&gt;
+              &lt;Package Version="3.258"&gt;
+              &lt;Manifest&gt;manifest-3258&lt;/Manifest&gt;
+              &lt;/Package&gt;
+              &lt;/Packages&gt;
+              &lt;/Mod&gt;
+              &lt;/Metadata&gt;</code></pre>
+        </section>
+
+        <section class="panel" role="tabpanel" id="panel-mixed" aria-labelledby="tab-mixed" data-panel="mixed">
+          <p class="panel-note">完整清单直接写在 <code>Manifest</code> 里（无 <code>Source</code>），外部清单只写
+            <code>Source</code>。两种形式可以共存，<code>Package</code> 里都只写短名。
+          </p>
+          <pre><code>&lt;!-- Metadata/metadata.xml --&gt;
+              &lt;Metadata SchemaVersion="1.0"&gt;
+              &lt;Includes&gt;
+              &lt;Include Source="mods/corona/corona.xml" /&gt;
+              &lt;/Includes&gt;
+              &lt;/Metadata&gt;
+
+              &lt;!-- Metadata/mods/corona/corona.xml --&gt;
+              &lt;Metadata&gt;
+              &lt;Image ID="icon" Source="images/icon.png" /&gt;
+
+              &lt;!-- 完整内联清单：没有 Source，随 Include 一起保留 --&gt;
+              &lt;Manifest ID="manifest-3258" HashAlgorithm="None"&gt;
+              &lt;File Mount="base"&gt;
+              &lt;FileName&gt;Corona.big&lt;/FileName&gt;
+              &lt;RelativePath&gt;Corona&lt;/RelativePath&gt;
+              &lt;KindOf&gt;big&lt;/KindOf&gt;
+              &lt;/File&gt;
+              &lt;/Manifest&gt;
+
+              &lt;!-- 外部清单：有 Source，只是引用 --&gt;
+              &lt;Manifest ID="manifest-3300" Source="manifests/3300.xml" /&gt;
+
+              &lt;Mod ID="Corona"&gt;
+              &lt;CurrentVersion&gt;3.258&lt;/CurrentVersion&gt;
+              &lt;Icon&gt;icon&lt;/Icon&gt;
+              &lt;DisplayName Language="zh"&gt;日冕&lt;/DisplayName&gt;
+              &lt;DisplayName Language="en"&gt;Corona&lt;/DisplayName&gt;
+              &lt;Packages&gt;
+              &lt;Package Version="3.258"&gt;
+              &lt;Manifest&gt;manifest-3258&lt;/Manifest&gt;
+              &lt;/Package&gt;
+              &lt;Package Version="3.300"&gt;
+              &lt;Manifest&gt;manifest-3300&lt;/Manifest&gt;
+              &lt;/Package&gt;
+              &lt;/Packages&gt;
+              &lt;/Mod&gt;
+              &lt;/Metadata&gt;</code></pre>
+        </section>
+      </div>
+    </section>
+
+    <section aria-labelledby="contract">
+      <h2 id="contract">版本契约</h2>
+      <p><code>SchemaVersion</code> 是作者声明的数据契约，构建不再替你注入，也不写任何修订标记。</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>字段</th>
+              <th>写在哪</th>
+              <th>谁写入</th>
+              <th>缺失或版本不符</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>SchemaVersion="1.0"</code></td>
+              <td>源根入口 <code>metadata.xml</code> 的根节点</td>
+              <td>作者手写；构建不再注入</td>
+              <td>构建直接失败；<code>MetadataClient</code> 拒读该根清单</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note"><code>MetadataSchema.IsCompatible</code> 只接受当前版本
+        <code>1.0</code>。版本提高意味着旧客户端可能无法工作；改样式、加可选字段、改默认值都不提高版本。缺 <code>SchemaVersion</code> 时构建的报错文本是「源根 metadata.xml
+        的根节点缺少 SchemaVersion 属性」。
+      </p>
+    </section>
+
+    <section aria-labelledby="details">
+      <h2 id="details">读取细节</h2>
+      <ul class="details">
+        <li><strong>递归捕获 Include。</strong>入口加载后按 <code>Include@Source</code> 继续递归；路径相对当前文件。入口与 <code>Include</code> 都可以是
+          HTTP(S) 地址，但 HTTP 文档不能引用本地文件。</li>
+        <li><strong>菱形 Include 只展开一次。</strong>同一份文档只捕获一次，内容只贡献一次；循环引用直接报错，不做静默跳过。</li>
+        <li><strong>路径限制在源根内。</strong>入口、<code>Include</code> 与资源 <code>Source</code> 都必须落在
+          <code>SourceRoot</code>（缺省为入口所在目录）内，越界抛 <code>InvalidOperationException</code>。
+        </li>
+        <li><strong>缺 <code>SchemaVersion</code> 或入口不存在就直接报错。</strong>构建在源根硬失败；客户端对缺 <code>SchemaVersion</code>
+          的根清单报「根清单缺少 SchemaVersion」并拒读；入口文件不存在抛 <code>FileNotFoundException</code>。没有默认版本注入，也没有兜底路径。</li>
+        <li><strong>读取只在内存中合并。</strong>Reader 合并 <code>Include</code>、继承与资源引用，不写盘、不替换变量、不转换图片，也不改写已声明的
+          <code>SchemaVersion</code>。
+        </li>
+        <li><strong>引用校验是显式选项。</strong><code>MetadataSourceOptions.ValidateReferences</code> 开启后才检查断引用；默认关闭。</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="why">
+      <h2 id="why">为什么这样设计</h2>
+      <p>作者侧不规定文件数量、嵌套层数、短名还是完整 ID。拆成多少文件、要不要内联清单，都是作者的编辑选择，不构成读取契约的一部分。</p>
+      <p>客户端与构建共用同一个
+        <code>MetadataReader</code>：构建读源树，客户端读的是同一个入口——源树或展平产物都行，展平只是同一张图的另一种布局。这样就不存在「源树一套语义、发布物另一套语义」的分叉，也不会出现必须先构建才能读取的隐含规则。
+      </p>
+    </section>
+
+    <footer>
+      <p>
+        静态说明页，无外部依赖。实现位置：<code>Ra3.BattleNet.Metadata/Reading/MetadataReader.cs</code>、<code>Ra3.BattleNet.Metadata/Cache/MetadataClient.cs</code>。
+      </p>
+    </footer>
+  </main>
+  <script>
+    (function () {
+      var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+      var panels = Array.prototype.slice.call(document.querySelectorAll('.panel'));
+      function activate(tab, focus) {
+        var id = tab.getAttribute('data-tab');
+        tabs.forEach(function (item) {
+          var on = item === tab;
+          item.setAttribute('aria-selected', on ? 'true' : 'false');
+          item.tabIndex = on ? 0 : -1;
+        });
+        panels.forEach(function (panel) {
+          panel.classList.toggle('active', panel.getAttribute('data-panel') === id);
+        });
+        if (focus) tab.focus();
+      }
+      tabs.forEach(function (tab, index) {
+        tab.addEventListener('click', function () {activate(tab, false);});
+        tab.addEventListener('keydown', function (event) {
+          if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+          var offset = event.key === 'ArrowRight' ? 1 : -1;
+          var next = tabs[(index + offset + tabs.length) % tabs.length];
+          activate(next, true);
+          event.preventDefault();
+        });
+      });
+    })();
+  </script>
+</body>
+
+</html>

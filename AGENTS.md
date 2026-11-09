@@ -45,7 +45,7 @@ node scripts/verify-docs.mjs --write   # 文档内容确实改了时，重写生
 - 发布树只有静态文件，根 `metadata.xml` 里不能有 `Include`。
 - 完整 ID 由构建器生成；`Manifest`、`Image`、`Markdown` 的登记与引用只用短名。
 - 资源地址只来自登记节点的 `Source`，客户端不猜路径、不猜扩展名。
-- `SchemaVersion` 保持 `1.0`；改样式、加可选字段不提高版本。
+- `SchemaVersion` 写死在源根 `metadata.xml` 的根节点，保持 `1.0`；构建不注入版本、不写修订标记，改样式、加可选字段不提高版本。
 - `Package` 只带 `Version`、`ReleaseDate`、`Manifest`；更新说明写在实体的 `Posts`。
 - `Mod` 与 `Application` 必须各有 `zh`、`en` 两条 `DisplayName`；显示名、`Posts`、`Links` 都不从 `Base` 继承。
 - 写了 `Skudef` 就不许在 `File` 上写 `Mount`、`Language`、`Package`。

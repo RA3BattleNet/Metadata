@@ -18,7 +18,7 @@ internal sealed class HttpMetadataTransfer : IMetadataTransfer
     public HttpMetadataTransfer(HttpClient? httpClient, TimeSpan requestTimeout)
     {
         _ownsHttp = httpClient is null;
-        _http = httpClient ?? new HttpClient { Timeout = requestTimeout };
+        _http = httpClient ?? new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false }) { Timeout = requestTimeout };
     }
 
     public async Task<MetadataTransferResult> FetchAsync(MetadataTransferRequest request, CancellationToken cancellationToken)
@@ -38,6 +38,9 @@ internal sealed class HttpMetadataTransfer : IMetadataTransfer
         using var response = await _http
             .SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
+
+        if (response.RequestMessage?.RequestUri is { } finalUri && finalUri != request.Source)
+            throw new HttpRequestException("Metadata transfer cannot accept redirected responses");
 
         if (response.StatusCode != HttpStatusCode.OK)
         {
