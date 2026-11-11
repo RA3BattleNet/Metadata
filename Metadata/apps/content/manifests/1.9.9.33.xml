@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <Manifest ID="manifest-1.9.9.33" HashAlgorithm="CRC32C">
+        <File Hash="A90B63D6" Size="117233324" DownloadName="LiveContent_1.9.9.33.zip.zst" Compression="zstd">
+            <FileName>LiveContent_1.9.9.33.zip</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>APPLICATION</KindOf>
+            <Sources>
+                <Source Type="HTTP" Url="https://update.ra3battle.net/app/contents2/LiveContent_1.9.9.33.zip.zst" />
+            </Sources>
+        </File>
+    </Manifest>
+</Metadata>
