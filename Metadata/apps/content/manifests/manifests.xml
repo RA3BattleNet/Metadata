@@ -4,16 +4,6 @@
         <Commit>${TIMESTAMP}</Commit>
     </Tags>
     <Includes>
-        <Include Source="9.9.8.6.xml" />
-        <Include Source="1.9.9.24.xml" />
-        <Include Source="1.9.9.25.xml" />
-        <Include Source="1.9.9.26.xml" />
-        <Include Source="1.9.9.27.xml" />
-        <Include Source="1.9.9.28.xml" />
-        <Include Source="1.9.9.29.xml" />
-        <Include Source="1.9.9.30.xml" />
-        <Include Source="1.9.9.31.xml" />
-        <Include Source="1.9.9.32.xml" />
-        <Include Source="1.9.9.33.xml" />
+        <Include Source="2.0.0.1.xml" />
     </Includes>
 </Metadata>

@@ -8,113 +8,23 @@
     </Includes>
 
     <Application ID="content">
-        <Version>1.9.9.33</Version>
+        <Version>2.0.0.1</Version>
         <DisplayName Language="zh">游戏资源</DisplayName>
         <DisplayName Language="en">Game Resources</DisplayName>
         <Packages>
-            <Package Version="9.9.8.6">
-                <ReleaseDate>2026-10-31</ReleaseDate>
-                <Manifest>manifest-9.9.8.6</Manifest>
-            </Package>
-            <Package Version="1.9.9.24">
-                <ReleaseDate>2026-11-05</ReleaseDate>
-                <Manifest>manifest-1.9.9.24</Manifest>
-            </Package>
-            <Package Version="1.9.9.25">
-                <ReleaseDate>2026-11-06</ReleaseDate>
-                <Manifest>manifest-1.9.9.25</Manifest>
-            </Package>
-            <Package Version="1.9.9.26">
-                <ReleaseDate>2026-11-06</ReleaseDate>
-                <Manifest>manifest-1.9.9.26</Manifest>
-            </Package>
-            <Package Version="1.9.9.27">
-                <ReleaseDate>2026-11-08</ReleaseDate>
-                <Manifest>manifest-1.9.9.27</Manifest>
-            </Package>
-            <Package Version="1.9.9.28">
-                <ReleaseDate>2026-11-08</ReleaseDate>
-                <Manifest>manifest-1.9.9.28</Manifest>
-            </Package>
-            <Package Version="1.9.9.29">
-                <ReleaseDate>2026-11-08</ReleaseDate>
-                <Manifest>manifest-1.9.9.29</Manifest>
-            </Package>
-            <Package Version="1.9.9.30">
-                <ReleaseDate>2026-11-09</ReleaseDate>
-                <Manifest>manifest-1.9.9.30</Manifest>
-            </Package>
-            <Package Version="1.9.9.31">
-                <ReleaseDate>2026-11-09</ReleaseDate>
-                <Manifest>manifest-1.9.9.31</Manifest>
-            </Package>
-            <Package Version="1.9.9.32">
-                <ReleaseDate>2026-11-10</ReleaseDate>
-                <Manifest>manifest-1.9.9.32</Manifest>
-            </Package>
-            <Package Version="1.9.9.33">
+            <Package Version="2.0.0.1">
                 <ReleaseDate>2026-11-11</ReleaseDate>
-                <Manifest>manifest-1.9.9.33</Manifest>
+                <Manifest>manifest-2.0.0.1</Manifest>
             </Package>
         </Packages>
         <Posts/>
-        <UpdateKind ID="content" DisplayName="游戏资源" Current="1.9.9.33"
+        <UpdateKind ID="content" DisplayName="游戏资源" Current="2.0.0.1"
                     BaseUrl="https://update.ra3battle.net/app/contents2/"
                     FallbackBaseUrl="">
-            <Updater Version="9.9.8.6"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-9.9.8.6.xml"
-                     Hash="B4FDCE39F100671965E53DE52716B217"
-                     Size="155151"
-                     ReleaseDate="2026-10-31" />
-            <Updater Version="1.9.9.24"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-1.9.9.24.xml"
-                     Hash="9BF1323D4A88EAF109B2DDA27C03A581"
-                     Size="152441"
-                     ReleaseDate="2026-11-05" />
-            <Updater Version="1.9.9.25"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-1.9.9.25.xml"
-                     Hash="D5A0ABCC73491A77720559E4FA2DF3EB"
-                     Size="153228"
-                     ReleaseDate="2026-11-06" />
-            <Updater Version="1.9.9.26"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-1.9.9.26.xml"
-                     Hash="3D47504D602107C2CD733CE98BD16E6F"
-                     Size="153228"
-                     ReleaseDate="2026-11-06" />
-            <Updater Version="1.9.9.27"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-1.9.9.27.xml"
-                     Hash="94770A6497574BDC4BE8661453E86ABF"
-                     Size="154600"
-                     ReleaseDate="2026-11-08" />
-            <Updater Version="1.9.9.28"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-1.9.9.28.xml"
-                     Hash="F214BED4DB8E85C89277DA8BB5671FD1"
-                     Size="154600"
-                     ReleaseDate="2026-11-08" />
-            <Updater Version="1.9.9.29"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-1.9.9.29.xml"
-                     Hash="674D6A167DBD1D82ED953CB87F858830"
-                     Size="154600"
-                     ReleaseDate="2026-11-08" />
-            <Updater Version="1.9.9.30"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-1.9.9.30.xml"
-                     Hash="329BCE36A97A218F0BF2944CFB741486"
-                     Size="154600"
-                     ReleaseDate="2026-11-09" />
-            <Updater Version="1.9.9.31"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-1.9.9.31.xml"
-                     Hash="907982C4D1368950F98FADE2B7BCB0CE"
-                     Size="154600"
-                     ReleaseDate="2026-11-09" />
-            <Updater Version="1.9.9.32"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-1.9.9.32.xml"
-                     Hash="19191EBD07E87163E35777870A8C199F"
-                     Size="154600"
-                     ReleaseDate="2026-11-10" />
-            <Updater Version="1.9.9.33"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-1.9.9.33.xml"
-                     Hash="5216B28B8DB0B5FA4E6CD709A9F2BD7D"
-                     Size="154600"
+            <!-- 2.0.0.1 只发布 BT 整包，增量清单尚未上线：客户端取不到清单时会按
+                 ManifestFallbackPolicy 回退下载整包。清单上线后回填 Hash/Size（清单文件本身的 MD5 与字节数）。 -->
+            <Updater Version="2.0.0.1"
+                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-2.0.0.1.xml"
                      ReleaseDate="2026-11-11" />
         </UpdateKind>
 
