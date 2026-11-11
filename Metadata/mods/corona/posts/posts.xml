@@ -6,10 +6,6 @@
     <Includes>
     </Includes>
 
-    <Image ID="headimg-325x" Source="../images/headimg.jpg" />
-    <Markdown ID="news-zh-3.256" Source="news-zh-3.256.md" />
-    <Markdown ID="news-zh-3.255" Source="news-zh-3.255.md" />
-    <Markdown ID="news-zh-3.253" Source="news-zh-3.253.md" />
     <Markdown ID="intro-zh" Source="introduction-zh.md" />
     <Markdown ID="intro-en" Source="introduction-en.md" />
 </Metadata>
