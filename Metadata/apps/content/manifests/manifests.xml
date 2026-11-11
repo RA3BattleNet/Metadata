@@ -4,7 +4,6 @@
         <Commit>${TIMESTAMP}</Commit>
     </Tags>
     <Includes>
-        <Include Source="1.9.9.33.xml" />
         <Include Source="2.0.0.1.xml" />
     </Includes>
 </Metadata>
