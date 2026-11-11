@@ -8,32 +8,23 @@
     </Includes>
 
     <Application ID="content">
-        <Version>1.9.9.33</Version>
+        <Version>2.0.0.1</Version>
         <DisplayName Language="zh">游戏资源</DisplayName>
         <DisplayName Language="en">Game Resources</DisplayName>
         <Packages>
-            <Package Version="1.9.9.33">
-                <ReleaseDate>2026-11-11</ReleaseDate>
-                <Manifest>manifest-1.9.9.33</Manifest>
-            </Package>
             <Package Version="2.0.0.1">
                 <ReleaseDate>2026-11-11</ReleaseDate>
                 <Manifest>manifest-2.0.0.1</Manifest>
             </Package>
         </Packages>
         <Posts/>
-        <UpdateKind ID="content" DisplayName="游戏资源" Current="1.9.9.33"
-                    BaseUrl="https://update.ra3battle.net/app/contents2/"
+        <UpdateKind ID="content" DisplayName="游戏资源" Current="2.0.0.1"
+                    BaseUrl="https://update.ra3battle.net/app/content/"
                     FallbackBaseUrl="">
-            <Updater Version="1.9.9.33"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-1.9.9.33.xml"
-                     Hash="5216B28B8DB0B5FA4E6CD709A9F2BD7D"
-                     Size="154600"
-                     ReleaseDate="2026-11-11" />
-            <!-- 2.0.0.1 只发布 BT 整包，增量清单尚未上线：客户端取不到清单时会按
-                 ManifestFallbackPolicy 回退下载整包。清单上线后回填 Hash/Size（清单文件本身的 MD5 与字节数）。 -->
             <Updater Version="2.0.0.1"
-                     Source="https://update.ra3battle.net/app/contents2/manifests/manifest-2.0.0.1.xml"
+                     Source="https://update.ra3battle.net/app/content/manifests/manifest-2.0.0.1.xml"
+                     Hash="259470E7270E9744DCD8D11BF1834339"
+                     Size="154600"
                      ReleaseDate="2026-11-11" />
         </UpdateKind>
 
