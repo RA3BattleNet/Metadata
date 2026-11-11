@@ -9,14 +9,14 @@
     </Includes>
 
     <Application ID="RA3BattleNet">
-        <Version>2.0.0.0</Version>
+        <Version>2.0.0.2</Version>
         <DisplayName Language="zh">红色警戒3战网服务</DisplayName>
         <DisplayName Language="en">Ra3BattleNet</DisplayName>
         <TransferAd>false</TransferAd>
         <Packages>
-            <Package Version="2.0.0.0">
-                <ReleaseDate>2026-11-09</ReleaseDate>
-                <Manifest>manifest-2.0.0.0</Manifest>
+            <Package Version="2.0.0.2">
+                <ReleaseDate>2026-11-12</ReleaseDate>
+                <Manifest>manifest-2.0.0.2</Manifest>
             </Package>
         </Packages>
         <Posts/>
@@ -24,18 +24,6 @@
         <UpdateKind ID="RA3BattleNet" DisplayName="客户端程序" Current="2.0.0.2"
                     BaseUrl="https://update.ra3battle.net/app/RA3BattleNet/"
                     FallbackBaseUrl="">
-            <Updater Version="2.0.0.0"
-                     Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-2.0.0.0.xml"
-                     Hash="BFF41EB904B95A71FE90B933FAC01088"
-                     Size="69382"
-                     ReleaseDate="2026-11-09"
-                     Commit="v2.0.0.0" />
-            <Updater Version="2.0.0.1"
-                     Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-2.0.0.1.xml"
-                     Hash="13E71CB0316F421D57D0682078ED6563"
-                     Size="69382"
-                     ReleaseDate="2026-11-11"
-                     Commit="v2.0.0.1" />
             <Updater Version="2.0.0.2"
                      Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-2.0.0.2.xml"
                      Hash="1E34EE53303C8DE33231777E6EE5B876"
