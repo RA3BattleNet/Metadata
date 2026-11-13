@@ -44,6 +44,7 @@
             <RelativePath>/</RelativePath>
             <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
             <Sources>
+                <Source Type="HTTP" Url="http://object.ra3battle.net/mods/corona/coronaBGM_3.228.zst" />
                 <Source Type="BT" Url="https://file.cor-games.com/srv/cor/bgm/coronaBGM_3.228.zst.torrent" />
             </Sources>
         </File>
@@ -52,6 +53,7 @@
             <RelativePath>/</RelativePath>
             <KindOf>MOD; ENCRYPTED_FILE;</KindOf>
             <Sources>
+                <Source Type="HTTP" Url="http://object.ra3battle.net/mods/corona/corona_3.259.zst" />
                 <Source Type="BT" Url="https://file.cor-games.com/srv/cor/mod/corona_3.259.zst.torrent" />
             </Sources>
         </File>
