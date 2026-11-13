@@ -23,9 +23,10 @@ EOF
   esac
 done
 
-# .NET SDK：Cloudflare 构建镜像里没有 dotnet，只能现场装。官方通道（dot.net →
-# builds.dotnet.microsoft.com）在构建容器里会被中途重置（curl 35/56），所以改从自己的
-# 对象存储取同一个官方 tarball，仍校验官方 sha512。
+# .NET SDK：Cloudflare 构建镜像里没有 dotnet，只能现场装；官方通道（dot.net →
+# builds.dotnet.microsoft.com）在构建容器里会被中途重置（curl 35/56），所以主源改成自己的
+# 对象存储（同一个官方 tarball，仍校验官方 sha512）。GitHub Actions 那边由 setup-dotnet
+# 预装 SDK，走到这里时直接复用，不再下载。
 DOTNET_SDK_VERSION="10.0.404"
 DOTNET_SDK_TARBALL="dotnet-sdk-${DOTNET_SDK_VERSION}-linux-x64.tar.gz"
 DOTNET_SDK_URL="https://update.ra3battle.net/app/redist/${DOTNET_SDK_TARBALL}"
@@ -33,16 +34,25 @@ DOTNET_SDK_SHA512="577d0eb17fec33d029104c5c63a1ab0accc3e28776274abef2218dbac5af1
 
 SDK_ROOT="$PWD/dotnet"
 SDK_CACHE="${TMPDIR:-/tmp}/${DOTNET_SDK_TARBALL}"
-mkdir -p "$SDK_ROOT"
 
-curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 \
-  -o "$SDK_CACHE" "$DOTNET_SDK_URL"
-echo "${DOTNET_SDK_SHA512}  ${SDK_CACHE}" | sha512sum -c -
-tar -xzf "$SDK_CACHE" -C "$SDK_ROOT"
-
-# 核心 CLI 内部会再 spawn `dotnet`（Imaging），必须显式导出
-export DOTNET_ROOT="$SDK_ROOT"
-export PATH="$DOTNET_ROOT:$PATH"
+if command -v dotnet >/dev/null 2>&1 && dotnet --list-sdks 2>/dev/null | grep -q "^${DOTNET_SDK_VERSION%%.*}\.0\."; then
+  echo "复用已安装的 .NET SDK: $(dotnet --version)"
+else
+  mkdir -p "$SDK_ROOT"
+  if curl -fsSL --retry 3 --retry-all-errors --retry-delay 3 --connect-timeout 20 \
+      -o "$SDK_CACHE" "$DOTNET_SDK_URL"; then
+    echo "${DOTNET_SDK_SHA512}  ${SDK_CACHE}" | sha512sum -c -
+    tar -xzf "$SDK_CACHE" -C "$SDK_ROOT"
+  else
+    echo "自建镜像取不到 SDK，回落到官方安装脚本" >&2
+    INSTALLER="${TMPDIR:-/tmp}/dotnet-install.sh"
+    curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 -o "$INSTALLER" https://dot.net/v1/dotnet-install.sh
+    bash "$INSTALLER" -c "${DOTNET_SDK_VERSION%.*}" -InstallDir "$SDK_ROOT"
+  fi
+  # 核心 CLI 内部会再 spawn `dotnet`（Imaging），必须显式导出
+  export DOTNET_ROOT="$SDK_ROOT"
+  export PATH="$DOTNET_ROOT:$PATH"
+fi
 dotnet --version
 
 dotnet run --project ./Ra3.BattleNet.Metadata --no-launch-profile -- \
