@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+    <Tags>
+        <Commit>${TIMESTAMP}</Commit>
+    </Tags>
+    <!-- 游戏资源整包（2.0.0.2）。@Hash 是解压后 LiveContent_2.0.0.2.zip 的 CRC32C（289421631 字节），
+         @Size 是服务端 .zip.zst 的字节数；torrent 自带 web seed（url-list 指向内容包所在目录），
+         因此不写重复的 HTTP 直链。 -->
+    <Manifest ID="manifest-2.0.0.2" HashAlgorithm="CRC32C">
+        <File Hash="F867534F" Size="115137841" DownloadName="LiveContent_2.0.0.2.zip.zst" Compression="zstd">
+            <FileName>LiveContent_2.0.0.2.zip</FileName>
+            <RelativePath>/</RelativePath>
+            <KindOf>APPLICATION</KindOf>
+            <Sources>
+                <Source Type="BT" Url="https://file.cor-games.com/srv/ra3battlenet/content/LiveContent_2.0.0.2.zip.zst.torrent" />
+            </Sources>
+        </File>
+    </Manifest>
+</Metadata>
