@@ -21,7 +21,7 @@
         </Packages>
         <Posts/>
     
-        <UpdateKind ID="RA3BattleNet" DisplayName="客户端程序" Current="2.0.0.2"
+        <UpdateKind ID="RA3BattleNet" DisplayName="客户端程序" Current="2.0.0.3"
                     BaseUrl="https://update.ra3battle.net/app/RA3BattleNet/"
                     FallbackBaseUrl="">
             <Updater Version="2.0.0.2"
@@ -30,6 +30,12 @@
                      Size="69382"
                      ReleaseDate="2026-11-11"
                      Commit="v2.0.0.2" />
+            <Updater Version="2.0.0.3"
+                     Source="https://update.ra3battle.net/app/RA3BattleNet/manifests/manifest-2.0.0.3.xml"
+                     Hash="3CE7E14C51CC3A3E74A6287700D031C6"
+                     Size="69382"
+                     ReleaseDate="2026-11-14"
+                     Commit="v2.0.0.3" />
         </UpdateKind>
 
     </Application>
