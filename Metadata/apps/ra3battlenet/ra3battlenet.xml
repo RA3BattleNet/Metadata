@@ -9,7 +9,7 @@
     </Includes>
 
     <Application ID="RA3BattleNet">
-        <Version>2.0.0.2</Version>
+        <Version>2.0.0.3</Version>
         <DisplayName Language="zh">红色警戒3战网服务</DisplayName>
         <DisplayName Language="en">Ra3BattleNet</DisplayName>
         <TransferAd>false</TransferAd>
@@ -17,6 +17,10 @@
             <Package Version="2.0.0.2">
                 <ReleaseDate>2026-11-12</ReleaseDate>
                 <Manifest>manifest-2.0.0.2</Manifest>
+            </Package>
+            <Package Version="2.0.0.3">
+                <ReleaseDate>2026-11-14</ReleaseDate>
+                <Manifest>manifest-2.0.0.3</Manifest>
             </Package>
         </Packages>
         <Posts/>

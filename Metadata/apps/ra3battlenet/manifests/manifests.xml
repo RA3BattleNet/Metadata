@@ -8,5 +8,6 @@
         <!-- 子模块 -->
         <!-- 注册 Manifest 文件 -->
         <Include Source="2.0.0.2.xml" />
+        <Include Source="2.0.0.3.xml" />
     </Includes>
 </Metadata>
