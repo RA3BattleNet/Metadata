@@ -4,11 +4,9 @@ set -euo pipefail
 # 默认仅核心；--webp 时核心 CLI 内部串联 Imaging
 
 WEBP_FLAG=()
-BUILD_ARGS=()
 for arg in "$@"; do
   case "$arg" in
     --webp|--publish|--with-webp) WEBP_FLAG=(--webp) ;;
-    --content-revision=*) BUILD_ARGS+=("$arg") ;;
     --help|-h)
       cat <<'EOF'
 用法: bash build.sh [--webp]
@@ -16,7 +14,6 @@ for arg in "$@"; do
   (无参数)   仅核心构建 → ./Output
   --webp     核心 + Imaging（WebP 与 Hash 更新）
   --publish  同 --webp
-  --content-revision=VALUE  指定发布内容版本
 EOF
       exit 0
       ;;
@@ -51,4 +48,4 @@ fi
 dotnet --version
 
 dotnet run --project ./Ra3.BattleNet.Metadata --no-launch-profile -- \
-  build --src="./Metadata" --dst="./Output" "${WEBP_FLAG[@]}" "${BUILD_ARGS[@]}"
+  build --src="./Metadata" --dst="./Output" "${WEBP_FLAG[@]}"
