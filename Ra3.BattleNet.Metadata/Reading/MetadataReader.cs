@@ -86,6 +86,7 @@ public static class MetadataReader
         private readonly List<MetadataDocumentInfo> _ordered = [];
         private readonly StringComparer _pathComparer;
         private readonly HashSet<string> _manifestProcessing = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, AliasScope> _scopes;
 
         internal Session(IMetadataXmlSource source, string entry, string root, MetadataSourceOptions options)
         {
@@ -96,6 +97,7 @@ public static class MetadataReader
             _pathComparer = DocumentPathComparer.Instance;
             _documents = new Dictionary<string, MetadataDocumentInfo>(_pathComparer);
             _processing = new HashSet<string>(_pathComparer);
+            _scopes = new Dictionary<string, AliasScope>(_pathComparer);
         }
 
         internal MetadataReadResult Read()
@@ -188,46 +190,75 @@ public static class MetadataReader
 
         private void RewriteReferences(MetadataDocumentInfo document)
         {
-            var reachable = new HashSet<string>(_pathComparer);
-            var ownAliases = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
-            foreach (var registration in document.NormalizedDocument.Descendants().Where(IsRegistration))
-                AddAlias(ownAliases, registration.Attribute("ID")!.Value);
-            var full = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var aliases = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
-            void Add(MetadataDocumentInfo current)
-            {
-                if (!reachable.Add(current.Path)) return;
-                foreach (var registration in current.NormalizedDocument.Descendants().Where(IsRegistration))
-                {
-                    var id = registration.Attribute("ID")!.Value;
-                    full.Add(id);
-                    AddAlias(aliases, id);
-                }
-                foreach (var edge in current.Includes) Add(_documents[edge.TargetPath]);
-            }
-            Add(document);
+            var scope = Scope(document);
             foreach (var reference in document.NormalizedDocument.Descendants().Where(IsReference))
             {
                 var id = reference.Value.Trim();
                 if (id.Length == 0) continue;
-                if (full.Contains(id) || _registrations.Contains(id))
+                if (scope.Full.Contains(id) || _registrations.Contains(id))
                 {
                     reference.Value = id;
                     continue;
                 }
-                if (!id.Contains('/') && ownAliases.TryGetValue(id, out var own))
+                if (!id.Contains('/') && scope.Own.TryGetValue(id, out var own))
                 {
                     if (own.Count != 1) throw new InvalidOperationException($"Ambiguous resource ID: {id} ({document.Path})");
                     reference.Value = own.Single();
                     continue;
                 }
-                if (!ownAliases.TryGetValue(id, out var matches) && !aliases.TryGetValue(id, out matches))
+                if (!scope.Own.TryGetValue(id, out var matches) && !scope.Aliases.TryGetValue(id, out matches))
                     _globalAliases.TryGetValue(id, out matches);
                 if (matches is { Count: > 1 })
                     throw new InvalidOperationException($"Ambiguous resource ID: {id} ({document.Path})");
                 reference.Value = matches is { Count: 1 } ? matches.Single() : id;
             }
         }
+
+        /// <summary>
+        /// 一份文档的引用命名空间：自己的登记，加自己的 Include 闭包里的全部登记。
+        /// 按文档缓存，避免每份文档都重走一遍包含图。
+        /// </summary>
+        private AliasScope Scope(MetadataDocumentInfo document)
+        {
+            if (_scopes.TryGetValue(document.Path, out var cached)) return cached;
+            var own = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+            var full = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var registration in document.NormalizedDocument.Descendants().Where(IsRegistration))
+            {
+                var id = registration.Attribute("ID")!.Value;
+                full.Add(id);
+                AddAlias(own, id);
+            }
+            var scope = new AliasScope(own, full, CloneAliases(own));
+            foreach (var edge in document.Includes)
+            {
+                var included = Scope(_documents[edge.TargetPath]);
+                scope.Full.UnionWith(included.Full);
+                foreach (var pair in included.Aliases)
+                {
+                    if (!scope.Aliases.TryGetValue(pair.Key, out var values))
+                        scope.Aliases[pair.Key] = values = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    values.UnionWith(pair.Value);
+                }
+            }
+            _scopes[document.Path] = scope;
+            return scope;
+        }
+
+        private static Dictionary<string, HashSet<string>> CloneAliases(
+            Dictionary<string, HashSet<string>> aliases)
+        {
+            var clone = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in aliases)
+                clone[pair.Key] = new HashSet<string>(pair.Value, StringComparer.OrdinalIgnoreCase);
+            return clone;
+        }
+
+        /// <summary>引用命名空间：Own 是本文档自己的登记，Full/Aliases 还包含 Include 闭包。</summary>
+        private sealed record AliasScope(
+            Dictionary<string, HashSet<string>> Own,
+            HashSet<string> Full,
+            Dictionary<string, HashSet<string>> Aliases);
 
         private static void AddAlias(Dictionary<string, HashSet<string>> aliases, string id)
         {

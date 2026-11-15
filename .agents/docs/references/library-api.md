@@ -30,7 +30,7 @@ var writtenXml = MetadataExporter.Export(input, "./ComposedOutput",
 
 ### 读取、ID 与 Source
 
-`MetadataReader.Read(pathOrUrl, options)` 返回 MetadataReadResult：Root、规范化 Document、EntryPath、SourceRoot 和 Documents。每份 MetadataDocumentInfo 捕获 Path、RelativePath、原始 Document、自己的 NormalizedDocument 和 Includes（SourcePath/TargetPath）。结果拥有的 XML 按不可变使用；导出使用捕获图，不依赖已释放的内部 HTTP source。
+`MetadataReader.Read(pathOrUrl, options)` 返回 MetadataReadResult：Root、规范化 Document、EntryPath、SourceRoot 和 Documents。每份 MetadataDocumentInfo 捕获 Path、RelativePath、自己的 NormalizedDocument（源文档的规范化副本）和 Includes（SourcePath/TargetPath）。结果拥有的 XML 按不可变使用；导出使用捕获图，不依赖已释放的内部 HTTP source。
 
 源树和展平发布物走同一条读取路径：只要入口根节点写了 `SchemaVersion`，`MetadataBuilder.Build` 就不是读取的前置条件；构建只负责把分散文档合成一份、解析变量并产出发布面。
 
