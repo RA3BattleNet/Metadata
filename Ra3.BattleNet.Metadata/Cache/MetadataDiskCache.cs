@@ -3,13 +3,12 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
-using System.Xml.Linq;
 
 namespace Ra3.BattleNet.Metadata.Cache;
 
 /// <summary>
-/// 最后一份完整规范化 XML 快照与图片。原始 XML 正文按发布文件树保存，仅用于条件重验；
-/// 完整快照另存于 <c>.compositions</c>，不会直接把原始正文作为离线根或叶子返回。
+/// 最后一份合法正文与图片，按发布文件树落盘。XML 正文既做条件重验，也是离线读取的唯一来源：
+/// 读的时候把这份缓存当成只读 XML 源，按引用结构现场组合，不另存规范化结果。
 /// 首次绑定的发布基直接映射到缓存目录，其余发布基放在 <c>.sources</c>，图片查询串放在 <c>.requests</c>。
 /// <c>.etag</c> 将原始正文 SHA256 与响应校验器配对，<c>.uri</c> 保存路径归属，防止其他地址误读或覆盖。
 /// </summary>
@@ -20,7 +19,6 @@ namespace Ra3.BattleNet.Metadata.Cache;
 /// cacheDir/&lt;相对 Source&gt;                             主发布基的叶子与图片（与发布文件树同名）
 /// cacheDir/.sources/&lt;scheme&gt;/&lt;host_port&gt;/&lt;path&gt;       其他发布基的正文
 /// cacheDir/.requests/&lt;请求键&gt;/body                     带查询串的图片正文（键 = 完整 URI 的 SHA256）
-/// cacheDir/.compositions/&lt;上下文键&gt;.xml              完整规范化快照（键 = SourceRoot 与 URI 的 SHA256）
 /// </code>
 /// 同目录还有 <c>.etag</c>（校验器、正文 SHA256 与图片类型）、<c>.uri</c>（一次成型的路径归属地址）和写入中的
 /// <c>.tmp</c>。正文用替换发布，旧正文一直留到替换成功。只接受静态发布文件树：跳转/空路径段、
@@ -177,6 +175,11 @@ internal sealed class MetadataDiskCache
 
     public string RootBodyPath(Uri origin) => BodyPath(Canonicalize(origin));
 
+    /// <summary>
+    /// 只做缓存路径映射的合法性检查，不碰任何文件：会占用保留命名空间、旁挂后缀或越界的地址在这里直接拒绝。
+    /// </summary>
+    public void EnsureCacheable(Uri entry) => _ = BodyPath(Canonicalize(entry));
+
     public string LeafBodyPath(Uri leaf) => BodyPath(Canonicalize(leaf));
 
     public void ValidateGraphPaths(IEnumerable<Uri> uris)
@@ -227,24 +230,6 @@ internal sealed class MetadataDiskCache
         return TryReadBody(BodyPath(canonical), canonical.AbsoluteUri, requireValidators: true);
     }
 
-    public DiskBody? TryReadSnapshot(Uri leaf, string sourceRoot)
-    {
-        var canonical = Canonicalize(leaf);
-        if (HasForeignOwner(canonical))
-            return null;
-        var record = TryReadComposition(canonical, sourceRoot)?.Root;
-        if (record?.Name != "Composition" || (string?)record.Attribute("Origin") != canonical.AbsoluteUri
-            || (string?)record.Attribute("SourceRoot") != sourceRoot
-            || !record.Elements("Document").Any() || record.Element("Root")?.Element("Metadata") is not { } root)
-            return null;
-        var bytes = Encoding.UTF8.GetBytes(root.ToString(SaveOptions.DisableFormatting));
-        var digest = Sha256Hex(bytes);
-        return string.Equals(digest, (string?)record.Attribute("Sha256"), StringComparison.Ordinal)
-            ? new DiskBody(CompositionPath(canonical, sourceRoot), bytes, digest, null, false)
-            : null;
-    }
-
-
     public bool HasForeignOwner(Uri origin)
     {
         var canonical = Canonicalize(origin);
@@ -254,53 +239,6 @@ internal sealed class MetadataDiskCache
         return (stamp is not null && !string.IsNullOrEmpty(stamp.Uri)
                 && !string.Equals(stamp.Uri, canonical.AbsoluteUri, StringComparison.Ordinal))
             || (exists && !string.Equals(owner, canonical.AbsoluteUri, StringComparison.Ordinal));
-    }
-
-    public XDocument? TryReadComposition(Uri origin, string sourceRoot)
-    {
-        try
-        {
-            var path = CompositionPath(origin, sourceRoot);
-            if (!File.Exists(path))
-                return null;
-            using var stream = File.OpenRead(path);
-            return MetadataClient.ReadXml(stream);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Xml.XmlException)
-        {
-            return null;
-        }
-    }
-
-    public void CommitComposition(Uri origin, string sourceRoot, XDocument document)
-    {
-        var path = CompositionPath(origin, sourceRoot);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-        try
-        {
-            File.WriteAllText(temporary, document.ToString(SaveOptions.DisableFormatting), new UTF8Encoding(false));
-            if (File.Exists(path))
-                File.Replace(temporary, path, destinationBackupFileName: null);
-            else
-                File.Move(temporary, path);
-        }
-        finally
-        {
-            TryDelete(temporary);
-        }
-    }
-
-    private string CompositionPath(Uri origin, string sourceRoot)
-    {
-        var directory = Path.Combine(_root, ".compositions");
-        var key = Sha256Hex(Encoding.UTF8.GetBytes(sourceRoot + "\n" + Canonicalize(origin).AbsoluteUri));
-        var path = Path.Combine(directory, key + ".xml");
-        foreach (var candidate in new[] { _root, directory, path, path + ".tmp" })
-            if ((Directory.Exists(candidate) || File.Exists(candidate))
-                && (File.GetAttributes(candidate) & FileAttributes.ReparsePoint) != 0)
-                throw new IOException("Composition cache cannot use filesystem links");
-        return path;
     }
 
     /// <summary>
@@ -525,8 +463,6 @@ internal sealed class MetadataDiskCache
             throw new ArgumentException($"相对 Source 不能占用缓存保留目录 {SourcesDirectoryName}");
         if (string.Equals(first, RequestsDirectoryName, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException($"相对 Source 不能占用缓存保留目录 {RequestsDirectoryName}");
-        if (string.Equals(first, ".compositions", StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("Source occupies the composition cache directory");
     }
 
     private string Combine(List<string> segments)

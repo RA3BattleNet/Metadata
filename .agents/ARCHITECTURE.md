@@ -63,7 +63,7 @@ Output/（发布树：展平后的 metadata.xml + 被引用资源）
 ```
 
 - **下载边界**：`IMetadataTransfer` 只负责把正文写到调用方给的本地路径；校验、落盘、替换缓存都由库自己完成。默认实现是 `HttpMetadataTransfer`，宿主可注入自己的实现（代理、平台网络栈）。
-- **快照语义**：包清单只按捕获根快照和 PackageEntry 精确解析，不翻更早/更晚根，也不从 URI 猜 source-root。Get/GetCached/RefreshPackageAsync 保留；URI-only Get/GetCached/RefreshLeafAsync 及其匹配 glue 删除。外部 GetCachedPackageAsync 只读缓存，内联 body 继承快照状态；完整 normalized snapshot 与 raw XML/validators 分开保存。
+- **快照语义**：包清单只按捕获根快照和 PackageEntry 精确解析，不翻更早/更晚根，也不从 URI 猜 source-root。Get/GetCached/RefreshPackageAsync 保留；URI-only Get/GetCached/RefreshLeafAsync 及其匹配 glue 删除。外部 GetCachedPackageAsync 只读缓存，内联 body 继承快照状态；离线读把缓存正文当只读 XML 源现场组合，不另存规范化副本。
 
 具体 API 与字段含义见 [references/library-api.md](docs/references/library-api.md)。
 

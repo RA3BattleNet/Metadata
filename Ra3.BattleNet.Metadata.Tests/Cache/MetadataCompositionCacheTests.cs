@@ -66,11 +66,15 @@ public sealed class MetadataCompositionCacheTests
         var cache = NewDirectory();
         using (var client = Client(cache))
         {
-            foreach (var entry in new[] { server.Root, nestedRoot })
+            for (var round = 0; round < 2; round++)
             {
+                var entry = round == 0 ? server.Root : nestedRoot;
                 var root = await client.RefreshRootAsync(entry);
                 var package = root.Document!.Mods().Single().Packages.Single();
-                (await client.GetPackageAsync(root, package)).Status.Should().Be(MetadataFreshness.Fresh);
+                var leaf = await client.GetPackageAsync(root, package);
+                leaf.Entry!.Id.Should().Be(round == 0 ? "nested/leaf/m" : "leaf/m");
+                // 同一份正文第二次是从磁盘读的，状态按 Stale 计入。
+                leaf.Status.Should().Be(round == 0 ? MetadataFreshness.Fresh : MetadataFreshness.Stale);
             }
         }
         var requests = server.Requests.Count;
@@ -111,7 +115,7 @@ public sealed class MetadataCompositionCacheTests
 
 
     [TestMethod]
-    public async Task ColdOffline_NeverRequestsNetwork_AndCorruptCompositionIsRejected()
+    public async Task ColdOffline_NeverRequestsNetwork_AndCorruptCachedBodyIsRejected()
     {
         using var server = new Server();
         var cache = NewDirectory();
@@ -120,8 +124,7 @@ public sealed class MetadataCompositionCacheTests
         server.Requests.Should().BeEmpty();
         server.Xml("metadata.xml", "<Metadata SchemaVersion=\"1.0\"><Mod ID=\"good\" /></Metadata>", "root");
         (await client.RefreshRootAsync(server.Root)).Status.Should().Be(MetadataFreshness.Fresh);
-        var record = Directory.EnumerateFiles(Path.Combine(cache, ".compositions"), "*.xml").Single();
-        File.WriteAllText(record, "<Composition");
+        File.WriteAllText(Path.Combine(cache, "metadata.xml"), "<Metadata");
         var count = server.Requests.Count;
         using var reopened = Client(cache);
         (await reopened.OpenSnapshotAsync(server.Root)).Status.Should().Be(MetadataFreshness.Unavailable);
@@ -202,18 +205,19 @@ public sealed class MetadataCompositionCacheTests
     }
 
     [TestMethod]
-    public async Task RawBodyWithoutNormalizedSnapshot_IsNotAnOfflineRoot()
+    public async Task CachedRawBodies_AreTheOfflineRoot()
     {
         using var server = new Server();
         server.Xml("metadata.xml", "<Metadata SchemaVersion=\"1.0\"><Mod ID=\"M\" /></Metadata>", "root");
         var cache = NewDirectory();
         using (var client = Client(cache))
             (await client.RefreshRootAsync(server.Root)).Status.Should().Be(MetadataFreshness.Fresh);
-        foreach (var record in Directory.EnumerateFiles(Path.Combine(cache, ".compositions"), "*.xml"))
-            File.Delete(record);
+        Directory.Exists(Path.Combine(cache, ".compositions")).Should().BeFalse();
         var requests = server.Requests.Count;
         using var reopened = Client(cache);
-        (await reopened.OpenSnapshotAsync(server.Root)).Status.Should().Be(MetadataFreshness.Unavailable);
+        var offline = await reopened.OpenSnapshotAsync(server.Root);
+        offline.Status.Should().Be(MetadataFreshness.Stale);
+        offline.Document!.Mods().Single().Id.Should().Be("M");
         server.Requests.Should().HaveCount(requests);
     }
 
