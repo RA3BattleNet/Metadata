@@ -25,7 +25,7 @@
 | `Ra3.BattleNet.Metadata/Building/ImagePostProcessor.cs` | 80 |
 | `Ra3.BattleNet.Metadata/Building/ImagingInvoker.cs` | 129 |
 | `Ra3.BattleNet.Metadata/Building/MarkdownValidator.cs` | 88 |
-| `Ra3.BattleNet.Metadata/Building/MetadataBuilder.cs` | 543 |
+| `Ra3.BattleNet.Metadata/Building/MetadataBuilder.cs` | 538 |
 | `Ra3.BattleNet.Metadata/Building/MetadataInheritance.cs` | 304 |
 | `Ra3.BattleNet.Metadata/Building/SchemaValidator.cs` | 132 |
 | `Ra3.BattleNet.Metadata/Building/VariableResolver.cs` | 81 |
@@ -38,7 +38,7 @@
 | `Ra3.BattleNet.Metadata/Cache/MetadataDiskCache.cs` | 837 |
 | `Ra3.BattleNet.Metadata/Cache/MetadataFreshness.cs` | 18 |
 | `Ra3.BattleNet.Metadata/Cache/RootSnapshotResult.cs` | 23 |
-| `Ra3.BattleNet.Metadata/Exporting/MetadataExporter.cs` | 378 |
+| `Ra3.BattleNet.Metadata/Exporting/MetadataExporter.cs` | 386 |
 | `Ra3.BattleNet.Metadata/Exporting/MetadataExportOptions.cs` | 18 |
 | `Ra3.BattleNet.Metadata/Exporting/MetadataSourceExporter.cs` | 310 |
 | `Ra3.BattleNet.Metadata/Exporting/MetadataXml.cs` | 34 |
@@ -55,14 +55,16 @@
 | `Ra3.BattleNet.Metadata/Program.cs` | 95 |
 | `Ra3.BattleNet.Metadata/Reading/HttpXmlSource.cs` | 208 |
 | `Ra3.BattleNet.Metadata/Reading/IMetadataXmlSource.cs` | 35 |
-| `Ra3.BattleNet.Metadata/Reading/MetadataDocumentInfo.cs` | 52 |
-| `Ra3.BattleNet.Metadata/Reading/MetadataId.cs` | 34 |
+| `Ra3.BattleNet.Metadata/Reading/MetadataDocumentInfo.cs` | 55 |
+| `Ra3.BattleNet.Metadata/Reading/MetadataId.cs` | 44 |
+| `Ra3.BattleNet.Metadata/Reading/MetadataManifestBody.cs` | 37 |
 | `Ra3.BattleNet.Metadata/Reading/MetadataParser.cs` | 75 |
-| `Ra3.BattleNet.Metadata/Reading/MetadataReader.cs` | 296 |
+| `Ra3.BattleNet.Metadata/Reading/MetadataReader.cs` | 330 |
 | `Ra3.BattleNet.Metadata/Reading/MetadataSourceManifest.cs` | 32 |
 | `Ra3.BattleNet.Metadata/Reading/MetadataSourceOptions.cs` | 27 |
 | `Ra3.BattleNet.Metadata/Reading/MetadataValidator.cs` | 114 |
-| `Ra3.BattleNet.Metadata/Reading/PhysicalFileXmlSource.cs` | 76 |
+| `Ra3.BattleNet.Metadata/Reading/MetadataXmlSource.cs` | 18 |
+| `Ra3.BattleNet.Metadata/Reading/PhysicalFileXmlSource.cs` | 52 |
 
 ## 测试源码
 
@@ -97,7 +99,6 @@
 | `Ra3.BattleNet.Metadata.Tests/Reading/MetadataReaderTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/Reading/MetadataTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/Reading/PathSecurityTests.cs` | MSTest 测试 |
-| `Ra3.BattleNet.Metadata.Tests/Reading/RegistrationValidationTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/Reading/SourceLoadTests.cs` | MSTest 测试 |
 | `Ra3.BattleNet.Metadata.Tests/Reading/ValidationTests.cs` | MSTest 测试 |
 

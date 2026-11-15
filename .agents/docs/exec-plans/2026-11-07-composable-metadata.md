@@ -10,7 +10,7 @@ One Reader and one path-ID format serve all inputs and outputs. Flat/Tree/Mixed 
 
 ## Shared interfaces and semantics
 
-- `MetadataReader.Read(pathOrUrl, options).Root` is the document-reading entry point. The result also captures normalized Document, EntryPath, SourceRoot and Documents with raw/normalized own-node XML and Include edges. Result-owned XML is immutable by convention; export uses captured provenance, not a disposed HTTP source.
+- `MetadataReader.Read(pathOrUrl, options).Root` is the document-reading entry point. The result also captures normalized Document, EntryPath, SourceRoot and per-document normalized XML with Include edges. Result-owned XML is immutable by convention; export uses captured provenance, not a disposed HTTP source.
 - Options retain SourceRoot, ValidateReferences, CustomSource and InlineManifests. Remove ForceSourceTree and LegacySourcePaths. Reader does not write, replace variables, convert images or invent schema/revision values. Parser is only low-level XML projection.
 - Generate short resource IDs as escaped `scope/local`; preserve existing full keys containing slash or colon without syntax policing or separator conversion. References match exact registered keys before scoped aliases. Keep business entity IDs unchanged. See the superseding [ID-key correction](../../notes/implemented/bug-fix/2026-11-07-resource-id-keys.md). No dual codec or format switch is restored.
 - Interpret Source relative to its defining document and project it entry-directory-relative in Root. SourceRoot is containment/qualification only, never a resource-address fallback. Explicit URLs remain supported, Image.Url is authoritative, and HTTP documents cannot reference local files. Preserve URI/path security, cycle/dedup checks, own/descendant/global reference precedence and permanent ambiguity.
@@ -32,7 +32,7 @@ Namespaces stay unchanged. Parent completed production/test responsibility moves
 
 | Target under `Ra3.BattleNet.Metadata/` | Files/responsibility |
 |---|---|
-| `Reading/` | MetadataReader, MetadataId, MetadataDocumentInfo, MetadataSourceOptions, IMetadataXmlSource, PhysicalFileXmlSource, HttpXmlSource, MetadataSourceManifest, MetadataParser (low-level projection), MetadataValidator (reference validation) |
+| `Reading/` | MetadataReader, MetadataId, MetadataDocumentInfo, MetadataSourceOptions, IMetadataXmlSource, MetadataXmlSource, PhysicalFileXmlSource, HttpXmlSource, MetadataSourceManifest, MetadataManifestBody, MetadataParser (low-level projection), MetadataValidator (reference validation) |
 | `Exporting/` | MetadataExporter, MetadataExportOptions, MetadataSourceExporter, MetadataXml |
 | `Building/` | MetadataBuilder, MetadataInheritance, SchemaValidator, VariableResolver, MarkdownValidator, ImagePostProcessor, ImagingInvoker |
 | `Cache/` | Existing client, disk cache, transfer and snapshot/result files; no new general framework |
