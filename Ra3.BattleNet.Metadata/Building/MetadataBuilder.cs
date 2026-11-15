@@ -74,18 +74,13 @@ public static class MetadataBuilder
                 throw new InvalidOperationException("源根 metadata.xml 的根节点缺少 SchemaVersion 属性");
             ModCompatibility.Validate(input.Document.Root!);
             var flatPath = Path.Combine(dst, "metadata.xml");
-            var xmlPaths = MetadataExporter.Export(input, dst);
-            var resolver = new VariableResolver();
+            var xmlPaths = MetadataExporter.Export(input, dst, new MetadataExportOptions
+            {
+                ResolveVariables = true
+            });
             CopyIfExists(Path.Combine(src, "_redirects"), Path.Combine(dst, "_redirects"));
             CopyIfExists(Path.Combine(src, "edgeone.json"), Path.Combine(dst, "edgeone.json"));
             CopyIfExists(Path.Combine(src, "editor.html"), Path.Combine(dst, "editor.html"));
-
-            foreach (var path in xmlPaths)
-            {
-                var document = XDocument.Load(path);
-                resolver.ReplaceInElement(document.Root!);
-                document.Save(path);
-            }
 
             var leftover = FindLeftoverVariables(xmlPaths);
             if (leftover.Count > 0)
