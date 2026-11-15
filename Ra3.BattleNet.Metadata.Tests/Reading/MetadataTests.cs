@@ -15,7 +15,7 @@ public class MetadataTests
     }
 
     [TestMethod]
-    public void LoadFromFile_ValidXml_Success()
+    public void Read_ValidXml_Success()
     {
         var filePath = Path.Combine(_testDataPath, "valid-metadata.xml");
         var metadata = MetadataReader.Read(filePath).Root;
@@ -25,7 +25,7 @@ public class MetadataTests
     }
 
     [TestMethod]
-    public void LoadFromFile_InvalidRoot_ThrowsException()
+    public void Read_InvalidRoot_ThrowsException()
     {
         var filePath = Path.Combine(_testDataPath, "invalid-root.xml");
         var act = () => MetadataReader.Read(filePath);
@@ -33,7 +33,7 @@ public class MetadataTests
     }
 
     [TestMethod]
-    public void LoadFromFile_MissingFile_ThrowsFileNotFoundException()
+    public void Read_MissingFile_ThrowsFileNotFoundException()
     {
         var filePath = Path.Combine(_testDataPath, "nonexistent.xml");
         var act = () => MetadataReader.Read(filePath);

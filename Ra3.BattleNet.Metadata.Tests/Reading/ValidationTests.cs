@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -340,5 +341,46 @@ public class ValidationTests
         {
             DeleteTemp(root);
         }
+    }
+
+    [TestMethod]
+    public void DuplicateRegistrationIds_AreRejectedAcrossKindsAndCase()
+    {
+        var root = MetadataParser.Load(XDocument.Parse("""
+            <Metadata>
+              <Image ID="shared" Source="icon.png" />
+              <Markdown ID="SHARED" Source="post.md" />
+              <Mod ID="Demo"><Icon>shared</Icon></Mod>
+            </Metadata>
+            """));
+
+        var act = () => MetadataValidator.EnsureReferences(root);
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [TestMethod]
+    public void LinkIcon_RequiresRegisteredImage()
+    {
+        var root = MetadataParser.Load(XDocument.Parse("""
+            <Metadata>
+              <Image ID="image" Source="icon.png" />
+              <Markdown ID="article" Source="post.md" />
+              <Mod ID="Demo">
+                <Links>
+                  <Link><Icon>image</Icon></Link>
+                  <Link><Icon>article</Icon></Link>
+                  <Link><Icon>missing</Icon></Link>
+                  <Link />
+                </Links>
+              </Mod>
+            </Metadata>
+            """));
+
+        var missing = MetadataValidator.FindMissingReferences(root);
+
+        missing.Should().HaveCount(2);
+        missing.Should().Contain(item => item.Contains("article", StringComparison.Ordinal));
+        missing.Should().Contain(item => item.Contains("missing", StringComparison.Ordinal));
     }
 }
