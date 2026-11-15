@@ -251,7 +251,7 @@ public static class MetadataExporter
                     {
                         SourceRoot = input.SourceRoot,
                         InlineManifests = true,
-                        CustomSource = input.Source is HttpXmlSource or PhysicalFileXmlSource ? null : input.Source
+                        CustomSource = MetadataXmlSource.IsDefault(input.Source) ? null : input.Source
                     });
                     var normalized = leaf.Document;
                     foreach (var registration in normalized.Descendants().Where(IsRegistration))

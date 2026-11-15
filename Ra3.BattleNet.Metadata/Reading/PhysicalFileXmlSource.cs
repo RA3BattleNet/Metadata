@@ -3,64 +3,40 @@ using System.Xml.Linq;
 namespace Ra3.BattleNet.Metadata;
 
 /// <summary>
-/// <see cref="IMetadataXmlSource"/> 的本地文件实现：逐个转发 System.IO，构造无副作用、无全局状态。
+/// <see cref="IMetadataXmlSource"/> 的本地文件实现：文档读取只走本地文件，远程地址由
+/// <see cref="HttpXmlSource"/> 负责，调用方按入口形态选择（见 <see cref="MetadataReader.Read"/>）。
+/// 构造无副作用、无全局状态。
 /// </summary>
 public sealed class PhysicalFileXmlSource : IMetadataXmlSource
 {
     /// <inheritdoc />
-    public bool Exists(string path)
-    {
-        if (!MetadataReader.IsHttp(path)) return File.Exists(path);
-        using var source = new HttpXmlSource(new Uri(new Uri(path), "."));
-        return source.Exists(path);
-    }
+    public bool Exists(string path) => File.Exists(path);
 
     /// <inheritdoc />
     public XDocument LoadDocument(string path)
     {
-        if (!MetadataReader.IsHttp(path))
+        using var stream = File.OpenRead(path);
+        using var reader = System.Xml.XmlReader.Create(stream, new System.Xml.XmlReaderSettings
         {
-            using var stream = File.OpenRead(path);
-            using var reader = System.Xml.XmlReader.Create(stream, new System.Xml.XmlReaderSettings
-            {
-                DtdProcessing = System.Xml.DtdProcessing.Prohibit,
-                XmlResolver = null
-            });
-            return XDocument.Load(reader);
-        }
-        using var source = new HttpXmlSource(new Uri(new Uri(path), "."));
-        return source.LoadDocument(path);
+            DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+            XmlResolver = null
+        });
+        return XDocument.Load(reader);
     }
 
     /// <inheritdoc />
     // 作者可能写 \ 分隔的路径；先统一成 / 再交给 Path.Combine，跨平台口径一致
-    public string Combine(string basePath, string relativePath)
-    {
-        if (MetadataReader.IsHttp(relativePath)) return new Uri(relativePath).AbsoluteUri;
-        var relative = relativePath.Replace('\\', '/');
-        if (!MetadataReader.IsHttp(basePath)) return Path.Combine(basePath, relative);
-        var directory = basePath.EndsWith('/') ? basePath : basePath + "/";
-        return new Uri(new Uri(directory), relative).AbsoluteUri;
-    }
+    // 绝对 URL 原样返回：本地文档里的远程引用交给根检查拒绝，不做路径拼接
+    public string Combine(string basePath, string relativePath) => MetadataReader.IsHttp(relativePath)
+        ? new Uri(relativePath).AbsoluteUri
+        : Path.Combine(basePath, relativePath.Replace('\\', '/'));
 
     /// <inheritdoc />
-    public string? GetDirectoryName(string path) => MetadataReader.IsHttp(path)
-        ? new Uri(new Uri(path), ".").AbsoluteUri : Path.GetDirectoryName(path);
+    public string? GetDirectoryName(string path) => Path.GetDirectoryName(path);
 
     /// <inheritdoc />
-    public string GetRelativePath(string fromPath, string toPath)
-    {
-        if (!MetadataReader.IsHttp(fromPath))
-            return MetadataReader.IsHttp(toPath) ? toPath : Path.GetRelativePath(fromPath, toPath);
-        if (!MetadataReader.IsHttp(toPath)) return toPath;
-        var from = new Uri(fromPath);
-        var to = new Uri(toPath);
-        if (!string.Equals(from.Scheme, to.Scheme, StringComparison.OrdinalIgnoreCase)
-            || !string.Equals(from.Host, to.Host, StringComparison.OrdinalIgnoreCase) || from.Port != to.Port)
-            return to.AbsoluteUri;
-        var directory = from.AbsoluteUri.EndsWith('/') ? from.AbsoluteUri : from.AbsoluteUri + "/";
-        return new Uri(directory).MakeRelativeUri(to).ToString();
-    }
+    public string GetRelativePath(string fromPath, string toPath) =>
+        MetadataReader.IsHttp(toPath) ? toPath : Path.GetRelativePath(fromPath, toPath);
 
     /// <inheritdoc />
     public string GetFullPath(string path)
