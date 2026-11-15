@@ -2,10 +2,11 @@
 
 > 自动生成，勿手改。重新生成：`node scripts/verify-docs.mjs --write`。
 
-共 23 篇。按状态排序：提案 → 已实施 → 已否决。
+共 24 篇。按状态排序：提案 → 已实施 → 已否决。
 
 | 日期 | 状态 | 分类 | 标题 | 问题 |
 |---|---|---|---|---|
+| 2026-11-15 | implemented | simplification | [Trim the reader, exporter and build surface without changing output](../../notes/implemented/simplification/2026-11-15-reader-surface-trim.md) | The single-format PR already merged reading, exporting and b… |
 | 2026-11-09 | implemented | architecture | [SchemaVersion 由源根声明](../../notes/implemented/architecture/2026-11-09-authored-schema-version.md) | 此前 SchemaVersion 只由构建注入：MetadataBuilder.Build 展平时给每份输出 XML 的根节点写 SchemaVersion 和 ContentRevision，源树自己不带这个属性。 |
 | 2026-11-09 | implemented | architecture | [移除构建期修订标记 ContentRevision](../../notes/implemented/architecture/2026-11-09-drop-content-revision.md) | ContentRevision 是构建时写进发布物根节点的提交标识，文档里一直写成“客户端据此判断内容是否更新”。 |
 | 2026-11-09 | implemented | bug-fix | [叶子清单不再追自己的存根 Source](../../notes/implemented/bug-fix/2026-11-09-leaf-stub-source-loop.md) | MetadataClient.FetchLeafDocumentAsync 读叶子清单时打开了 InlineManifests，CaptureGraphAsync 会把文档里所有带 ID + Source 的 Manifest 当成待内联的正文继续抓取。 |
