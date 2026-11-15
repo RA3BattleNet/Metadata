@@ -2,10 +2,11 @@
 
 > 自动生成，勿手改。重新生成：`node scripts/verify-docs.mjs --write`。
 
-共 24 篇。按状态排序：提案 → 已实施 → 已否决。
+共 25 篇。按状态排序：提案 → 已实施 → 已否决。
 
 | 日期 | 状态 | 分类 | 标题 | 问题 |
 |---|---|---|---|---|
+| 2026-11-15 | implemented | architecture | [离线读取按缓存正文现场组合](../../notes/implemented/architecture/2026-11-15-offline-compose-from-cached-bodies.md) | 缓存分两层：原始正文按发布文件树落盘，规范化结果另存 <cacheDir>/.compositions/<key>.xml，键是 SHA256(SourceRoot + "\n" + 入口 URI)。 |
 | 2026-11-15 | implemented | simplification | [Trim the reader, exporter and build surface without changing output](../../notes/implemented/simplification/2026-11-15-reader-surface-trim.md) | The single-format PR already merged reading, exporting and b… |
 | 2026-11-09 | implemented | architecture | [SchemaVersion 由源根声明](../../notes/implemented/architecture/2026-11-09-authored-schema-version.md) | 此前 SchemaVersion 只由构建注入：MetadataBuilder.Build 展平时给每份输出 XML 的根节点写 SchemaVersion 和 ContentRevision，源树自己不带这个属性。 |
 | 2026-11-09 | implemented | architecture | [移除构建期修订标记 ContentRevision](../../notes/implemented/architecture/2026-11-09-drop-content-revision.md) | ContentRevision 是构建时写进发布物根节点的提交标识，文档里一直写成“客户端据此判断内容是否更新”。 |

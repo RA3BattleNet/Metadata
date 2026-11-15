@@ -921,7 +921,7 @@ public class MetadataClientTests
 
         fixture.Calls.Should().BeEmpty();
         Directory.EnumerateFiles(cache, "*.xml", SearchOption.AllDirectories)
-            .Should().OnlyContain(path => path == Path.Combine(cache, "metadata.xml") || path.Contains(".compositions"));
+            .Should().OnlyContain(path => path == Path.Combine(cache, "metadata.xml"));
         File.Exists(Path.Combine(cache, "evil.xml")).Should().BeFalse();
         var parent = Path.GetDirectoryName(cache);
         if (parent is not null)
@@ -994,7 +994,7 @@ public class MetadataClientTests
         fixture.Calls.Should().BeEmpty();
         File.Exists(Path.Combine(cache, "apps", "leaf.xml.etag")).Should().BeFalse();
         Directory.EnumerateFiles(cache, "*.xml", SearchOption.AllDirectories)
-            .Should().OnlyContain(path => path == Path.Combine(cache, "metadata.xml") || path.Contains(".compositions"));
+            .Should().OnlyContain(path => path == Path.Combine(cache, "metadata.xml"));
         File.Exists(Path.Combine(cache, "metadata.xml.etag")).Should().BeTrue();
         using var reopened = Client(cache, fixture.Http);
         var cached = await reopened.OpenSnapshotAsync(RootUrl);

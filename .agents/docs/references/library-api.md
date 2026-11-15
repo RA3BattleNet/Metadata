@@ -123,7 +123,7 @@ var revision = client.ImageRevision(root, imageId);
 
 行为要点：
 
-- `OpenSnapshotAsync` 只读磁盘，状态只会是 `Stale` 或 `Unavailable`，不会是 `Fresh`。
+- `OpenSnapshotAsync` 只读磁盘，状态只会是 `Stale` 或 `Unavailable`，不会是 `Fresh`。它把缓存目录当只读 XML 源现场组合：缺文件、坏正文或路径归属不符都返回 `Unavailable`，不发网络。
 - `RefreshRootAsync` 对 http(s) 发条件 GET，对本地路径与 `file://` 读当前文件，成功才是 `Fresh`。
 - `GetCachedPackageAsync` 不发请求、不等待在途请求；外部 body 缺失返回 `Unavailable`，内联 body 来自捕获快照。
 - `PreloadLeavesAsync` 的可用文档包含缓存回退，不代表本轮联网确认成功。
@@ -137,11 +137,9 @@ The client exposes `Task<LeafResult> GetPackageAsync/GetCachedPackageAsync/Refre
 
 Inline results use the snapshot's ManifestNode/ManifestEntry, have null SourceUri, and inherit snapshot.Status in all three operations. A complete Fresh root therefore permits Fresh inline data without a fake HTTP request; Stale root never becomes Fresh. External package access verifies Raw membership and Source binding; external cached-only reads remain Stale. Preload handles both forms and does not claim independent network freshness for inline data.
 
-Runtime refresh acquires every XML through IMetadataTransfer and composes it through Reader CustomSource, including leaves. Root 304 still revalidates children. Only a complete graph publishes the normalized snapshot; failures retain the last complete graph, and offline open uses no network. One private normalized snapshot record is separate from URL-mapped raw bodies and their validators. Never attach a raw HTTP ETag to transformed bytes. There is no raw-flat preservation, strict-parser input split or old-cache migration fallback. Current `.uri`/`.etag` ownership and integrity remain safety functionality. The parent verifies these behaviors against the new contract before recording evidence.
+Runtime refresh acquires every XML through IMetadataTransfer and composes it through Reader CustomSource, including leaves. Root 304 still revalidates children. A failed refresh publishes nothing: the previous root stays in memory and the cached bodies keep their last valid bytes. Offline open uses no network. No normalized copy is stored: an offline read composes the cached bodies through Reader with the cache directory as a read-only IMetadataXmlSource, so the result is what the current cached bodies compose to under the requested SourceRoot, not the document last served. Never attach a raw HTTP ETag to transformed bytes. Current `.uri`/`.etag` ownership and integrity remain safety functionality.
 
-The single private `.compositions` record carries Origin, SourceRoot, normalized Root/Sha256 and captured raw-document digests. Every root entry point uses that same complete-record contract; raw publication-tree bodies are inputs for XML conditional revalidation, not an alternate normalized snapshot. External bodies require exact canonical ID, and SourceManifest's sole resolver is `Resolve(MetadataReadResult declaration, Metadata package)`, preserving the declaration context instead of inferring it from a URI or local-name suffix.
-
-Normalized snapshot keys include both SourceRoot context and document URI, identically in memory and on disk. A shared external leaf under two roots therefore retains each root's canonical identity across cold offline reopening. Raw URI-mapped body/ETag reuse remains separate from contextual normalized identity. HTTP relative document paths retain percent escapes until PathPrefix decodes segments once, keeping direct HTTP and cache qualification identical. A Manifest without Source is full even when its body is empty/default; full/empty is not inferred from child count.
+Document identity is still `(SourceRoot, URI)`, now derived instead of stored: the same cached leaf read under two source roots keeps each root's canonical IDs. Raw URI-mapped body/ETag reuse stays separate from that contextual identity. A body owned by another URI, an unparseable body or a missing included document makes the read `Unavailable` rather than falling back to a partial document. HTTP relative document paths retain percent escapes until PathPrefix decodes segments once, keeping direct HTTP and cache qualification identical. A Manifest without Source is full even when its body is empty/default; full/empty is not inferred from child count.
 
 ## 五、下载边界
 

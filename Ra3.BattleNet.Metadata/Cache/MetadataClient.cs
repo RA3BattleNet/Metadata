@@ -142,6 +142,7 @@ public sealed partial class MetadataClient : IDisposable
         if (!TryResolvePackage(snapshot.Document, snapshot.OriginUri, package, out var canonical, out var manifestId))
             return LeafUnavailable(null, "Package has no valid manifest Source");
         var source = new Uri(canonical);
+        _disk?.EnsureCacheable(source);
         if (cachedOnly)
         {
             if (TryMemoryLeaf(source, SourceRoot(snapshot)) is { } memory && (_disk is not null || !source.IsFile))
@@ -291,13 +292,8 @@ public sealed partial class MetadataClient : IDisposable
 
     private async Task<LeafDoc> ReadOrFetchLeafAsync(Uri leaf, string sourceRoot, CancellationToken ct)
     {
-        var disk = _disk?.TryReadSnapshot(leaf, sourceRoot);
-        if (disk is not null)
-        {
-            var loaded = StoreParsedLeaf(leaf, sourceRoot, disk.Bytes, disk.Digest, MetadataFreshness.Stale, error: null);
-            if (loaded is not null)
-                return loaded;
-        }
+        if (ReadCachedLeaf(leaf, sourceRoot) is { } cached)
+            return cached;
 
         return await Share(_leafFlights, LeafKey(leaf, sourceRoot), token => FetchLeafDocumentAsync(leaf, sourceRoot, token), CancellationToken.None)
             .WaitAsync(ct)
@@ -352,13 +348,10 @@ public sealed partial class MetadataClient : IDisposable
                 : ProjectCached(live, manifestId);
         }
 
-        var disk = _disk.TryReadSnapshot(leaf, sourceRoot);
-        if (disk is null)
-            return LeafUnavailable(leaf, "本地没有可用的叶子清单缓存");
-        var loaded = StoreParsedLeaf(leaf, sourceRoot, disk.Bytes, disk.Digest, MetadataFreshness.Stale, error: null);
-        return loaded is null
-            ? LeafUnavailable(leaf, "本地叶子清单缓存无法解析")
-            : ProjectCached(loaded, manifestId);
+        var cached = ReadCachedLeaf(leaf, sourceRoot);
+        return cached is null
+            ? LeafUnavailable(leaf, HasCachedBody(leaf) ? "本地叶子清单缓存无法解析" : "本地没有可用的叶子清单缓存")
+            : ProjectCached(cached, manifestId);
     }
 
     private Task<LeafDoc?> ReadLiveFileLeafAsync(Uri leaf, string sourceRoot, CancellationToken ct)
@@ -384,6 +377,53 @@ public sealed partial class MetadataClient : IDisposable
         }
     }
 
+
+    /// <summary>
+    /// 离线读一份文档：缓存目录就是发布树的镜像，把引用结构交给 Reader 现场组合。
+    /// 缺文件、归属不属于这个地址或组合失败都返回 null，由调用方决定是回落到网络还是判不可用。
+    /// </summary>
+    private MetadataReadResult? ReadCachedDocument(Uri entry, string sourceRoot)
+    {
+        if (_disk is null)
+            return null;
+        try
+        {
+            return MetadataReader.Read(entry.AbsoluteUri, new MetadataSourceOptions
+            {
+                SourceRoot = sourceRoot,
+                CustomSource = new CachedSource(_disk),
+            });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or XmlException
+            or InvalidOperationException or ArgumentException or UriFormatException)
+        {
+            return null;
+        }
+    }
+
+    private LeafDoc? ReadCachedLeaf(Uri leaf, string sourceRoot, string? error = null)
+    {
+        var read = ReadCachedDocument(leaf, sourceRoot);
+        if (read is null || !TryAcceptLeaf(read.Root, out _))
+            return null;
+        var digest = GraphDigest(read);
+        return FindLeaf(LeafKey(leaf, sourceRoot), digest)
+            ?? StoreLeafDocument(leaf, sourceRoot, read.Root, digest, MetadataFreshness.Stale, error);
+    }
+
+    private bool HasCachedBody(Uri uri)
+    {
+        if (_disk is null)
+            return false;
+        try
+        {
+            return File.Exists(_disk.RootBodyPath(uri));
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or UriFormatException)
+        {
+            return false;
+        }
+    }
 
     private Task<RootSnapshotResult> OpenCore(Uri origin, CancellationToken ct)
     {
@@ -414,7 +454,7 @@ public sealed partial class MetadataClient : IDisposable
             if (catalogError is not null)
                 return RootFallback(origin, catalogError);
             var digest = GraphDigest(read);
-            await CommitGraphAsync(origin, read, documents, digest, ct).ConfigureAwait(false);
+            await CommitGraphAsync(documents, ct).ConfigureAwait(false);
             return RootOf(RememberRoot(origin, read.Root, digest), MetadataFreshness.Fresh, error: null);
 
         }
@@ -500,7 +540,7 @@ public sealed partial class MetadataClient : IDisposable
         }
     }
 
-    private async Task CommitGraphAsync(Uri origin, MetadataReadResult read, Dictionary<string, CapturedXml> documents, string digest, CancellationToken ct)
+    private async Task CommitGraphAsync(Dictionary<string, CapturedXml> documents, CancellationToken ct)
     {
         if (_disk is null)
             return;
@@ -522,11 +562,6 @@ public sealed partial class MetadataClient : IDisposable
                 throw;
             }
         }
-        _disk.CommitComposition(origin, read.SourceRoot, new XDocument(new XElement("Composition",
-            new XAttribute("Origin", origin.AbsoluteUri), new XAttribute("SourceRoot", read.SourceRoot), new XAttribute("Sha256", digest),
-            documents.Values.Select(item => new XElement("Document", new XAttribute("Uri", item.Uri.AbsoluteUri),
-                new XAttribute("Sha256", item.Stamp.Sha256))),
-            new XElement("Root", new XElement(read.Document.Root!)))));
     }
 
     private static string GraphDigest(MetadataReadResult read) =>
@@ -547,7 +582,7 @@ public sealed partial class MetadataClient : IDisposable
         return ReadXml(stream);
     }
 
-    internal static XDocument ReadXml(Stream stream)
+    private static XDocument ReadXml(Stream stream)
     {
         using var reader = XmlReader.Create(stream, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
         return XDocument.Load(reader);
@@ -561,9 +596,11 @@ public sealed partial class MetadataClient : IDisposable
 
     private RootMemory? ReadCompleteRoot(Uri origin)
     {
-        var snapshot = _disk?.TryReadSnapshot(origin, new Uri(origin, ".").AbsoluteUri);
-        return snapshot is null ? null
-            : FindRoot(origin, snapshot.Digest) ?? ParseRootBytes(origin, snapshot.Bytes, snapshot.Digest);
+        var read = ReadCachedDocument(origin, new Uri(origin, ".").AbsoluteUri);
+        if (read is null || !IsCatalog(read.Root))
+            return null;
+        var digest = GraphDigest(read);
+        return FindRoot(origin, digest) ?? RememberRoot(origin, read.Root, digest);
     }
 
     private async Task<LeafDoc> FetchLeafDocumentAsync(Uri leaf, string sourceRoot, CancellationToken ct)
@@ -576,7 +613,7 @@ public sealed partial class MetadataClient : IDisposable
             if (!TryAcceptLeaf(read.Root, out var error))
                 return LeafDocFallback(leaf, sourceRoot, error ?? "Invalid manifest document");
             var digest = GraphDigest(read);
-            await CommitGraphAsync(leaf, read, documents, digest, ct).ConfigureAwait(false);
+            await CommitGraphAsync(documents, ct).ConfigureAwait(false);
             return StoreLeafDocument(leaf, sourceRoot, read.Root, digest, MetadataFreshness.Fresh, error: null);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
@@ -615,6 +652,68 @@ public sealed partial class MetadataClient : IDisposable
         }
         public string GetFullPath(string path) => new Uri(entry, path.Replace('\\', '/')).AbsoluteUri;
         public bool IsPathRooted(string path) => Uri.TryCreate(path, UriKind.Absolute, out _) || Path.IsPathRooted(path);
+        private Uri DirectoryUri(string path)
+        {
+            var full = GetFullPath(path);
+            return new Uri(full.EndsWith('/') ? full : full + "/");
+        }
+    }
+
+    /// <summary>
+    /// 把磁盘缓存当成只读 XML 源：路径空间仍是入口 URI，落盘位置由 <see cref="MetadataDiskCache"/> 映射。
+    /// 路径已被别的地址占用、文件缺失或地址不是静态发布文件树时都算不可用。
+    /// </summary>
+    private sealed class CachedSource(MetadataDiskCache disk) : IMetadataXmlSource
+    {
+        public bool Exists(string path) => TryResolve(path, out var file) && File.Exists(file);
+
+        public XDocument LoadDocument(string path)
+        {
+            if (!TryResolve(path, out var file))
+                throw new IOException($"缓存里没有这份 XML：{path}");
+            using var stream = File.OpenRead(file);
+            return ReadXml(stream);
+        }
+
+        public string Combine(string basePath, string relativePath) =>
+            new Uri(DirectoryUri(basePath), relativePath.Replace('\\', '/')).AbsoluteUri;
+
+        public string? GetDirectoryName(string path) => new Uri(new Uri(GetFullPath(path)), ".").AbsoluteUri;
+
+        public string GetRelativePath(string fromPath, string toPath)
+        {
+            var from = DirectoryUri(fromPath);
+            var to = new Uri(GetFullPath(toPath));
+            if (from.IsFile && to.IsFile)
+                return Path.GetRelativePath(from.LocalPath, to.LocalPath).Replace('\\', '/');
+            if (from.Scheme != to.Scheme || from.Authority != to.Authority)
+                return to.AbsoluteUri;
+            return from.MakeRelativeUri(to).ToString();
+        }
+
+        public string GetFullPath(string path) => new Uri(path.Replace('\\', '/'), UriKind.Absolute).AbsoluteUri;
+
+        public bool IsPathRooted(string path) => Uri.TryCreate(path, UriKind.Absolute, out _);
+
+        private bool TryResolve(string path, out string file)
+        {
+            file = "";
+            try
+            {
+                var uri = new Uri(GetFullPath(path));
+                if (!uri.IsFile && uri.Scheme is not ("http" or "https"))
+                    return false;
+                if (disk.HasForeignOwner(uri))
+                    return false;
+                file = disk.RootBodyPath(uri);
+                return true;
+            }
+            catch (Exception ex) when (ex is ArgumentException or UriFormatException or IOException)
+            {
+                return false;
+            }
+        }
+
         private Uri DirectoryUri(string path)
         {
             var full = GetFullPath(path);
@@ -765,13 +864,8 @@ public sealed partial class MetadataClient : IDisposable
 
     private LeafDoc LeafDocFallback(Uri leaf, string sourceRoot, string error)
     {
-        var disk = _disk?.TryReadSnapshot(leaf, sourceRoot);
-        if (disk is not null)
-        {
-            var loaded = StoreParsedLeaf(leaf, sourceRoot, disk.Bytes, disk.Digest, MetadataFreshness.Stale, error);
-            if (loaded is not null)
-                return loaded;
-        }
+        if (ReadCachedLeaf(leaf, sourceRoot, error) is { } cached)
+            return cached;
 
         lock (_gate)
         {
@@ -786,21 +880,6 @@ public sealed partial class MetadataClient : IDisposable
         return new LeafDoc { Source = leaf, Status = MetadataFreshness.Unavailable, Error = error };
     }
 
-
-    private RootMemory? ParseRootBytes(Uri origin, byte[] bytes, string digest)
-    {
-        try
-        {
-            var document = ParseBytes(bytes);
-            if (!IsCatalog(document))
-                return null;
-            return RememberRoot(origin, document, digest);
-        }
-        catch (Exception ex) when (ex is XmlException or InvalidOperationException or IOException)
-        {
-            return null;
-        }
-    }
 
     private RootMemory RememberRoot(Uri origin, Metadata document, string digest)
     {
@@ -831,33 +910,6 @@ public sealed partial class MetadataClient : IDisposable
                 && string.Equals(item.Digest, digest, StringComparison.OrdinalIgnoreCase)
                 ? item
                 : null;
-        }
-    }
-
-    private LeafDoc? StoreParsedLeaf(Uri leaf, string sourceRoot, byte[] bytes, string digest, MetadataFreshness status, string? error)
-    {
-        var existing = FindLeaf(LeafKey(leaf, sourceRoot), digest);
-        if (existing is not null)
-        {
-            lock (_gate)
-            {
-                existing.Status = status;
-                existing.Error = error;
-            }
-
-            return existing;
-        }
-
-        try
-        {
-            var document = ParseBytes(bytes);
-            if (!TryAcceptLeaf(document, out _))
-                return null;
-            return StoreLeafDocument(leaf, sourceRoot, document, digest, status, error);
-        }
-        catch (Exception ex) when (ex is XmlException or InvalidOperationException or IOException)
-        {
-            return null;
         }
     }
 
@@ -1098,12 +1150,6 @@ public sealed partial class MetadataClient : IDisposable
     }
 
     private static bool IsCatalog(Metadata document) => CatalogError(document) is null;
-
-    private static Metadata ParseBytes(byte[] bytes)
-    {
-        using var stream = new MemoryStream(bytes, writable: false);
-        return MetadataParser.Load(stream);
-    }
 
 
     private static Uri RequireEntry(string metadataUrl)
