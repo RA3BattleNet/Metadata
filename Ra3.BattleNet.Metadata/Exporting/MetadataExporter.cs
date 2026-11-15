@@ -348,9 +348,24 @@ public static class MetadataExporter
                     File.Copy(uri?.IsFile == true ? uri.LocalPath : source, target);
             }
             foreach (var (relative, document) in xml)
+            {
+                TrimFormattingWhitespace(document.Root!);
                 document.Save(Target(relative));
+            }
             if (options.ConvertImages)
                 ImagePostProcessor.ApplyWebP(output, xml.Keys);
+        }
+
+        /// <summary>
+        /// 发布物按导出器统一缩进：去掉作者源文件里的空白文本节点，
+        /// 否则把源文件排版原样带进发布物，同一份数据会因缩进不同产出不同字节。
+        /// </summary>
+        private static void TrimFormattingWhitespace(XElement element)
+        {
+            foreach (var whitespace in element.DescendantNodes().OfType<XText>()
+                         .Where(text => string.IsNullOrWhiteSpace(text.Value))
+                         .ToArray())
+                whitespace.Remove();
         }
 
         private string Target(string relative)
