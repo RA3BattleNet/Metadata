@@ -63,7 +63,7 @@ public static class MetadataReader
 
     internal static bool IsExternalManifest(XElement element) => element.Name.LocalName == "Manifest"
         && element.Attribute("ID") != null
-        && !string.IsNullOrWhiteSpace(element.Attribute("Source")?.Value);
+        && !MetadataManifestBody.IsFull(element);
 
     internal static bool IsReference(XElement element) => element.Name.LocalName switch
     {
@@ -279,9 +279,9 @@ public static class MetadataReader
 
         private static XElement SelectManifest(XElement document, string id)
         {
-            var manifests = document.Descendants().Where(e => e.Name.LocalName == "Manifest" && e.Attribute("ID") != null).ToArray();
-            var exact = manifests.Where(e => string.Equals(e.Attribute("ID")!.Value, id, StringComparison.OrdinalIgnoreCase)).ToArray();
-            if (exact.Length == 1) return exact[0];
+            var manifests = document.Descendants().Where(e => e.Name.LocalName == "Manifest" && e.Attribute("ID") != null);
+            if (MetadataManifestBody.TrySelect(manifests, id, out var match))
+                return match!;
             throw new InvalidOperationException($"Manifest not found: {id}");
         }
     }

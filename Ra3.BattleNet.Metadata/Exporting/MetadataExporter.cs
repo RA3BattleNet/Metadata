@@ -169,7 +169,7 @@ public static class MetadataExporter
                 {
                     var id = (string)registration.Attribute("ID")!;
                     XElement leaf;
-                    if (IsFullManifest(registration))
+                    if (MetadataManifestBody.IsFull(registration))
                         leaf = new XElement(registration);
                     else
                         leaf = Manifest(source!, id);
@@ -233,16 +233,13 @@ public static class MetadataExporter
                 new VariableResolver().ReplaceInElement(root);
         }
 
-        private static bool IsFullManifest(XElement manifest) =>
-            string.IsNullOrWhiteSpace((string?)manifest.Attribute("Source"));
-
         private XElement Manifest(string source, string id)
         {
             if (!manifestCandidates.TryGetValue(source, out var full))
             {
                 IEnumerable<XElement> candidates;
                 if (documents.TryGetValue(source, out var captured) && captured.Includes.Count == 0
-                    && captured.NormalizedDocument.Root!.Elements("Manifest").Any(IsFullManifest))
+                    && captured.NormalizedDocument.Root!.Elements("Manifest").Any(MetadataManifestBody.IsFull))
                     candidates = captured.NormalizedDocument.Root!.Elements("Manifest");
                 else
                 {
@@ -264,14 +261,12 @@ public static class MetadataExporter
                     }
                     candidates = normalized.Root!.Elements("Manifest");
                 }
-                full = candidates.Where(IsFullManifest).ToArray();
+                full = candidates.Where(MetadataManifestBody.IsFull).ToArray();
                 manifestCandidates.Add(source, full);
             }
-            var matches = full.Where(manifest => string.Equals((string?)manifest.Attribute("ID"), id,
-                StringComparison.OrdinalIgnoreCase)).ToList();
-            if (matches.Count != 1)
+            if (!MetadataManifestBody.TrySelect(full, id, out var body))
                 throw new InvalidOperationException($"Expected one full manifest for {id} in {source}.");
-            var result = new XElement(matches[0]);
+            var result = new XElement(body!);
             result.Attribute("Source")?.Remove();
             return result;
         }
