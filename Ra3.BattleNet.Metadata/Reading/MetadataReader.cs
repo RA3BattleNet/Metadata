@@ -11,14 +11,17 @@ public static class MetadataReader
         var settings = options ?? new MetadataSourceOptions();
         if (settings.CustomSource is { } custom)
             return ReadCore(custom, pathOrUrl, settings);
-        if (IsHttp(pathOrUrl))
-        {
-            using var source = new HttpXmlSource(new Uri(new Uri(pathOrUrl), "."));
-            return ReadCore(source, pathOrUrl, settings);
-        }
         var path = Uri.TryCreate(pathOrUrl, UriKind.Absolute, out var uri) && uri.IsFile
             ? uri.LocalPath : pathOrUrl;
-        return ReadCore(new PhysicalFileXmlSource(), path, settings);
+        var source = MetadataXmlSource.For(path);
+        try
+        {
+            return ReadCore(source, path, settings);
+        }
+        finally
+        {
+            (source as IDisposable)?.Dispose();
+        }
     }
 
     internal static string ResolveInclude(IMetadataXmlSource source, string documentPath, string includeSource, string sourceRoot)

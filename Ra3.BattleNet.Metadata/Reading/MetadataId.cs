@@ -15,8 +15,18 @@ public static class MetadataId
         return Uri.UnescapeDataString(id[(id.LastIndexOf('/') + 1)..]);
     }
 
-    public static string PathPrefix(string absoluteFilePath, string sourceRoot) =>
-        PathPrefix(new PhysicalFileXmlSource(), absoluteFilePath, sourceRoot);
+    public static string PathPrefix(string absoluteFilePath, string sourceRoot)
+    {
+        var source = MetadataXmlSource.For(absoluteFilePath);
+        try
+        {
+            return PathPrefix(source, absoluteFilePath, sourceRoot);
+        }
+        finally
+        {
+            (source as IDisposable)?.Dispose();
+        }
+    }
 
     internal static string PathPrefix(IMetadataXmlSource source, string absoluteFilePath, string sourceRoot)
     {
