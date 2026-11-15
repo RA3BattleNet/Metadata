@@ -34,7 +34,8 @@
 | `Ra3.BattleNet.Metadata/Cache/IMetadataTransfer.cs` | 41 |
 | `Ra3.BattleNet.Metadata/Cache/LeafResult.cs` | 34 |
 | `Ra3.BattleNet.Metadata/Cache/MetadataCacheJsonContext.cs` | 16 |
-| `Ra3.BattleNet.Metadata/Cache/MetadataClient.cs` | 1679 |
+| `Ra3.BattleNet.Metadata/Cache/MetadataClient.cs` | 1208 |
+| `Ra3.BattleNet.Metadata/Cache/MetadataClient.Images.cs` | 484 |
 | `Ra3.BattleNet.Metadata/Cache/MetadataDiskCache.cs` | 837 |
 | `Ra3.BattleNet.Metadata/Cache/MetadataFreshness.cs` | 18 |
 | `Ra3.BattleNet.Metadata/Cache/RootSnapshotResult.cs` | 23 |
