@@ -19,12 +19,15 @@ public sealed class MetadataDocumentInfo
     {
         Path = path;
         RelativePath = relativePath;
-        Document = new XDocument(document);
         NormalizedDocument = new XDocument(document);
     }
     public string Path { get; }
     public string RelativePath { get; }
-    public XDocument Document { get; }
+
+    /// <summary>
+    /// 规范化后的文档副本：Source 已归一化、登记 ID 已按短 ID 规则限定、Include 指向绝对目标。
+    /// 读入的源文档可能被源缓存复用，所以这里复制一份供组合读取与导出改写。
+    /// </summary>
     public XDocument NormalizedDocument { get; }
     public IReadOnlyList<MetadataIncludeInfo> Includes => IncludeList;
     internal List<MetadataIncludeInfo> IncludeList { get; } = [];
