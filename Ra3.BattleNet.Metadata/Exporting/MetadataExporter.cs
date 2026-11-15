@@ -160,7 +160,7 @@ public static class MetadataExporter
         {
             if (!prepared.Add(destination))
                 return;
-            foreach (var registration in root.Descendants().Where(IsRegistration).ToList())
+            foreach (var registration in root.Descendants().Where(MetadataReader.IsRegistration).ToList())
             {
                 if (registration.Name.LocalName == "Image" && !string.IsNullOrWhiteSpace((string?)registration.Attribute("Url")))
                     continue;
@@ -251,7 +251,7 @@ public static class MetadataExporter
                         CustomSource = MetadataXmlSource.IsDefault(input.Source) ? null : input.Source
                     });
                     var normalized = leaf.Document;
-                    foreach (var registration in normalized.Descendants().Where(IsRegistration))
+                    foreach (var registration in normalized.Descendants().Where(MetadataReader.IsRegistration))
                     {
                         if (registration.Attribute("Source") is { } attribute)
                         {
@@ -365,8 +365,6 @@ public static class MetadataExporter
 
         private static string RelativeTo(string document, string resource) =>
             Path.GetRelativePath(Path.GetDirectoryName(document) is { Length: > 0 } directory ? directory : ".", resource).Replace('\\', '/');
-
-        private static bool IsRegistration(XElement element) => MetadataReader.IsRegistration(element);
 
     }
 }
