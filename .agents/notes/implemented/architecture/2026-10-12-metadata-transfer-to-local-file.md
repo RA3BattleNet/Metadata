@@ -2,6 +2,8 @@
 
 Status: implemented
 
+Related decision: [one composition core and layout-only exports](../../implemented/architecture/2026-11-07-composable-metadata.md) acquires composed graphs through the same IMetadataTransfer/staging boundary. Transfer ownership, validators and cancellation in this Decision remain applicable.
+
 ## Problem
 
 库原先自己内联 `HttpClient`，把响应正文读成字节再写缓存：传输不可替换（宿主无法插手代理、重试或平台网络栈），也没法“先把正文落到本地再解析”。服务端不稳时，宿主想要的是可替换的传输边界与一条“完整正文才发布”的路径，而不是库内部硬编码的字节中转。

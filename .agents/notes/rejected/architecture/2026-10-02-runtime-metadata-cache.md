@@ -2,6 +2,8 @@
 
 Status: rejected — replaced by the implemented XML-only runtime cache in [2026-10-04-metadata-xml-runtime.md](../../implemented/architecture/2026-10-04-metadata-xml-runtime.md)
 
+Related decision: [one composition core and layout-only exports](../../implemented/architecture/2026-11-07-composable-metadata.md) explicitly retains this rejection. Minimal last-complete graph persistence does not revive the multiversion, lease or multiprocess runtime framework.
+
 ## Problem
 
 本提案原本想为根清单、包清单、媒体资源和跨进程快照建立统一缓存，并计划接入一个包含租约和回收机制的 `MetadataRuntime`。这比本次实际需求更宽：用户只要求 Desktop 与 Metadata 统一加载和解析 XML，图片、Markdown、大安装包以及 Updater 增量清单都不属于预加载范围。

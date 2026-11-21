@@ -2409,8 +2409,10 @@ Import your own mod XML to replace this sample.`;
     if (mod.getAttribute('InheritFrom')) {
       warn(`Mod 声明了 InheritFrom="${mod.getAttribute('InheritFrom')}"；本工具不解析 Base，预览只显示本文件里写出的字段。`);
     }
-    if (state.doc.documentElement.getAttribute('SchemaVersion')) {
-      warn('这个文件带 SchemaVersion，看起来是构建产物而不是源文件；导出后不能直接提交，请导入 mods/<id>/<id>.xml。');
+    const commitTag = direct(state.doc.documentElement, 'Tags');
+    const commitStamp = commitTag ? direct(commitTag, 'Commit') : null;
+    if (commitStamp && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(String(commitStamp.textContent || '').trim())) {
+      warn('这个文件的 Commit 已被构建替换成时间戳，是发布物而不是源文件；导出后不能直接提交，请导入 mods/<id>/<id>.xml。');
     }
     const hasIncludes = Boolean(direct(state.doc.documentElement, 'Includes'));
     const missingRef = (text) => {

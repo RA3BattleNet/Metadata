@@ -1,0 +1,318 @@
+using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace Ra3.BattleNet.Metadata.Tests;
+
+[TestClass]
+public class SchemaTests
+{
+    private static string RepoRoot =>
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+
+    [TestMethod]
+    public void Build_SampleTree_PassesSourceAndPublishSchema()
+    {
+        var src = Path.Combine(RepoRoot, "Metadata");
+        var dst = Path.Combine(Path.GetTempPath(), $"schema-ok-{Guid.NewGuid():N}");
+        try
+        {
+            MetadataBuilder.Build(src, dst);
+            var flat = Path.Combine(dst, "metadata.xml");
+            File.Exists(flat).Should().BeTrue();
+
+            var publishSchema = Path.Combine(src, SchemaValidator.PublishSchemaFileName);
+            SchemaValidator.ValidateFile(flat, publishSchema).Should().BeEmpty();
+
+            var loaded = MetadataReader.Read(flat).Root;
+            loaded.Applications().Should().Contain(a => a.Id == "RA3BattleNet");
+            loaded.Mods().Should().Contain(m => m.Id == "Corona");
+            loaded.Get("SchemaVersion").Should().NotBeNullOrWhiteSpace();
+        }
+        finally
+        {
+            if (Directory.Exists(dst))
+                Directory.Delete(dst, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    [DataRow("", true)]
+    [DataRow(" FileName=\"AR_3.370.skudef\"", true)]
+    [DataRow(" FileName=\"AR_legacy.skudef\"", true)]
+    [DataRow(" FileName=\"\"", false)]
+    [DataRow(" FileName=\"   \"", false)]
+    [DataRow(" FileName=\"&#x9;&#xA;&#xD;\"", false)]
+    public void SourceSchema_SkudefFileName_RejectsOnlyEmptyDeclarations(string attribute, bool valid)
+    {
+        var schema = Path.Combine(RepoRoot, "Metadata", SchemaValidator.SourceSchemaFileName);
+        var path = Path.Combine(Path.GetTempPath(), $"skudef-name-{Guid.NewGuid():N}.xml");
+        try
+        {
+            File.WriteAllText(path,
+                $"<Metadata><Manifest ID=\"m\"><Skudef{attribute}><AddBig File=\"core.big\" /></Skudef></Manifest></Metadata>");
+            var errors = SchemaValidator.ValidateFile(path, schema);
+            if (valid)
+                errors.Should().BeEmpty();
+            else
+                errors.Should().Contain(error => error.Contains("FileName", StringComparison.Ordinal));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public void SourceSchema_AcceptsNoneAlgorithmAndZipCompression()
+    {
+        var schema = Path.Combine(RepoRoot, "Metadata", SchemaValidator.SourceSchemaFileName);
+        var path = Path.Combine(Path.GetTempPath(), $"schema-none-zip-{Guid.NewGuid():N}.xml");
+        try
+        {
+            File.WriteAllText(path, """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata>
+  <Manifest ID="manifest-none" HashAlgorithm="None">
+    <File DownloadName="WebView2Runtime.zip" Compression="zip">
+      <FileName>WebView2Runtime</FileName>
+      <RelativePath>/</RelativePath>
+      <KindOf>WEBVIEWRUNTIME</KindOf>
+      <Sources><Source Type="BT" Url="https://example.com/WebView2Runtime.zip.torrent" /></Sources>
+    </File>
+  </Manifest>
+</Metadata>
+""");
+            SchemaValidator.ValidateFile(path, schema).Should().BeEmpty("None 与 zip 是合法取值，且 File@Hash 可省略");
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public void Build_ApplicationMissingId_FailsSourceSchema()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"schema-bad-{Guid.NewGuid():N}");
+        var src = Path.Combine(temp, "src");
+        var dst = Path.Combine(temp, "out");
+        Directory.CreateDirectory(src);
+        try
+        {
+            // 最小可拷贝 schema
+            File.Copy(
+                Path.Combine(RepoRoot, "Metadata", SchemaValidator.SourceSchemaFileName),
+                Path.Combine(src, SchemaValidator.SourceSchemaFileName));
+            File.Copy(
+                Path.Combine(RepoRoot, "Metadata", SchemaValidator.PublishSchemaFileName),
+                Path.Combine(src, SchemaValidator.PublishSchemaFileName));
+
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata SchemaVersion="1.0">
+  <Application>
+    <Version>1.0</Version>
+  </Application>
+</Metadata>
+""");
+
+            var act = () => MetadataBuilder.Build(src, dst);
+            act.Should().Throw<InvalidOperationException>()
+                .WithMessage("*XSD*");
+            Directory.Exists(dst).Should().BeFalse();
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Build_ApplicationTransferAd_OptionalBooleanAccepted_InvalidRejected()
+    {
+        static string WriteTree(string temp, string application)
+        {
+            var src = Path.Combine(temp, "src");
+            Directory.CreateDirectory(src);
+            File.Copy(
+                Path.Combine(RepoRoot, "Metadata", SchemaValidator.SourceSchemaFileName),
+                Path.Combine(src, SchemaValidator.SourceSchemaFileName));
+            File.Copy(
+                Path.Combine(RepoRoot, "Metadata", SchemaValidator.PublishSchemaFileName),
+                Path.Combine(src, SchemaValidator.PublishSchemaFileName));
+            File.WriteAllText(Path.Combine(src, "metadata.xml"), $"""
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata SchemaVersion="1.0">
+  {application}
+</Metadata>
+""");
+            return src;
+        }
+
+        // true / 1 与整体缺失都必须放行；非法布尔值被源 XSD 硬拦截
+        var cases = new (string Name, string App, bool Ok)[]
+        {
+            ("true", """<Application ID="A"><Version>1.0</Version><DisplayName Language="zh">甲</DisplayName><DisplayName Language="en">A</DisplayName><TransferAd>true</TransferAd></Application>""", true),
+            ("one", """<Application ID="A"><DisplayName Language="zh">甲</DisplayName><DisplayName Language="en">A</DisplayName><TransferAd>1</TransferAd></Application>""", true),
+            ("missing", """<Application ID="A"><Version>1.0</Version><DisplayName Language="zh">甲</DisplayName><DisplayName Language="en">A</DisplayName></Application>""", true),
+            ("invalid", """<Application ID="A"><DisplayName Language="zh">甲</DisplayName><DisplayName Language="en">A</DisplayName><TransferAd>yes</TransferAd></Application>""", false),
+        };
+
+        foreach (var (name, app, ok) in cases)
+        {
+            var temp = Path.Combine(Path.GetTempPath(), $"schema-transfer-{name}-{Guid.NewGuid():N}");
+            var src = WriteTree(temp, app);
+            var dst = Path.Combine(temp, "out");
+            try
+            {
+                if (ok)
+                {
+                    MetadataBuilder.Build(src, dst);
+                    SchemaValidator
+                        .ValidateFile(Path.Combine(dst, "metadata.xml"),
+                                      Path.Combine(src, SchemaValidator.PublishSchemaFileName))
+                        .Should().BeEmpty();
+                }
+                else
+                {
+                    var act = () => MetadataBuilder.Build(src, dst);
+                    act.Should().Throw<InvalidOperationException>().WithMessage("*XSD*");
+                    Directory.Exists(dst).Should().BeFalse();
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(temp))
+                    Directory.Delete(temp, recursive: true);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void Build_EntityDisplayNames_RequiresExactZhEn_UniqueAndNonBlank()
+    {
+        var cases = new (string DisplayNames, string? Fragment, string[] Expected)[]
+        {
+            ("""
+<DisplayName Language="zh">甲</DisplayName>
+""", "缺少 en", []),
+            ("""
+<DisplayName Language="zh">甲</DisplayName>
+<DisplayName Language="en">A</DisplayName>
+<DisplayName Language="ZH">乙</DisplayName>
+""", "Language 重复", []),
+            ("""
+<DisplayName Language="zh">甲</DisplayName>
+<DisplayName Language="en"> </DisplayName>
+""", "文本不能为空", []),
+            ("""
+<DisplayName Language="zh-CN">甲</DisplayName>
+<DisplayName Language="en-US">A</DisplayName>
+""", "缺少 zh DisplayName", []),
+            ("""
+<DisplayName Language="zh">甲</DisplayName>
+<DisplayName Language="en">A</DisplayName>
+""", null, ["zh", "en"]),
+            // 完整语言标签比较不区分大小写
+            ("""
+<DisplayName Language="ZH">甲</DisplayName>
+<DisplayName Language="EN">A</DisplayName>
+""", null, ["ZH", "EN"]),
+        };
+
+        foreach (var (displayNames, fragment, expected) in cases)
+        {
+            var temp = Path.Combine(Path.GetTempPath(), $"schema-displayname-{Guid.NewGuid():N}");
+            var src = Path.Combine(temp, "src");
+            var dst = Path.Combine(temp, "out");
+            Directory.CreateDirectory(src);
+            try
+            {
+                foreach (var name in new[] { SchemaValidator.SourceSchemaFileName, SchemaValidator.PublishSchemaFileName })
+                {
+                    File.Copy(
+                        Path.Combine(RepoRoot, "Metadata", name),
+                        Path.Combine(src, name));
+                }
+
+                File.WriteAllText(Path.Combine(src, "metadata.xml"), $"""
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata SchemaVersion="1.0">
+  <Mod ID="M">
+{displayNames}  </Mod>
+</Metadata>
+""");
+
+                if (fragment == null)
+                {
+                    MetadataBuilder.Build(src, dst);
+                    MetadataReader.Read(Path.Combine(dst, "metadata.xml")).Root.Mods().Single().DisplayNames
+                        .Select(d => d.Language).Should().Equal(expected);
+                }
+                else
+                {
+                    var act = () => MetadataBuilder.Build(src, dst);
+                    act.Should().Throw<InvalidOperationException>().WithMessage($"*{fragment}*");
+                    Directory.Exists(dst).Should().BeFalse("半残输出应被清理");
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(temp))
+                    Directory.Delete(temp, recursive: true);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void PublishSchema_RejectsManifestWithoutSource()
+    {
+        var schema = Path.Combine(RepoRoot, "Metadata", SchemaValidator.PublishSchemaFileName);
+        var temp = Path.Combine(Path.GetTempPath(), $"pub-bad-{Guid.NewGuid():N}.xml");
+        try
+        {
+            File.WriteAllText(temp, """
+<?xml version="1.0" encoding="UTF-8"?>
+<Metadata SchemaVersion="1.0">
+  <Manifest ID="m1" />
+</Metadata>
+""");
+            var errors = SchemaValidator.ValidateFile(temp, schema);
+            errors.Should().NotBeEmpty();
+            string.Join(" ", errors).Should().Contain("Source");
+        }
+        finally
+        {
+            if (File.Exists(temp)) File.Delete(temp);
+        }
+    }
+
+    [TestMethod]
+    public void ConsumerParse_CatalogResolvesIdsAndResources()
+    {
+        var src = Path.Combine(RepoRoot, "Metadata");
+        var dst = Path.Combine(Path.GetTempPath(), $"parse-{Guid.NewGuid():N}");
+        try
+        {
+            MetadataBuilder.Build(src, dst);
+            var doc = MetadataReader.Read(Path.Combine(dst, "metadata.xml")).Root;
+
+            var app = doc.Catalog().Application("RA3BattleNet");
+            app.Should().NotBeNull();
+            app!.Packages.Should().NotBeEmpty();
+            var manifestId = app.Packages[0].ManifestId;
+            manifestId.Should().NotBeNullOrWhiteSpace();
+
+            var reg = doc.GetAllElements("Manifest").First(m => m.Get("ID") == manifestId);
+            var rel = reg.Get("Source")!;
+            rel.Replace('\\', '/').Should().Contain("manifests/");
+            File.Exists(Path.Combine(dst, rel.Replace('/', Path.DirectorySeparatorChar))).Should().BeTrue();
+        }
+        finally
+        {
+            if (Directory.Exists(dst))
+                Directory.Delete(dst, recursive: true);
+        }
+    }
+}
