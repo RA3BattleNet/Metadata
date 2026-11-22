@@ -37,10 +37,10 @@ npm run preview         # 本地用 wrangler 起静态服务看产物
 
 | 目标 | 入口 | 说明 |
 |---|---|---|
-| EdgeOne | `.github/workflows/deploy.yml` | push 到 `main` 后执行 `bash build.sh --webp --content-revision=${{ github.sha }}`，再 `npx edgeone makers deploy ./Output` |
+| EdgeOne | `.github/workflows/deploy.yml` | push 到 `main` 后执行 `bash build.sh --webp`，再 `npx edgeone makers deploy ./Output` |
 | Cloudflare Workers | `npm run deploy`（`wrangler.toml`） | 本地构建后执行 `wrangler deploy`，静态资源来自 `Output/` |
 
-`build.sh` 自己下载 .NET 10 到 `./dotnet`，再调用命令行构建；`--content-revision=` 用来把提交标识写进根节点。
+`build.sh` 自己下载 .NET 10 到 `./dotnet`，再调用命令行构建；构建不带版本参数，也不追加修订标记。
 
 `_redirects`、`edgeone.json`、`editor.html` 如果存在于源目录，会原样复制到输出。
 
