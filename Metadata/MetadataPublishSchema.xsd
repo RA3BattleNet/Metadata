@@ -14,7 +14,6 @@
       <xs:element name="Manifest" type="ManifestStubType"/>
     </xs:choice>
     <xs:attribute name="SchemaVersion" type="xs:string" use="required"/>
-    <xs:attribute name="ContentRevision" type="xs:string" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="TagsType">

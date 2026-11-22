@@ -7,11 +7,10 @@ using System.Text.Json.Serialization.Metadata;
 namespace Ra3.BattleNet.Metadata.Cache;
 
 /// <summary>
-/// 最后一份校验合法的 XML 与图片。正文按**发布文件树**落盘：第一次绑定的主发布基直接映射到缓存目录，
-/// 其余发布基放在可读的 <c>.sources</c> 子树，带查询串的地址放进 <c>.requests</c> 保留区。每个正文旁的
-/// <c>.etag</c> 记录规范化 URI、正文 SHA256、图片响应类型与条件请求校验器。校验器缺失时正文仍可离线读取；
-/// 路径归属写在一次成型的 <c>.uri</c> 旁挂文件里，所以同一磁盘路径上属于**另一个地址**的正文既不会被误读，
-/// 也不会被覆盖。
+/// 最后一份合法正文与图片，按发布文件树落盘。XML 正文既做条件重验，也是离线读取的唯一来源：
+/// 读的时候把这份缓存当成只读 XML 源，按引用结构现场组合，不另存规范化结果。
+/// 首次绑定的发布基直接映射到缓存目录，其余发布基放在 <c>.sources</c>，图片查询串放在 <c>.requests</c>。
+/// <c>.etag</c> 将原始正文 SHA256 与响应校验器配对，<c>.uri</c> 保存路径归属，防止其他地址误读或覆盖。
 /// </summary>
 /// <remarks>
 /// <code>
@@ -176,7 +175,42 @@ internal sealed class MetadataDiskCache
 
     public string RootBodyPath(Uri origin) => BodyPath(Canonicalize(origin));
 
+    /// <summary>
+    /// 只做缓存路径映射的合法性检查，不碰任何文件：会占用保留命名空间、旁挂后缀或越界的地址在这里直接拒绝。
+    /// </summary>
+    public void EnsureCacheable(Uri entry) => _ = BodyPath(Canonicalize(entry));
+
     public string LeafBodyPath(Uri leaf) => BodyPath(Canonicalize(leaf));
+
+    public void ValidateGraphPaths(IEnumerable<Uri> uris)
+    {
+        var comparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var files = new HashSet<string>(comparer);
+        foreach (var uri in uris)
+        {
+            if (HasForeignOwner(uri))
+                throw new IOException("Cache URI ownership mismatch");
+            var path = RootBodyPath(uri);
+            foreach (var file in new[] { path, path + ".uri", path + ".etag", path + ".tmp" })
+            {
+                if (!files.Add(file) || Directory.Exists(file))
+                    throw new IOException("Captured XML cache paths collide");
+                for (var parent = Path.GetDirectoryName(file); parent is not null; parent = Path.GetDirectoryName(parent))
+                {
+                    if (File.Exists(parent))
+                        throw new IOException("Captured XML cache path has a file ancestor");
+                    if (Directory.Exists(parent) && (File.GetAttributes(parent) & FileAttributes.ReparsePoint) != 0)
+                        throw new IOException("Captured XML cache path cannot use filesystem links");
+                }
+                if (File.Exists(file) && (File.GetAttributes(file) & FileAttributes.ReparsePoint) != 0)
+                    throw new IOException("Captured XML cache path cannot use filesystem links");
+            }
+        }
+        foreach (var file in files)
+            for (var parent = Path.GetDirectoryName(file); parent is not null; parent = Path.GetDirectoryName(parent))
+                if (files.Contains(parent))
+                    throw new IOException("Captured XML cache paths overlap");
+    }
 
     /// <summary>
     /// 图片正文路径。相对 Source 图片与 XML 共用发布文件树；带查询串的地址按完整请求 URI 的
@@ -196,10 +230,15 @@ internal sealed class MetadataDiskCache
         return TryReadBody(BodyPath(canonical), canonical.AbsoluteUri, requireValidators: true);
     }
 
-    public DiskBody? TryReadLeaf(Uri leaf)
+    public bool HasForeignOwner(Uri origin)
     {
-        var canonical = Canonicalize(leaf);
-        return TryReadBody(BodyPath(canonical), canonical.AbsoluteUri, requireValidators: true);
+        var canonical = Canonicalize(origin);
+        var path = BodyPath(canonical);
+        var stamp = ReadStamp(path + ".etag");
+        var (exists, owner) = ReadOwner(path + ".uri");
+        return (stamp is not null && !string.IsNullOrEmpty(stamp.Uri)
+                && !string.Equals(stamp.Uri, canonical.AbsoluteUri, StringComparison.Ordinal))
+            || (exists && !string.Equals(owner, canonical.AbsoluteUri, StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -726,7 +765,7 @@ internal sealed class CacheStamp
 
     public string Sha256 { get; set; } = "";
 
-    /// <summary>图片响应类型。XML 正文不写这个字段，缺失时按旧缓存处理。</summary>
+    /// <summary>图片响应类型；XML 正文不写这个字段。</summary>
     public string? ContentType { get; set; }
 }
 

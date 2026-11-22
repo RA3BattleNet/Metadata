@@ -15,7 +15,7 @@ public sealed record LeafResult(
     Metadata? Document,
     Metadata? ManifestNode,
     ManifestEntry? Entry,
-    Uri SourceUri,
+    Uri? SourceUri,
     MetadataFreshness Status,
     string? Error);
 

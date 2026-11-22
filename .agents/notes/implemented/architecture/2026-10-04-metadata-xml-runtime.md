@@ -2,6 +2,8 @@
 
 Status: implemented
 
+Related decision: [one composition core and layout-only exports](../../implemented/architecture/2026-11-07-composable-metadata.md) partially overlaps the runtime root boundary: complete composed graphs and inline package access reuse transfer/cache ownership. This historical strict-parser Decision and its evidence are preserved, not silently rewritten.
+
 ## Problem
 
 `MetadataBuilder.Load` 的 HTTP 路径每次下载并解析临时文件，不保存运行时缓存。Desktop 的应用、模组和更新检查各自读取同一份根目录，重复下载；断网时也没有根目录可供展示。包清单登记存根不是完整文件表，Updater 的增量清单也不是包清单，不能把三者当成同一种模型。
